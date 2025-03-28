@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Charakterbogen</title>
+    <link rel="stylesheet" href="pokemonSheet.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Pokémon Charakterbogen</h1>
+        <div class="action-buttons">
+            <button id="save-pokemon-button" class="action-button save-button">Pokémon Speichern</button>
+            <button id="load-pokemon-button" class="action-button load-button">Pokémon Laden</button>
+        </div>
+        
+        <!-- Pokémon-Auswahl -->
+        <div class="select-container">
+            <label for="pokemon-select" class="select-label">Pokémon auswählen:</label>
+            <select id="pokemon-select" class="pokemon-select">
+                <option value="">-- Pokémon auswählen --</option>
+                <!-- Wird mit JavaScript gefüllt -->
+            </select>
+        </div>
+
+        <!-- Pokémon Sheet Container (wird mit JavaScript gefüllt) -->
+        <div id="pokemon-sheet-container"></div>
+    </div>
+
+    <!-- Module importieren -->
+    <script src="pokemonSheetConstants.js"></script>
+    <script src="pokemonSheetUtils.js"></script>
+    <script src="pokemonSheetModels.js"></script>  <!-- AppState zuerst laden -->
+    <script src="translationService.js"></script>
+    <script src="diceCalculator.js"></script>
+    <script src="pokemonSheetUIRenderer.js"></script>
+    <script src="pokemonSheetApiService.js"></script>
+    <script src="pokemonSheetPdfService.js"></script>
+    <script src="abilityService.js"></script>
+    <script src="storageService.js"></script>
+    <script src="pokemonSheetApp.js"></script>
+    <script src="searchableSelect.js"></script>
+    <script src="woundsComponent.js"></script>
+    <script src="jsonExportService.js"></script>
+    <script src="jsonImportService.js"></script>
+</body>
+</html>
