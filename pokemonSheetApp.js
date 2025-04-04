@@ -1,5 +1,6 @@
 /**
- * Hauptklasse für die Pokemon Sheet Creator Anwendung
+ * Optimierte Hauptklasse für die Pokemon Sheet Creator Anwendung
+ * mit einheitlichem Timing-Modell und effizienterem Laden
  */
 class PokemonSheetApp {
     /**
@@ -13,14 +14,25 @@ class PokemonSheetApp {
         this.translationService = new TranslationService();
         this.apiService = new ApiService(this.appState);
         this.uiRenderer = new UiRenderer(this.appState);
-    
-        // StorageService initialisieren
         this.storageService = new StorageService(this.appState);
         
-        // Evolutionsdaten für die Würfelklassenberechnung
-        this.evolutionData = new Map();
+        // Status-Tracking für Ladeoperationen
+        this.isLoading = false;
+        this.loadingOperations = {
+            pokemonList: false,
+            pokemonDetails: false,
+            moves: false
+        };
         
-        // PDF-Service initialisieren (später)
+        // Einheitliche Verzögerungszeiten in Millisekunden
+        this.timing = {
+            short: 100,    // Kurze Verzögerung für UI-Updates
+            medium: 300,   // Mittlere Verzögerung für einfache Datenverarbeitungen
+            long: 500,     // Längere Verzögerung für komplexere Operationen
+            extraLong: 1000 // Sehr lange Verzögerung für umfangreiche Operationen
+        };
+        
+        // Service-Initialisierung
         this.pdfService = null;
         
         // Event-Listener initialisieren
@@ -30,45 +42,50 @@ class PokemonSheetApp {
     /**
      * Anwendung starten
      */
-    async init() {        
-        // Ladeindikator anzeigen
-        this._showLoadingIndicator();
+    async init() {
+        console.log("PokemonSheetApp wird initialisiert...");
+        
+        this._setLoadingState(true, "Pokémon-Liste wird geladen");
         
         try {
             // Pokemon-Liste laden
+            this.loadingOperations.pokemonList = true;
             await this.apiService.fetchPokemonList();
-            
-            // Ladeindikator entfernen
-            this._hideLoadingIndicator();
+            this.loadingOperations.pokemonList = false;
             
             // UI initialisieren
             this.uiRenderer.renderPokemonSelect();
             
-            // PDF-Service verzögert initialisieren
-            setTimeout(() => {
-                try {
-                    this.pdfService = new PdfService(this.appState, this.uiRenderer);
-                    console.log('PDF-Service erfolgreich initialisiert');
-                } catch (pdfError) {
-                    console.error('Fehler bei der PDF-Service-Initialisierung:', pdfError);
-                }
-            }, 1000); // 1 Sekunde warten
-                        
-            // Versuche, den zuletzt geöffneten Charakterbogen zu laden
-            // Wichtig: Wir warten bis die Pokémon-Liste vollständig geladen ist
-            setTimeout(() => {
-                this._tryLoadLastSheet();
-            }, 500);
+            // PDF-Service initialisieren
+            this._initPdfService();
             
+            // Versuch, den zuletzt geöffneten Charakterbogen zu laden
+            this._tryLoadLastSheet();
+            
+            console.log("Pokemon App erfolgreich initialisiert");
         } catch (error) {
-            console.error("Fehler beim Laden der Pokémon-Liste:", error);
-            // Bei Fehler trotzdem Ladeindikator entfernen und Fehlermeldung anzeigen
-            this._hideLoadingOverlay();
-            
-            const selectElement = document.getElementById(DOM_IDS.POKEMON_SELECT);
-            const errorOption = createElement('option', { value: "" }, "Fehler beim Laden der Pokémon-Daten");
-            selectElement.appendChild(errorOption);
+            console.error("Fehler bei der App-Initialisierung:", error);
+            this._showError("Fehler beim Laden der Pokémon-Liste. Bitte laden Sie die Seite neu.");
+        } finally {
+            this._setLoadingState(false);
         }
+    }
+    
+    /**
+     * Initialisiert den PDF-Service
+     * @private
+     */
+    _initPdfService() {
+        // PDF-Service verzögert initialisieren
+        setTimeout(() => {
+            try {
+                this.pdfService = new PdfService(this.appState, this.uiRenderer);
+                console.log('PDF-Service erfolgreich initialisiert');
+            } catch (pdfError) {
+                console.warn('PDF-Service konnte nicht initialisiert werden:', pdfError);
+                // Kein kritischer Fehler, UI weiterhin nutzbar
+            }
+        }, this.timing.extraLong);
     }
     
     /**
@@ -88,28 +105,20 @@ class PokemonSheetApp {
                     const optionExists = Array.from(selectElement.options).some(option => option.value === lastOpenedPokemonId);
                     
                     if (optionExists) {
+                        console.log(`Lade zuletzt geöffnetes Pokémon: ID ${lastOpenedPokemonId}`);
                         selectElement.value = lastOpenedPokemonId;
                         
                         // Change-Event auslösen, um das Pokemon zu laden
                         const event = new Event('change', { bubbles: true });
                         selectElement.dispatchEvent(event);
                     } else {
-                        console.warn(`Das Pokémon mit ID '${lastOpenedPokemonId}' wurde in der Liste nicht gefunden.`);
+                        console.warn(`Das zuletzt geöffnete Pokémon (ID: ${lastOpenedPokemonId}) wurde nicht in der Liste gefunden.`);
                     }
                 }
             }
-
-             // Nach kurzer Verzögerung sicherstellen, dass die Freundschaftspunkte angezeigt werden
-            setTimeout(() => {
-                if (this.appState && this.appState.tallyMarks) {
-                    console.log("Zeige Freundschaftspunkte nach Seiten-Reload:", this.appState.tallyMarks);
-                    if (typeof window.renderTallyMarks === 'function') {
-                        window.renderTallyMarks(this.appState.tallyMarks);
-                    }
-                }
-            }, 2000); // Längere Verzögerung, um sicherzustellen, dass die UI vollständig geladen ist
         } catch (error) {
             console.error('Fehler beim Laden des zuletzt geöffneten Charakterbogens:', error);
+            // Kein kritischer Fehler, UI weiterhin nutzbar
         }
     }
     
@@ -119,7 +128,40 @@ class PokemonSheetApp {
      */
     _initEventListeners() {
         // Event-Listener für Pokemon-Auswahl
-        addEventListenerSafe('#' + DOM_IDS.POKEMON_SELECT, 'change', this._handlePokemonSelect.bind(this));
+        const selectElement = document.getElementById(DOM_IDS.POKEMON_SELECT);
+        if (selectElement) {
+            selectElement.addEventListener('change', this._handlePokemonSelect.bind(this));
+        } else {
+            console.warn("Pokémon-Select-Element nicht gefunden. Event-Listener konnten nicht initialisiert werden.");
+        }
+
+        // Event-Listener für Speichern/Laden-Buttons hinzufügen
+        this._initActionButtonsListeners();
+        
+        // Event für erfolgreiche Pokémon-Ladung erstellen
+        this.pokemonLoadedEvent = new CustomEvent('pokemonLoaded', {
+            bubbles: true,
+            detail: { success: true }
+        });
+    }
+
+    // Füge diese neue Methode hinzu:
+    /**
+     * Initialisiert Event-Listener für die Action-Buttons (Speichern/Laden)
+     * @private
+     */
+    _initActionButtonsListeners() {        
+        // PDF-Export-Button
+        const savePdfButton = document.getElementById('save-pdf-button');
+        if (savePdfButton) {
+            savePdfButton.addEventListener('click', () => {
+                if (this.pdfService) {
+                    this.pdfService.exportPdf();
+                } else {
+                    this._showError('PDF-Export-Service nicht verfügbar');
+                }
+            });
+        }
     }
     
     /**
@@ -128,14 +170,14 @@ class PokemonSheetApp {
      * @private
      */
     async _handlePokemonSelect(e) {
-        console.log("e: " + e);
         const pokemonId = parseInt(e.target.value, 10);
         
-        // Wenn kein Pokémon ausgewählt wurde, nichts tun
-        if (!pokemonId) return;
+        // Wenn kein Pokémon ausgewählt wurde oder bereits ein Ladevorgang läuft, nichts tun
+        if (!pokemonId || this.isLoading) return;
         
         // Auswahlmenü während des Ladens deaktivieren
         e.target.disabled = true;
+        this._setLoadingState(true, "Pokémon-Daten werden geladen");
         
         try {
             // WICHTIG: Strichliste zurücksetzen, wenn ein neues Pokémon gewählt wird
@@ -144,8 +186,21 @@ class PokemonSheetApp {
             // Alle Fertigkeitswerte auf Standardwert (0) zurücksetzen
             this._resetSkillValues();
             
-            // Pokemon-Details laden mit ID statt Name
+            // Wunden auf 0 zurücksetzen
+            if (typeof this.appState.setWounds === 'function') {
+                this.appState.setWounds(0);
+            } else if (this.appState.wounds !== undefined) {
+                this.appState.wounds = 0;
+            }
+            
+            // Pokemon-Details laden
+            this.loadingOperations.pokemonDetails = true;
             const pokemonData = await this.apiService.fetchPokemonDetails(pokemonId);
+            this.loadingOperations.pokemonDetails = false;
+            
+            if (!pokemonData) {
+                throw new Error(`Pokémon mit ID ${pokemonId} konnte nicht geladen werden.`);
+            }
             
             // Prüfen, ob gespeicherte Daten für dieses Pokemon existieren
             const savedSheet = this.storageService.loadSheet(pokemonId);
@@ -153,34 +208,51 @@ class PokemonSheetApp {
             // UI aktualisieren
             this.uiRenderer.renderPokemonSheet();
             
-            if (pokemonData) {            
-                // Attacken laden und UI aktualisieren
-                await this.apiService.fetchPokemonMoves(pokemonData);
-                this.uiRenderer.updateMoveSelects();
-                
-                // Wenn gespeicherte Daten existieren, diese anwenden
-                if (savedSheet) {
-                    this._applyLoadedSheet(savedSheet);
-                } else {
-                    // Strichliste-UI aktualisieren (leere Liste)
-                    if (typeof window.renderTallyMarks === 'function') {
-                        window.renderTallyMarks([]);
-                    } else if (this.uiRenderer && typeof this.uiRenderer._renderTallyMarks === 'function') {
-                        this.uiRenderer._renderTallyMarks();
-                    }
-                }
+            // Attacken laden und UI aktualisieren
+            this.loadingOperations.moves = true;
+            await this.apiService.fetchPokemonMoves(pokemonData);
+            this.loadingOperations.moves = false;
+            this.uiRenderer.updateMoveSelects();
+            
+            // Event auslösen, dass das Pokémon erfolgreich geladen wurde
+            document.dispatchEvent(this.pokemonLoadedEvent);
+            
+            // Wenn gespeicherte Daten existieren, diese anwenden
+            if (savedSheet) {
+                this._applyLoadedSheet(savedSheet);
+            } else {
+                // Strichliste-UI aktualisieren (leere Liste)
+                this._updateFriendshipDisplay();
             }
             
             // Speichern des zuletzt ausgewählten Pokemon
             if (pokemonId) {
                 localStorage.setItem('last_opened_pokemon', pokemonId.toString());
             }
+            
+            console.log(`Pokémon mit ID ${pokemonId} erfolgreich geladen`);
         } catch (error) {
             console.error("Fehler beim Laden der Pokémon-Details:", error);
+            this._showError(`Fehler beim Laden des Pokémon: ${error.message}`);
         } finally {
             // Auswahlmenü nach dem Laden wieder aktivieren
             e.target.disabled = false;
+            this._setLoadingState(false);
         }
+    }
+    
+    /**
+     * Aktualisiert die Anzeige der Freundschafts-Strichliste
+     * @private
+     */
+    _updateFriendshipDisplay() {
+        setTimeout(() => {
+            if (typeof window.renderTallyMarks === 'function') {
+                window.renderTallyMarks(this.appState.tallyMarks || []);
+            } else if (this.uiRenderer && typeof this.uiRenderer._renderTallyMarks === 'function') {
+                this.uiRenderer._renderTallyMarks();
+            }
+        }, this.timing.short);
     }
     
     /**
@@ -200,43 +272,59 @@ class PokemonSheetApp {
     }
 
     /**
-     * Zeigt einen Ladehinweis im Pokémon-Auswahlmenü an
+     * Setzt den Ladezustand der App
+     * @param {boolean} isLoading - Ob die App gerade lädt
+     * @param {string} message - Optionale Nachricht, die angezeigt werden soll
+     * @private
      */
-    _showLoadingIndicator() {
-        const selectElement = document.getElementById(DOM_IDS.POKEMON_SELECT);
+    _setLoadingState(isLoading, message = "Laden...") {
+        this.isLoading = isLoading;
         
-        // Alle Optionen entfernen
-        while (selectElement.options.length > 0) {
-            selectElement.remove(0);
+        if (isLoading) {
+            this._showLoadingOverlay(message);
+        } else {
+            this._hideLoadingOverlay();
         }
-        
-        // Lade-Option hinzufügen
-        const loadingOption = createElement('option', {
-            value: ""
-        }, "Pokémon-Daten werden geladen...");
-        
-        selectElement.appendChild(loadingOption);
-        selectElement.disabled = true; // Deaktivieren während des Ladens
     }
-    
+
     /**
-     * Entfernt den Ladehinweis und aktiviert das Auswahlmenü wieder
+     * Zeigt einen Ladehinweis im Overlay an
+     * @param {string} message - Die anzuzeigende Nachricht
+     * @private
      */
-    _hideLoadingIndicator() {
-        const selectElement = document.getElementById(DOM_IDS.POKEMON_SELECT);
+    _showLoadingOverlay(message = "Laden...") {
+        // Prüfen, ob bereits ein Overlay angezeigt wird
+        let overlay = document.querySelector('.loading-overlay');
         
-        // Alle Optionen entfernen
-        while (selectElement.options.length > 0) {
-            selectElement.remove(0);
+        if (!overlay) {
+            // Overlay-Element erstellen
+            overlay = document.createElement('div');
+            overlay.className = 'loading-overlay';
+            
+            // Spinner erstellen
+            const spinner = document.createElement('div');
+            spinner.className = 'loading-spinner';
+            
+            // Nachricht erstellen
+            const messageElement = document.createElement('div');
+            messageElement.className = 'loading-message';
+            messageElement.style.color = 'white';
+            messageElement.style.marginTop = '10px';
+            messageElement.style.fontSize = '16px';
+            
+            // Zum Overlay hinzufügen
+            overlay.appendChild(spinner);
+            overlay.appendChild(messageElement);
+            
+            // Zum Dokument hinzufügen
+            document.body.appendChild(overlay);
         }
         
-        // Standard-Option hinzufügen
-        const defaultOption = createElement('option', {
-            value: ""
-        }, "-- Pokémon auswählen --");
-        
-        selectElement.appendChild(defaultOption);
-        selectElement.disabled = false; // Aktivieren nach dem Laden
+        // Nachricht aktualisieren
+        const messageElement = overlay.querySelector('.loading-message');
+        if (messageElement) {
+            messageElement.textContent = message;
+        }
     }
 
     /**
@@ -250,6 +338,39 @@ class PokemonSheetApp {
             document.body.removeChild(overlay);
         }
     }
+    
+    /**
+     * Zeigt eine Fehlermeldung an
+     * @param {string} message - Die anzuzeigende Fehlermeldung
+     * @private
+     */
+    _showError(message) {
+        // Toast-Benachrichtigung erstellen
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-error';
+        toast.textContent = message;
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.padding = '12px 20px';
+        toast.style.borderRadius = '4px';
+        toast.style.backgroundColor = '#F44336';
+        toast.style.color = 'white';
+        toast.style.fontWeight = 'bold';
+        toast.style.zIndex = '1001';
+        toast.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+        
+        // Zum Dokument hinzufügen
+        document.body.appendChild(toast);
+        
+        // Nach einigen Sekunden entfernen
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+            }
+        }, 5000);
+    }
 
     /**
      * Wendet einen geladenen Charakterbogen auf den AppState an
@@ -261,6 +382,8 @@ class PokemonSheetApp {
         if (!sheet || !this.appState) return;
         
         try {
+            console.log("Wende gespeicherten Charakterbogen an:", sheet);
+            
             // Level setzen
             if (sheet.level !== undefined) {
                 this.appState.setLevel(sheet.level);
@@ -269,22 +392,12 @@ class PokemonSheetApp {
                     levelInput.value = sheet.level.toString();
                 }
             }
-
-            console.log("SHEET");
-            console.log(sheet);
     
             // Freundschaft setzen
             if (sheet.tallyMarks) {
-                console.log("FREUNDSCHAFT: " + sheet.tallyMarks);
+                console.log("Setze Freundschaftspunkte:", sheet.tallyMarks);
                 this.appState.tallyMarks = sheet.tallyMarks;
-                // Strichliste nach kurzer Verzögerung aktualisieren
-                setTimeout(() => {
-                    if (typeof window.renderTallyMarks === 'function') {
-                        window.renderTallyMarks(this.appState.tallyMarks);
-                    } else if (this.uiRenderer && typeof this.uiRenderer._renderTallyMarks === 'function') {
-                        this.uiRenderer._renderTallyMarks();
-                    }
-                }, 500);
+                this._updateFriendshipDisplay();
             }
             
             // Aktuelle EXP setzen
@@ -341,6 +454,16 @@ class PokemonSheetApp {
                 }
             }
             
+            // Wunden setzen, wenn vorhanden
+            if (sheet.wounds !== undefined && typeof this.appState.setWounds === 'function') {
+                this.appState.setWounds(sheet.wounds);
+                setTimeout(() => {
+                    if (typeof displayWoundsState === 'function') {
+                        displayWoundsState(sheet.wounds);
+                    }
+                }, this.timing.short);
+            }
+            
             // Fertigkeiten setzen
             if (sheet.skillValues) {
                 Object.entries(sheet.skillValues).forEach(([skill, value]) => {
@@ -352,68 +475,93 @@ class PokemonSheetApp {
                 });
             }
             
-            // Attacken setzen
-            if (sheet.moves && Array.isArray(sheet.moves)) {
-                sheet.moves.forEach((moveData, index) => {
-                    if (!moveData) return;
-                    
-                    // Kurze Verzögerung, um sicherzustellen, dass die Attacken geladen sind
-                    setTimeout(() => {
-                        const moveSelect = document.getElementById(`move-${index}`);
-                        if (moveSelect) {
-                            // Bei neuem Format (mit Beschreibungen)
-                            const moveName = typeof moveData === 'object' ? moveData.name : moveData;
-                            
-                            moveSelect.value = moveName;
-                            const event = new Event('change', { bubbles: true });
-                            moveSelect.dispatchEvent(event);
-                            
-                            // Wenn Beschreibung vorhanden, diese nach kurzer Verzögerung setzen
-                            if (typeof moveData === 'object' && moveData.customDescription) {
-                                setTimeout(() => {
-                                    const descriptionField = document.getElementById(`move-description-${index}`);
-                                    if (descriptionField) {
-                                        descriptionField.value = moveData.customDescription;
-                                        
-                                        // Auch im AppState speichern
-                                        if (this.appState.moves[index]) {
-                                            this.appState.moves[index].customDescription = moveData.customDescription;
-                                        }
-                                    }
-                                }, 300);
-                            }
-                        }
-                    }, 100);
-                });
-            }
+            // Attacken setzen - mit einheitlichem Timing
+            this._applyMoves(sheet.moves);
             
             // Textfelder setzen
-            if (sheet.textFields) {
-                const trainerInput = document.getElementById('trainer-input');
-                if (trainerInput && sheet.textFields.trainer) {
-                    trainerInput.value = sheet.textFields.trainer;
-                }
-                
-                const nicknameInput = document.getElementById('nickname-input');
-                if (nicknameInput && sheet.textFields.nickname) {
-                    nicknameInput.value = sheet.textFields.nickname;
-                }
-                
-                const itemInput = document.getElementById('item-input');
-                if (itemInput && sheet.textFields.item) {
-                    itemInput.value = sheet.textFields.item;
-                }
-            }
+            this._applyTextFields(sheet.textFields);
             
             console.log(`Charakterbogen für ${sheet.pokemonGermanName || sheet.pokemonName} geladen`);
         } catch (error) {
             console.error('Fehler beim Anwenden des geladenen Charakterbogens:', error);
         }
     }
+    
+    /**
+     * Wendet gespeicherte Attacken an
+     * @param {Array} moves - Die gespeicherten Attacken
+     * @private
+     */
+    _applyMoves(moves) {
+        if (!moves || !Array.isArray(moves)) return;
+        
+        // Alle Attacken-Selects auf einmal aktualisieren
+        setTimeout(() => {
+            moves.forEach((moveData, index) => {
+                if (!moveData) return;
+                
+                // Bei neuem Format (mit Beschreibungen)
+                const moveName = typeof moveData === 'object' ? moveData.name : moveData;
+                
+                const moveSelect = document.getElementById(`move-${index}`);
+                if (moveSelect) {
+                    moveSelect.value = moveName;
+                    
+                    // Change-Event auslösen
+                    const event = new Event('change', { bubbles: true });
+                    moveSelect.dispatchEvent(event);
+                    
+                    // Wenn Beschreibung vorhanden, diese setzen
+                    if (typeof moveData === 'object' && moveData.customDescription) {
+                        setTimeout(() => {
+                            const descriptionField = document.getElementById(`move-description-${index}`);
+                            if (descriptionField) {
+                                descriptionField.value = moveData.customDescription;
+                                
+                                // Auch im AppState speichern
+                                if (this.appState.moves[index]) {
+                                    this.appState.moves[index].customDescription = moveData.customDescription;
+                                }
+                            }
+                        }, this.timing.short);
+                    }
+                }
+            });
+        }, this.timing.medium);
+    }
+    
+    /**
+     * Wendet gespeicherte Textfelder an
+     * @param {Object} textFields - Die gespeicherten Textfelder
+     * @private
+     */
+    _applyTextFields(textFields) {
+        if (!textFields) return;
+        
+        // Trainer-Name setzen
+        const trainerInput = document.getElementById('trainer-input');
+        if (trainerInput && textFields.trainer) {
+            trainerInput.value = textFields.trainer;
+        }
+        
+        // Spitznamen setzen
+        const nicknameInput = document.getElementById('nickname-input');
+        if (nicknameInput && textFields.nickname) {
+            nicknameInput.value = textFields.nickname;
+        }
+        
+        // Item setzen
+        const itemInput = document.getElementById('item-input');
+        if (itemInput && textFields.item) {
+            itemInput.value = textFields.item;
+        }
+    }
 }
 
 // App beim Laden der Seite initialisieren
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM vollständig geladen, initialisiere Pokemon Sheet App...");
     const app = new PokemonSheetApp();
+    window.pokemonApp = Object.assign(window.pokemonApp || {}, app);
     app.init();
 });

@@ -25,7 +25,8 @@ class JSONImportService {
      */
     _createFileInput() {
         // Prüfen, ob das Element bereits existiert
-        if (document.getElementById('json-file-input')) {
+        const existingInput = document.getElementById('json-file-input');
+        if (existingInput) {
             return;
         }
         
@@ -47,47 +48,25 @@ class JSONImportService {
     _initEventListeners() {
         console.log('Initialisiere Event-Listener für JSON-Import...');
         
-        // Laden-Button: Zum direkten Laden von JSON-Dateien verwenden
+        // Laden-Button für JSON-Import
         const loadButton = document.getElementById('load-pokemon-button');
         if (loadButton) {
-            // Attribute und Position des Original-Buttons speichern
-            const loadButtonParent = loadButton.parentNode;
-            const nextSibling = loadButton.nextSibling;
-            const attributes = {};
+            // Sicherheitsabfrage, ob bereits ein Listener existiert
+            const newLoadButton = loadButton.cloneNode(true);
+            loadButton.parentNode.replaceChild(newLoadButton, loadButton);
             
-            // Alle Attribute kopieren
-            for (let i = 0; i < loadButton.attributes.length; i++) {
-                const attr = loadButton.attributes[i];
-                attributes[attr.name] = attr.value;
-            }
-            
-            // Originalen Button entfernen
-            loadButton.remove();
-            
-            // Neuen Button erstellen mit gleichen Attributen
-            const newLoadButton = document.createElement('button');
-            for (const [key, value] of Object.entries(attributes)) {
-                newLoadButton.setAttribute(key, value);
-            }
-            newLoadButton.textContent = loadButton.textContent || 'Pokémon Laden';
-            
-            // Neu positionieren
-            if (nextSibling) {
-                loadButtonParent.insertBefore(newLoadButton, nextSibling);
-            } else {
-                loadButtonParent.appendChild(newLoadButton);
-            }
-            
-            // Neuen Event-Listener hinzufügen für direkten JSON-Import
+            // Neuen Event-Listener hinzufügen für JSON-Import
             newLoadButton.addEventListener('click', (event) => {
                 // JSON-File-Input direkt auslösen
                 const fileInput = document.getElementById('json-file-input');
                 if (fileInput) {
                     fileInput.click();
+                } else {
+                    this._showToast('JSON-Import nicht verfügbar', 'error');
                 }
             });
             
-            console.log('Laden-Button wurde erfolgreich für direkten JSON-Import konfiguriert');
+            console.log('Laden-Button wurde erfolgreich für JSON-Import konfiguriert');
         } else {
             console.warn('Laden-Button nicht gefunden');
         }
@@ -202,12 +181,10 @@ class JSONImportService {
             const event = new Event('change', { bubbles: true });
             selectElement.dispatchEvent(event);
             
-            // Warten, bis das Pokemon geladen ist - längere Wartezeit für zuverlässige Ladung
+            // Warten, bis das Pokemon geladen ist
             await new Promise(resolve => setTimeout(resolve, 1500));
             
             // Nach ausreichender Verzögerung die restlichen Daten anwenden
-            // Die längere Verzögerung stellt sicher, dass das Pokemon vollständig geladen ist
-            // und die automatisch gesetzten Werte überschrieben werden können
             setTimeout(() => {
                 console.log('Wende restliche Daten an...');
                 this._applyRemainingData(data);
@@ -296,7 +273,7 @@ class JSONImportService {
                 if (typeof displayWoundsState === 'function') {
                     displayWoundsState(data.wounds);
                 }
-            }, 50);
+            }, 100);
         }
         
         // Fertigkeiten setzen
@@ -311,48 +288,16 @@ class JSONImportService {
             });
         }
     
-        // Nach kurzer Verzögerung die Strichliste aktualisieren
-        setTimeout(() => {
-            if (data.tallyMarks) {
-                console.log("Geladene Freundschaft: ", data.tallyMarks);
-                this.appState.tallyMarks = data.tallyMarks;
-                
-                // UI Renderer-Funktion direkt aufrufen
-                if (window.pokemonApp && window.pokemonApp.uiRenderer) {
-                    window.pokemonApp.uiRenderer._renderTallyMarks();
-                } else {
-                    // Globale Hilfsfunktion definieren und aufrufen
-                    window.renderTallyMarks = window.renderTallyMarks || function(marks) {
-                        const tallyContainer = document.getElementById('tally-container');
-                        if (!tallyContainer) return;
-                        
-                        tallyContainer.innerHTML = '';
-                        
-                        for (let i = 0; i < marks.length; i++) {
-                            if (i % 5 === 0) {
-                                const groupContainer = document.createElement('div');
-                                groupContainer.className = 'tally-group';
-                                tallyContainer.appendChild(groupContainer);
-                            }
-                            
-                            const currentGroup = tallyContainer.lastChild;
-                            const mark = document.createElement('span');
-                            mark.className = 'tally-mark';
-                            mark.textContent = '|';
-                            mark.style.color = '#FFD700';
-                            mark.style.textShadow = '1px 1px 1px #000, -1px -1px 1px #000, 1px -1px 1px #000, -1px 1px 1px #000';
-                            mark.style.fontWeight = 'bold';
-                            
-                            currentGroup.appendChild(mark);
-                        }
-                    };
-                    
-                    window.renderTallyMarks(this.appState.tallyMarks);
-                }
-            }
-        }, 50); // Kürzere Verzögerung
+        // Strichliste für Freundschaft setzen
+        if (data.tallyMarks) {
+            console.log("Geladene Freundschaft: ", data.tallyMarks);
+            this.appState.tallyMarks = data.tallyMarks;
+            
+            // Render-Funktionen aufrufen
+            this._renderTallyMarks();
+        }
         
-        // Attacken setzen mit längerer Verzögerung
+        // Attacken setzen
         if (data.moves && Array.isArray(data.moves)) {
             setTimeout(() => {
                 console.log('Setze Attacken:', data.moves);
@@ -416,6 +361,23 @@ class JSONImportService {
     }
     
     /**
+     * Rendert die Freundschafts-Strichliste, falls die entsprechenden Funktionen verfügbar sind
+     * @private
+     */
+    _renderTallyMarks() {
+        // UI Renderer-Funktion direkt aufrufen
+        if (window.pokemonApp && window.pokemonApp.uiRenderer && 
+            typeof window.pokemonApp.uiRenderer._renderTallyMarks === 'function') {
+            window.pokemonApp.uiRenderer._renderTallyMarks();
+        } else {
+            // Globale Hilfsfunktion verwenden
+            if (typeof window.renderTallyMarks === 'function') {
+                window.renderTallyMarks(this.appState.tallyMarks);
+            }
+        }
+    }
+    
+    /**
      * Zeigt eine Toast-Benachrichtigung an
      * @param {string} message - Die anzuzeigende Nachricht
      * @param {string} type - Der Typ der Nachricht ('success' oder 'error')
@@ -445,28 +407,22 @@ class JSONImportService {
     }
 }
 
-// Service exportieren
-window.JSONImportService = JSONImportService;
-
-// Automatische Initialisierung
+// Initialisiert den JSONImportService mit den globalen Variablen
 function initJSONImportService() {
     // Warten bis die App und AppState verfügbar sind
-    function waitForApp() {
-        if (window.pokemonApp && window.pokemonApp.appState) {
-            // Service initialisieren
+    if (window.pokemonApp && window.pokemonApp.appState) {
+        // Service initialisieren, wenn nicht bereits vorhanden
+        if (!window.jsonImportService) {
             window.jsonImportService = new JSONImportService(
                 window.pokemonApp.appState, 
                 window.pokemonApp.uiRenderer
             );
             console.log('JSON Import Service initialisiert');
-        } else {
-            // Erneut versuchen nach kurzer Verzögerung
-            setTimeout(waitForApp, 500);
         }
+    } else {
+        // Erneut versuchen nach kurzer Verzögerung
+        setTimeout(initJSONImportService, 500);
     }
-    
-    // Initialisierung starten
-    waitForApp();
 }
 
 // Service beim Laden der Seite initialisieren

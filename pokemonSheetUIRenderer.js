@@ -1,5 +1,6 @@
 /**
- * Klasse zur Verwaltung des UI-Renderings mit deutschen Übersetzungen
+ * Neue Klasse zur Verwaltung des UI-Renderings mit deutschen Übersetzungen
+ * und separaten Buttons für JSON- und PDF-Export
  */
 class UiRenderer {
     /**
@@ -391,6 +392,37 @@ class UiRenderer {
     }
     
     /**
+     * Erstellt die Action-Buttons mit separaten Buttons für JSON- und PDF-Export
+     * @returns {HTMLElement} Der Container mit den Action-Buttons
+     * @private
+     */
+    _createActionButtons() {
+        return createElement('div', { className: 'action-buttons' }, [
+            // JSON-Export-Button
+            createElement('button', {
+                id: 'save-json-button',
+                className: 'action-button save-button',
+                title: 'Speichert den Charakterbogen als JSON-Datei'
+            }, 'Speichern (JSON)'),
+            
+            // PDF-Export-Button
+            createElement('button', {
+                id: 'save-pdf-button',
+                className: 'action-button save-button',
+                title: 'Speichert den Charakterbogen als PDF-Datei',
+                style: 'background-color: #4285F4; margin-right: 5px;'
+            }, 'Speichern (PDF)'),
+            
+            // Load-Button
+            createElement('button', {
+                id: 'load-pokemon-button',
+                className: 'action-button load-button',
+                title: 'Lädt einen gespeicherten Charakterbogen'
+            }, 'Pokémon Laden')
+        ]);
+    }
+    
+    /**
      * Fügt Event-Listener zu den interaktiven Elementen hinzu
      * @private
      */
@@ -423,7 +455,7 @@ class UiRenderer {
             autoSave(); // Automatisch speichern
         });
         
-        // Neue Event-Listener für Attackenbeschreibungen
+        // Event-Listener für Attackenbeschreibungen
         delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.move-description', 'input', e => {
             const index = parseInt(e.target.id.split('-')[2]);
             const description = e.target.value;
@@ -442,16 +474,6 @@ class UiRenderer {
             
             if (!this.appState.setSkillValue(skill, value)) {
                 e.target.value = this.appState.skillValues[skill];
-            }
-            autoSave(); // Automatisch speichern
-        });
-        
-        // Event-Listener für Level-Änderung
-        addEventListenerSafe('#level-input', 'change', e => {
-            const value = e.target.value;
-            
-            if (!this.appState.setLevel(value)) {
-                e.target.value = this.appState.level;
             }
             autoSave(); // Automatisch speichern
         });
@@ -559,6 +581,72 @@ class UiRenderer {
         addEventListenerSafe('#trainer-input', 'input', autoSave);
         addEventListenerSafe('#nickname-input', 'input', autoSave);
         addEventListenerSafe('#item-input', 'input', autoSave);
+        
+        // Event-Listener für die Export/Import-Buttons
+        this._addExportImportButtonListeners();
+    }
+    
+    /**
+     * Fügt Event-Listener für die Export/Import-Buttons hinzu
+     * @private
+     */
+    _addExportImportButtonListeners() {
+        // JSON-Export-Button
+        addEventListenerSafe('#save-json-button', 'click', () => {
+            if (window.jsonExportService) {
+                window.jsonExportService.exportJSON();
+            } else {
+                this._showToast('JSON-Export-Service nicht verfügbar', 'error');
+            }
+        });
+        
+        // PDF-Export-Button
+        addEventListenerSafe('#save-pdf-button', 'click', () => {
+            if (window.pokemonApp && window.pokemonApp.pdfService) {
+                window.pokemonApp.pdfService.exportPdf();
+            } else {
+                this._showToast('PDF-Export-Service nicht verfügbar', 'error');
+            }
+        });
+        
+        // Laden-Button
+        addEventListenerSafe('#load-pokemon-button', 'click', () => {
+            const fileInput = document.getElementById('json-file-input');
+            if (fileInput) {
+                fileInput.click();
+            } else {
+                this._showToast('JSON-Import nicht verfügbar', 'error');
+            }
+        });
+    }
+    
+    /**
+     * Zeigt eine Toast-Benachrichtigung an
+     * @param {string} message - Die anzuzeigende Nachricht
+     * @param {string} type - Der Typ der Nachricht ('success' oder 'error')
+     * @private
+     */
+    _showToast(message, type = 'success') {
+        // Prüfen, ob bereits ein Toast angezeigt wird
+        const existingToast = document.querySelector('.toast');
+        if (existingToast) {
+            existingToast.remove();
+        }
+        
+        // Toast-Element erstellen
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        
+        // Zum Dokument hinzufügen
+        document.body.appendChild(toast);
+        
+        // Nach einigen Sekunden entfernen
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+            }
+        }, 3000);
     }
     
 
@@ -633,6 +721,15 @@ class UiRenderer {
             compactFriendshipTracker
         ]);
         
+        // Action-Buttons für JSON- und PDF-Export
+        const actionButtons = this._createActionButtons();
+        
+        // Container erstellen mit Titel und Action-Buttons
+        const headerContainer = createElement('div', { className: 'header-container' }, [
+            createElement('h1', { className: 'title' }, 'Pokémon Charakterbogen'),
+            actionButtons
+        ]);
+        
         // Basic-Info-Bereich mit zwei Spalten
         const basicInfo = createElement('div', { className: 'basic-info' }, [
             pokemonInfoContainer,
@@ -649,6 +746,9 @@ class UiRenderer {
         
         // Überarbeitete Struktur
         const overviewSection = createElement('div', { className: 'pokemon-overview' }, [
+            // Header-Container oben einfügen
+            headerContainer,
+            
             // Basic info at top left (with friendship tracker inside)
             basicInfo,
             
@@ -735,7 +835,7 @@ class UiRenderer {
                             type: 'number',
                             id: 'current-exp-input',
                             className: 'exp-input current-exp-input',
-                            value: '0',
+                            value: this.appState.currentExp ? this.appState.currentExp.toString() : '0',
                             min: '0'
                         }),
                         createElement('span', { className: 'exp-separator' }, '/'),
@@ -814,6 +914,14 @@ class UiRenderer {
                 // Alle Statuswerte aktualisieren
                 this._updateAllStats();
                 
+                // NEU: Max-EXP aktualisieren (Level²)
+                const maxExpInput = document.getElementById('max-exp-input');
+                if (maxExpInput) {
+                    // Die für das nächste Level benötigte EXP berechnen (aktuelles Level zum Quadrat)
+                    const requiredExp = levelUpResult.newLevel * levelUpResult.newLevel;
+                    maxExpInput.value = requiredExp.toString();
+                }
+                
                 // Erfolgsbenachrichtigung anzeigen
                 this._showLevelUpResult(levelUpResult);
                 
@@ -823,7 +931,7 @@ class UiRenderer {
                 }
             }
         });
-        
+    
         // Radio-Buttons für Statauswahl
         delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, 'input[name="selected-stat"]', 'change', e => {
             this.appState.setSelectedStatForLevelUp(e.target.value);
@@ -833,7 +941,7 @@ class UiRenderer {
                 autoSave();
             }
         });
-
+    
         // Füge einen Listener für Typ-Änderungen hinzu
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
