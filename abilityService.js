@@ -2268,11 +2268,11 @@ function getAbilities(pokemonID) {
     case 678:
       return ["Strolch", "Vorahnung", "Vorwarnung"];
     case 679:
-      return ["Schildlos", "Unheilskörper", "Tastfluch"];
+      return ["Schildlos", "Schwebe", "Tastfluch"];
     case 680:
-      return ["Schildlos", "Unheilskörper", "Tastfluch"];
+      return ["Schildlos", "Schwebe", "Tastfluch"];
     case 681:
-      return ["Kugelsicher", "Unheilskörper", "Taktikwechsel"];
+      return ["Schwebe", "Unheilskörper", "Taktikwechsel"];
     case 682:
       return ["Duftnote", "Dufthülle", "Schnüffler"];
     case 683:
