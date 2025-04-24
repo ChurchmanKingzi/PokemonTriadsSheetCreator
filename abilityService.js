@@ -1628,7 +1628,7 @@ function getAbilities(pokemonID) {
         return["Rivalität", "Bedroher", "Adrenalin"];
     case 406:
         //Knospi
-        return["Innere Kraft", "Giftdorn", "Florashild"];
+        return["Innere Kraft", "Giftdorn", "Floraschild"];
     case 407:
         //Roserade
         return["Innere Kraft", "Giftdorn", "Techniker"];
