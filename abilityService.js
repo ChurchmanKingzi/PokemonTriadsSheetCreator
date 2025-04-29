@@ -2868,7 +2868,7 @@ function getAbilities(pokemonID) {
     case 978:
       return ["Kommandant", "Sturmsog", "Wassertempo"];
     case 979:
-      return ["Wunterkeit", "Kurzschluss", "Wutausbruch"];
+      return ["Munterkeit", "Kurzschluss", "Wutausbruch"];
     case 980:
       return ["Giftdorn", "H2O-Absorber", "Unkenntnis"];
     case 981:
