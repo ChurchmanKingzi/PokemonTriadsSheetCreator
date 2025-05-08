@@ -2248,11 +2248,11 @@ function getAbilities(pokemonID) {
     case 668:
       return ["Rivalität", "Bedroher", "Hochmut"];
     case 669:
-      return ["blütenhülle", "Symbiose", "Schwebe"];
+      return ["Blütenhülle", "Symbiose", "Schwebe"];
     case 670:
-      return ["blütenhülle", "Symbiose", "Schwebe"];
+      return ["Blütenhülle", "Symbiose", "Schwebe"];
     case 671:
-      return ["blütenhülle", "Symbiose", "Schwebe"];
+      return ["Blütenhülle", "Symbiose", "Schwebe"];
     case 672:
       return ["Vegetarier", "Pflanzenpelz", "Chlorophyll"];
     case 673:
@@ -3086,7 +3086,7 @@ function getAbilities(pokemonID) {
     case 10060:
       return["Schneemantel", "Schneeschauer", "Eishaut"];
     case 10061:
-      return ["blütenhülle", "Symbiose", "Schwebe"];
+      return ["Blütenhülle", "Symbiose", "Schwebe"];
     case 10062:
       return["Schwebe", "Magieschild", "Reitgespann"];
     case 10063:
