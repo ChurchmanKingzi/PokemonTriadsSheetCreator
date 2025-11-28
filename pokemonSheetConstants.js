@@ -54,12 +54,62 @@ const TYPE_NAMES_DE = {
     fairy: 'Fee'
 };
 
-// Struktur der Fähigkeiten
+// Struktur der Fertigkeiten (erweitert)
 const SKILL_GROUPS = {
-    KÖ: ['Akrobatik', 'Ausweichen', 'Klettern', 'Reiten', 'Schleichen/Verstecken', 'Schließtechnik', 'Sinnesschärfe', 'Springen', 'Schwimmen', 'Stehlen', 'Werfen', 'Widerstand'],
-    WI: ['Gefahreninstinkt', 'Orientierung', 'Umgang mit Pokemon', 'Wildnisleben/Survival', 'Wissen über Pokemon'],
-    CH: ['Anführen', 'Beruhigen', 'Einschüchtern', 'Menschenkenntnis', 'Schauspielern'],
-    GL: ['Spielen', 'Suchen']
+    KÖ: [
+        'Angeln',
+        'Akrobatik',
+        'Ausweichen',
+        'Handwerk',
+        'Kampfsport',
+        'Nahkampf',
+        'Reiten',
+        'Schießen',
+        'Schleichen/Verstecken',
+        'Schließtechnik',
+        'Schwimmen',
+        'Sinnesschärfe',
+        'Springen',
+        'Stärke & Konstitution',
+        'Stehlen',
+        'Tanzen',
+        'Werfen',
+        'Widerstand'
+    ],
+    WI: [
+        'Computernutzung',
+        'Erste Hilfe',
+        'Fahrzeuge lenken',
+        'Fallen legen/entschärfen',
+        'Gefahreninstinkt',
+        'Geschichte',
+        'Kryptographie',
+        'Medizin',
+        'Naturwissenschaften',
+        'Okkultismus',
+        'Orientierung',
+        'Reparieren',
+        'Wildnisleben/Survival',
+        'Wissen über Pokemon allgemein'
+    ],
+    CH: [
+        'Anführen',
+        'Beruhigen',
+        'Betören',
+        'Einschüchtern',
+        'Etikette',
+        'Gerüchte aufschnappen',
+        'Lügen',
+        'Psychologie',
+        'Schauspielern',
+        'Stimmen imitieren',
+        'Überzeugen'
+    ],
+    GL: [
+        'Recherche',
+        'Spielen',
+        'Suchen'
+    ]
 };
 
 // DOM-Element-IDs

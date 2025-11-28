@@ -86,16 +86,14 @@ class UiRenderer {
     updateMoveDetails(index) {
         const detailsContainer = document.getElementById(`move-details-${index}`);
         const descriptionContainer = document.getElementById(`move-description-container-${index}`);
+        const descriptionTextarea = document.getElementById(`move-description-${index}`);
         const move = this.appState.moves[index];
         
         if (!move) {
             detailsContainer.innerHTML = '';
-            // Beschreibungs-Textbox verstecken und leeren, wenn keine Attacke ausgewählt
-            if (descriptionContainer) {
-                const descriptionTextarea = document.getElementById(`move-description-${index}`);
-                if (descriptionTextarea) {
-                    descriptionTextarea.value = '';
-                }
+            // Beschreibungs-Textbox mit Standardnachricht füllen, wenn keine Attacke ausgewählt
+            if (descriptionTextarea) {
+                descriptionTextarea.value = "Keine Attacke ausgewählt";
             }
             return;
         }
@@ -121,16 +119,18 @@ class UiRenderer {
             );
         }
         
-        // Beschreibungs-Textbox anzeigen, wenn eine Attacke ausgewählt ist
-        if (descriptionContainer) {
-            descriptionContainer.style.display = 'block';
-            
-            // Versuche gespeicherte Beschreibung wiederherzustellen, falls vorhanden
-            if (move.customDescription) {
-                const descriptionTextarea = document.getElementById(`move-description-${index}`);
-                if (descriptionTextarea) {
-                    descriptionTextarea.value = move.customDescription;
-                }
+        // Beschreibungs-Textbox mit Beschreibung aus moveService füllen
+        if (descriptionTextarea) {
+            // Prüfe ob eine benutzerdefinierte Beschreibung im Move gespeichert ist
+            if (move.customDescription && move.customDescription.trim() !== '') {
+                // Benutze die gespeicherte benutzerdefinierte Beschreibung
+                descriptionTextarea.value = move.customDescription;
+            } else {
+                // Lade die Standard-Beschreibung aus dem moveService
+                const moveDescription = typeof getMoveDescription === 'function' 
+                    ? getMoveDescription(move.germanName) 
+                    : `Keine Beschreibung für "${move.germanName}" verfügbar`;
+                descriptionTextarea.value = moveDescription;
             }
         }
     }
@@ -170,16 +170,18 @@ class UiRenderer {
                 })
             ]),
             
-            // BW (neu)
+            // BW (neu) - readonly, da dynamisch berechnet
             createElement('div', { className: 'stat-item bw-item' }, [
                 createElement('span', { className: 'stat-name' }, 'BW:'),
                 createElement('input', {
                     type: 'number',
                     min: '0',
-                    max: '99',
+                    max: '999',
                     value: bw.toString(),
                     className: 'stat-input bw-input',
-                    id: 'bw-input'
+                    id: 'bw-input',
+                    readonly: 'readonly',
+                    title: 'BW = ceil(Basis-Initiative / 4) + floor(BST / 12) + (KÖ × 5)'
                 })
             ])
         ]);
@@ -315,7 +317,7 @@ class UiRenderer {
                 className: 'move-details'
             }),
             
-            // Beschreibungs-Textbox (jetzt immer sichtbar)
+            // Beschreibungs-Textbox (zeigt standardmäßig "Keine Attacke ausgewählt")
             createElement('div', {
                 id: `move-description-container-${index}`,
                 className: 'move-description-container'
@@ -323,9 +325,9 @@ class UiRenderer {
                 createElement('textarea', {
                     id: `move-description-${index}`,
                     className: 'move-description',
-                    placeholder: 'Eigene Beschreibung eingeben...',
+                    placeholder: 'Attacken-Beschreibung...',
                     rows: 3
-                })
+                }, 'Keine Attacke ausgewählt')
             ])
         ]);
     }
@@ -521,15 +523,7 @@ class UiRenderer {
             autoSave(); // Automatisch speichern
         });
 
-        // Event-Listener für BW
-        addEventListenerSafe('#bw-input', 'change', e => {
-            const value = e.target.value;
-            
-            if (!this.appState.setBw(value)) {
-                e.target.value = this.appState.bw;
-            }
-            autoSave(); // Automatisch speichern
-        });
+        // BW wird dynamisch berechnet (KÖ × 5 + Basis-BW) - kein Event-Listener nötig
 
         // Event-Listener für Level-Änderung
         addEventListenerSafe('#level-value', 'change', e => {

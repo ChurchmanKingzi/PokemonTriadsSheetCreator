@@ -1,5 +1,6 @@
 /**
  * Wunden-Komponente für den Pokemon-Charakterbogen
+ * Fixed version: Added retry limits to prevent infinite loops
  */
 
 // CSS für die Wunden-Komponente
@@ -171,6 +172,9 @@ const woundsCSS = `
 let woundsIntegrated = false;
 let selectHandlerIntegrated = false;
 
+// Maximum retry attempts to prevent infinite loops
+const MAX_RETRY_ATTEMPTS = 5;
+
 /**
  * Erstellt die Wunden-Komponente
  * @returns {HTMLElement} Die Wunden-Komponente
@@ -257,8 +261,6 @@ function initializeWoundsInAppState() {
                 return true;
             };
         }
-    } else {
-        console.warn("AppState nicht gefunden, Wunden können nicht initialisiert werden");
     }
 }
 
@@ -343,24 +345,25 @@ function updateWoundsState(woundsCount) {
             // Fallback zur direkten Zuweisung
             window.pokemonApp.appState.wounds = woundsCount;
         }
-    } else {
-        console.warn("AppState nicht gefunden, Wunden-Zustand kann nicht aktualisiert werden");
     }
 }
 
 /**
  * Zeigt den gespeicherten Wunden-Status an
  * @param {number} woundsCount - Anzahl der markierten Wunden
+ * @param {number} retryCount - Current retry attempt (for limiting retries)
  */
-function displayWoundsState(woundsCount) {
+function displayWoundsState(woundsCount, retryCount = 0) {
     if (typeof woundsCount !== 'number' || woundsCount < 0) {
         woundsCount = 0;
     }
     
     const circles = document.querySelectorAll('.wound-circle');
     if (!circles || circles.length === 0) {
-        // Wenn die Kreise noch nicht existieren, versuchen wir es später erneut
-        setTimeout(() => displayWoundsState(woundsCount), 300);
+        // Only retry if we haven't exceeded the maximum attempts
+        if (retryCount < MAX_RETRY_ATTEMPTS) {
+            setTimeout(() => displayWoundsState(woundsCount, retryCount + 1), 300);
+        }
         return;
     }
     
@@ -376,9 +379,20 @@ function displayWoundsState(woundsCount) {
 }
 
 /**
+ * Checks if a Pokemon is currently loaded
+ * @returns {boolean} True if a Pokemon is loaded
+ */
+function isPokemonLoaded() {
+    return window.pokemonApp && 
+           window.pokemonApp.appState && 
+           window.pokemonApp.appState.pokemonData;
+}
+
+/**
  * Integriert die Wunden-Komponente in den StorageService
+ * @param {number} retryCount - Current retry attempt
  */
-function integrateWithStorageService() {
+function integrateWithStorageService(retryCount = 0) {
     // Wenn die Integration bereits durchgeführt wurde, nichts tun
     if (woundsIntegrated) {
         return;
@@ -386,8 +400,10 @@ function integrateWithStorageService() {
     
     // Prüfen, ob StorageService verfügbar ist
     if (!window.pokemonApp || !window.pokemonApp.storageService) {
-        // Erneut versuchen nach einer kurzen Verzögerung
-        setTimeout(integrateWithStorageService, 1000);
+        // Only retry if we haven't exceeded the maximum attempts
+        if (retryCount < MAX_RETRY_ATTEMPTS) {
+            setTimeout(() => integrateWithStorageService(retryCount + 1), 1000);
+        }
         return;
     }
     
@@ -435,265 +451,7 @@ function integrateWithStorageService() {
                 pa: this.appState.pa,
                 bw: this.appState.bw || 0,
                 wounds: this.appState.wounds || 0, // Wunden-Status speichern
-                skillValues: this.appState.skillValues,
-                moves: movesWithDescriptions,
-                abilities: this.appState.abilities,
-                // Textfelder erfassen
-                textFields: {
-                    trainer: document.getElementById('trainer-input')?.value || '',
-                    nickname: document.getElementById('nickname-input')?.value || '',
-                    item: document.getElementById('item-input')?.value || ''
-                }
-            };
-            
-            // Vorhandene Daten aktualisieren oder neue anlegen
-            sheets[id] = characterSheet;
-            
-            // In localStorage speichern
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(sheets));
-            
-            return true;
-        } catch (error) {
-            console.error('Fehler beim Speichern des Charakterbogens:', error);
-            return false;
-        }
-    };
-    
-    // Speichern der Original-Methode für loadSheet
-    const originalLoadSheet = window.pokemonApp.storageService.loadSheet;
-    
-    // Überschreiben der loadSheet-Methode
-    window.pokemonApp.storageService.loadSheet = function(pokemonId) {
-        // Original-Methode aufrufen
-        const sheet = originalLoadSheet.call(this, pokemonId);
-        
-        if (sheet) {
-            
-            // Wunden im AppState speichern, wenn in den gespeicherten Daten vorhanden
-            if (sheet.wounds !== undefined) {
-                // Verwende die setWounds-Methode, wenn verfügbar
-                if (window.pokemonApp.appState.setWounds) {
-                    window.pokemonApp.appState.setWounds(sheet.wounds);
-                } else {
-                    window.pokemonApp.appState.wounds = sheet.wounds;
-                }                
-                // Warten, bis die UI aktualisiert wurde, dann Wunden-Status anzeigen
-                setTimeout(() => {
-                    displayWoundsState(sheet.wounds);
-                }, 300);
-            } else {
-                // Setze Wunden auf 0, wenn sie nicht in den gespeicherten Daten vorhanden sind
-                if (window.pokemonApp.appState.setWounds) {
-                    window.pokemonApp.appState.setWounds(0);
-                } else {
-                    window.pokemonApp.appState.wounds = 0;
-                }
-            }
-        }
-        
-        return sheet;
-    };
-    
-    // Event-Listener für den Fall hinzufügen, dass ein Pokémon ausgewählt wird
-    const selectElement = document.getElementById(DOM_IDS.POKEMON_SELECT);
-    if (selectElement) {
-        selectElement.addEventListener('change', () => {
-            // Nach der Auswahl eines Pokémon die Wunden-Komponente initialisieren
-            setTimeout(() => {
-                injectWoundsComponent();
-            }, 1000);
-        });
-    }
-}
-
-/**
- * Fügt die Wunden-Komponente in den Pokemon-Info-Bereich ein
- */
-function injectWoundsComponent() {
-    // Warten, bis der DOM vollständig geladen ist
-    if (document.readyState !== "complete" && document.readyState !== "interactive") {
-        document.addEventListener("DOMContentLoaded", injectWoundsComponent);
-        return;
-    }
-    
-    // Initialisiere Wunden im AppState
-    initializeWoundsInAppState();
-    
-    // Pokemon-Info-Element in der DOM-Struktur finden
-    const container = document.getElementById(DOM_IDS.SHEET_CONTAINER);
-    if (!container || !container.querySelector) {
-        setTimeout(injectWoundsComponent, 500);
-        return;
-    }
-    
-    const pokemonInfo = container.querySelector('.pokemon-info');
-    if (!pokemonInfo) {
-        setTimeout(injectWoundsComponent, 500);
-        return;
-    }
-    
-    // Prüfen, ob die Wunden-Komponente bereits existiert
-    const existingWoundsContainer = document.getElementById('wounds-container');
-    if (existingWoundsContainer) {
-        // Aktualisiere den Wunden-Status in der bestehenden Komponente
-        if (window.pokemonApp && window.pokemonApp.appState) {
-            displayWoundsState(window.pokemonApp.appState.wounds || 0);
-        }
-        return;
-    }
-    
-    // Erstelle und füge die Wunden-Komponente ein
-    const woundsComponent = createWoundsComponent();
-    
-    // Nach dem Typen-Element einfügen
-    const typesElement = pokemonInfo.querySelector('.types');
-    if (typesElement) {
-        typesElement.insertAdjacentElement('afterend', woundsComponent);
-        
-        // Wunden-Status anzeigen, wenn im AppState vorhanden
-        if (window.pokemonApp && window.pokemonApp.appState) {
-            const woundsCount = window.pokemonApp.appState.wounds || 0;
-            displayWoundsState(woundsCount);
-        } else {
-        }
-    }
-}
-
-/**
- * Beobachter für Änderungen im Sheet-Container
- */
-function setupMutationObserver() {
-    // Prüfen, ob der DOM bereit ist
-    if (document.readyState !== "complete" && document.readyState !== "interactive") {
-        document.addEventListener("DOMContentLoaded", setupMutationObserver);
-        return;
-    }
-    
-    // Container für den Beobachter ermitteln
-    const container = document.getElementById(DOM_IDS.SHEET_CONTAINER);
-    if (!container) {
-        setTimeout(setupMutationObserver, 500);
-        return;
-    }
-    
-    // Beobachter erstellen, der auf Änderungen im Container wartet
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach(mutation => {
-            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                // Wenn Änderungen erkannt werden, die Wunden-Komponente injizieren
-                setTimeout(() => {
-                    injectWoundsComponent();
-                }, 300);
-            }
-        });
-    });
-    
-    // Beobachtung starten
-    observer.observe(container, {
-        childList: true,
-        subtree: true
-    });
-}
-
-/**
- * Hauptfunktion zur Initialisierung der Wunden-Komponente
- */
-function initWoundsComponent() {    
-    // CSS hinzufügen
-    if (!document.getElementById('wounds-style')) {
-        const style = document.createElement('style');
-        style.id = 'wounds-style';
-        style.textContent = woundsCSS;
-        document.head.appendChild(style);
-    }
-    
-    // Warten, bis das DOM vollständig geladen ist
-    if (document.readyState !== "complete" && document.readyState !== "interactive") {
-        document.addEventListener("DOMContentLoaded", () => {
-            // Mit dem StorageService integrieren
-            setTimeout(integrateWithStorageService, 1000);
-            
-            // Beobachter für DOM-Änderungen einrichten
-            setTimeout(setupMutationObserver, 1000);
-            
-            // Warten, bis die App initialisiert ist, dann versuchen, die Komponente einzufügen
-            setTimeout(injectWoundsComponent, 2000);
-        });
-    } else {
-        // DOM ist bereits geladen, direkt fortfahren
-        setTimeout(integrateWithStorageService, 1000);
-        setTimeout(setupMutationObserver, 1000);
-        setTimeout(injectWoundsComponent, 2000);
-    }
-    
-    // Direkt nach der Initialisierung der App die Wunden anzeigen
-    setTimeout(() => {
-        if (window.pokemonApp && window.pokemonApp.appState) {
-            displayWoundsState(window.pokemonApp.appState.wounds || 0);
-        }
-    }, 3000);
-}
-
-/**
- * Verbessere die Methode, die beim Laden eines gespeicherten Charakters aufgerufen wird
- */
-function integrateWithStorageService() {
-    // Wenn die Integration bereits durchgeführt wurde, nichts tun
-    if (woundsIntegrated) {
-        return;
-    }
-    
-    // Prüfen, ob StorageService verfügbar ist
-    if (!window.pokemonApp || !window.pokemonApp.storageService) {
-        // Erneut versuchen nach einer kurzen Verzögerung
-        setTimeout(integrateWithStorageService, 1000);
-        return;
-    }
-    
-    // Markieren, dass die Integration durchgeführt wurde
-    woundsIntegrated = true;
-    
-    // Speichern der Original-Methode für saveCurrentSheet
-    const originalSaveCurrentSheet = window.pokemonApp.storageService.saveCurrentSheet;
-    
-    // Überschreiben der saveCurrentSheet-Methode
-    window.pokemonApp.storageService.saveCurrentSheet = function() {
-        // Wenn kein Pokemon geladen ist, nichts tun
-        if (!this.appState.pokemonData) {
-            return false;
-        }
-        
-        try {
-            // Aktuelle Charakterbögen laden
-            const sheets = this.loadAllSheets();
-            
-            // Eindeutige ID für den Charakterbogen ist die Pokemon-ID
-            const id = this.appState.pokemonData.id;
-            
-            // Moves mit benutzerdefinierten Beschreibungen (wie im Original)
-            const movesWithDescriptions = this.appState.moves.map(move => {
-                if (!move) return null;
-                return {
-                    name: move.name,
-                    customDescription: move.customDescription || ''
-                };
-            });
-            
-            // Aktuelle Werte in ein Objekt packen
-            const characterSheet = {
-                id,
-                timestamp: new Date().toISOString(),
-                pokemonId: this.appState.pokemonData.id,
-                pokemonName: this.appState.selectedPokemon,
-                pokemonGermanName: this.appState.pokemonData.germanName || '',
-                level: this.appState.level,
-                currentExp: this.appState.currentExp || 0,
-                stats: this.appState.stats,
-                currentHp: this.appState.currentHp,
-                gena: this.appState.gena,
-                pa: this.appState.pa,
-                bw: this.appState.bw || 0,
-                wounds: this.appState.wounds || 0, // Wunden-Status speichern
+                tallyMarks: this.appState.tallyMarks || [],
                 skillValues: this.appState.skillValues,
                 moves: movesWithDescriptions,
                 abilities: this.appState.abilities,
@@ -767,12 +525,10 @@ function integrateWithStorageService() {
                 }
                 
                 // Warten, bis die UI aktualisiert wurde, dann Wunden-Status anzeigen
-                // Mehrere Versuche mit unterschiedlichen Verzögerungen, um sicherzustellen, dass die Anzeige erfolgt
-                [300, 1000, 2000].forEach(delay => {
-                    setTimeout(() => {
-                        displayWoundsState(sheet.wounds);
-                    }, delay);
-                });
+                // Single delayed call instead of multiple
+                setTimeout(() => {
+                    displayWoundsState(sheet.wounds);
+                }, 500);
             } else {
                 // Setze Wunden auf 0, wenn sie nicht in den gespeicherten Daten vorhanden sind
                 if (window.pokemonApp.appState.setWounds) {
@@ -790,58 +546,153 @@ function integrateWithStorageService() {
         
         return sheet;
     };
+    
+    // Event-Listener für den Fall hinzufügen, dass ein Pokémon ausgewählt wird
+    const selectElement = document.getElementById(DOM_IDS.POKEMON_SELECT);
+    if (selectElement) {
+        selectElement.addEventListener('change', () => {
+            // Nach der Auswahl eines Pokémon die Wunden-Komponente initialisieren
+            setTimeout(() => {
+                injectWoundsComponent();
+            }, 1000);
+        });
+    }
 }
 
 /**
- * Verbesserte Funktion zur Anzeige des Wunden-Status
- * @param {number} woundsCount - Anzahl der markierten Wunden
+ * Fügt die Wunden-Komponente in den Pokemon-Info-Bereich ein
+ * @param {number} retryCount - Current retry attempt
  */
-function displayWoundsState(woundsCount) {
-    if (typeof woundsCount !== 'number' || woundsCount < 0) {
-        woundsCount = 0;
-    }
-    
-    // Warten, bis DOM vollständig geladen ist
+function injectWoundsComponent(retryCount = 0) {
+    // Warten, bis der DOM vollständig geladen ist
     if (document.readyState !== "complete" && document.readyState !== "interactive") {
-        setTimeout(() => displayWoundsState(woundsCount), 500);
+        document.addEventListener("DOMContentLoaded", () => injectWoundsComponent(0));
         return;
     }
     
-    // Mehrere Versuche, die Wunden-Kreise zu finden
-    const circles = document.querySelectorAll('.wound-circle');
-    if (!circles || circles.length === 0) {
-        console.log("Keine Wunden-Kreise gefunden, injiziere Komponente und versuche es erneut...");
-        
-        // Komponente einfügen, falls noch nicht vorhanden
-        injectWoundsComponent();
-        
-        // Versuche es später erneut
-        setTimeout(() => displayWoundsState(woundsCount), 500);
-        return;
-    }
+    // Initialisiere Wunden im AppState
+    initializeWoundsInAppState();
     
-    // Den Status in allen Kreisen aktualisieren
-    circles.forEach(circle => {
-        const index = parseInt(circle.dataset.index);
-        if (index <= woundsCount) {
-            circle.classList.add('marked');
-        } else {
-            circle.classList.remove('marked');
+    // Pokemon-Info-Element in der DOM-Struktur finden
+    const container = document.getElementById(DOM_IDS.SHEET_CONTAINER);
+    if (!container || !container.querySelector) {
+        // Only retry if we haven't exceeded the maximum attempts AND a Pokemon is loaded
+        if (retryCount < MAX_RETRY_ATTEMPTS && isPokemonLoaded()) {
+            setTimeout(() => injectWoundsComponent(retryCount + 1), 500);
         }
+        return;
+    }
+    
+    const pokemonInfo = container.querySelector('.pokemon-info');
+    if (!pokemonInfo) {
+        // Only retry if we haven't exceeded the maximum attempts AND a Pokemon is loaded
+        if (retryCount < MAX_RETRY_ATTEMPTS && isPokemonLoaded()) {
+            setTimeout(() => injectWoundsComponent(retryCount + 1), 500);
+        }
+        return;
+    }
+    
+    // Prüfen, ob die Wunden-Komponente bereits existiert
+    const existingWoundsContainer = document.getElementById('wounds-container');
+    if (existingWoundsContainer) {
+        // Aktualisiere den Wunden-Status in der bestehenden Komponente
+        if (window.pokemonApp && window.pokemonApp.appState) {
+            displayWoundsState(window.pokemonApp.appState.wounds || 0);
+        }
+        return;
+    }
+    
+    // Erstelle und füge die Wunden-Komponente ein
+    const woundsComponent = createWoundsComponent();
+    
+    // Nach dem Typen-Element einfügen
+    const typesElement = pokemonInfo.querySelector('.types');
+    if (typesElement) {
+        typesElement.insertAdjacentElement('afterend', woundsComponent);
+        
+        // Wunden-Status anzeigen, wenn im AppState vorhanden
+        if (window.pokemonApp && window.pokemonApp.appState) {
+            const woundsCount = window.pokemonApp.appState.wounds || 0;
+            displayWoundsState(woundsCount);
+        }
+    }
+}
+
+/**
+ * Beobachter für Änderungen im Sheet-Container
+ * @param {number} retryCount - Current retry attempt
+ */
+function setupMutationObserver(retryCount = 0) {
+    // Prüfen, ob der DOM bereit ist
+    if (document.readyState !== "complete" && document.readyState !== "interactive") {
+        document.addEventListener("DOMContentLoaded", () => setupMutationObserver(0));
+        return;
+    }
+    
+    // Container für den Beobachter ermitteln
+    const container = document.getElementById(DOM_IDS.SHEET_CONTAINER);
+    if (!container) {
+        // Only retry if we haven't exceeded the maximum attempts
+        if (retryCount < MAX_RETRY_ATTEMPTS) {
+            setTimeout(() => setupMutationObserver(retryCount + 1), 500);
+        }
+        return;
+    }
+    
+    // Beobachter erstellen, der auf Änderungen im Container wartet
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                // Wenn Änderungen erkannt werden, die Wunden-Komponente injizieren
+                // Only inject if a Pokemon is actually loaded
+                if (isPokemonLoaded()) {
+                    setTimeout(() => {
+                        injectWoundsComponent();
+                    }, 300);
+                }
+            }
+        });
     });
+    
+    // Beobachtung starten
+    observer.observe(container, {
+        childList: true,
+        subtree: true
+    });
+}
+
+/**
+ * Hauptfunktion zur Initialisierung der Wunden-Komponente
+ */
+function initWoundsComponent() {    
+    // CSS hinzufügen
+    if (!document.getElementById('wounds-style')) {
+        const style = document.createElement('style');
+        style.id = 'wounds-style';
+        style.textContent = woundsCSS;
+        document.head.appendChild(style);
+    }
+    
+    // Warten, bis das DOM vollständig geladen ist
+    if (document.readyState !== "complete" && document.readyState !== "interactive") {
+        document.addEventListener("DOMContentLoaded", () => {
+            // Mit dem StorageService integrieren
+            setTimeout(() => integrateWithStorageService(0), 1000);
+            
+            // Beobachter für DOM-Änderungen einrichten
+            setTimeout(() => setupMutationObserver(0), 1000);
+        });
+    } else {
+        // DOM ist bereits geladen, direkt fortfahren
+        setTimeout(() => integrateWithStorageService(0), 1000);
+        setTimeout(() => setupMutationObserver(0), 1000);
+    }
 }
 
 // Event-Listener für die Initialisierung der App
 document.addEventListener('DOMContentLoaded', function() {
     // Stelle sicher, dass die Wunden-Komponente initialisiert wird
     initWoundsComponent();
-    
-    // Falls die App bereits geladen wurde, Wunden sofort anzeigen
-    if (window.pokemonApp && window.pokemonApp.appState) {
-        setTimeout(() => {
-            displayWoundsState(window.pokemonApp.appState.wounds || 0);
-        }, 1000);
-    }
 });
 
 // Füge einen Event-Listener für Änderungen am Pokemon-Select hinzu
@@ -877,20 +728,16 @@ setTimeout(function() {
                                 window.pokemonApp.appState.wounds = sheet.wounds;
                             }
                             
-                            console.log(`Pokemon ${pokemonId} geladen mit ${sheet.wounds} Wunden von Select-Handler`);
-                            
                             // Komponente einfügen und Wunden anzeigen
                             injectWoundsComponent();
                             displayWoundsState(sheet.wounds);
                         } else {
                             // Wenn keine Wunden gefunden wurden, auf 0 setzen
-                            console.log(`Keine gespeicherten Wunden für Pokemon ${pokemonId} gefunden von Select-Handler`);
                             injectWoundsComponent();
                             displayWoundsState(0);
                         }
                     } else {
                         // Fallback zur aktuellen Wunden-Anzeige
-                        console.log("Pokemon geändert, zeige Wunden an:", window.pokemonApp.appState.wounds || 0);
                         injectWoundsComponent();
                         displayWoundsState(window.pokemonApp.appState.wounds || 0);
                     }
@@ -940,12 +787,9 @@ setTimeout(function() {
                             this.appState.wounds = sheet.wounds;
                         }
                         
-                        console.log(`Pokemon ${pokemonId} geladen mit ${sheet.wounds} Wunden`);
-                        
                         // Anzeige aktualisieren
                         displayWoundsState(sheet.wounds);
                     } else {
-                        console.log(`Keine gespeicherten Wunden für Pokemon ${pokemonId} gefunden, setze auf 0`);
                         displayWoundsState(0);
                     }
                 } else if (this.appState) {
@@ -956,5 +800,5 @@ setTimeout(function() {
     }
 }, 1500);
 
-// Start der Komponenteninitialisierung
+// Start der Komponenteninitialisierung - only once
 initWoundsComponent();

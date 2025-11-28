@@ -19,6 +19,7 @@ class AppState {
         this.gena = DEFAULT_VALUES.GENA_PA_DEFAULT;
         this.pa = DEFAULT_VALUES.GENA_PA_DEFAULT;
         this.bw = 0;
+        this.baseBw = 0; // Base BW without KÖ bonus
         this.moves = Array(DEFAULT_VALUES.MOVE_SLOTS).fill(null);
         this.availableMoves = [];
         this.selectedStatForLevelUp = 'hp';
@@ -246,13 +247,38 @@ class AppState {
     }
 
     /**
-     * Berechnet den Bewegungswert (BW) basierend auf dem Basis-Speed
+     * Berechnet den Basis-Bewegungswert (BW) ohne KÖ-Bonus
+     * Formel: ceil(baseSpeed / 4) + floor(BST / 12)
      * @param {number} baseSpeed - Basis-Geschwindigkeitswert des Pokémon
-     * @returns {number} Berechneter BW-Wert
+     * @param {number} bst - Base Stat Total des Pokémon
+     * @returns {number} Berechneter Basis-BW-Wert
      */
-    calculateBw(baseSpeed) {
-        // BW = 25% des Basis-Speed, aufgerundet
-        return Math.ceil(baseSpeed * 0.25);
+    calculateBaseBw(baseSpeed, bst) {
+        // BW = ceil(base Initiative / 4) + floor(BST / 12)
+        const speedComponent = Math.ceil(baseSpeed / 4);
+        const bstComponent = Math.floor(bst / 12);
+        return speedComponent + bstComponent;
+    }
+    
+    /**
+     * Berechnet den gesamten Bewegungswert (BW) inklusive KÖ-Bonus
+     * @returns {number} Gesamter BW-Wert
+     */
+    getTotalBw() {
+        const koValue = this.skillValues['KÖ'] || 0;
+        const koBonus = koValue * 5;
+        return this.baseBw + koBonus;
+    }
+    
+    /**
+     * Aktualisiert den BW-Wert und das UI
+     */
+    updateBwDisplay() {
+        this.bw = this.getTotalBw();
+        const bwInput = document.getElementById('bw-input');
+        if (bwInput) {
+            bwInput.value = this.bw.toString();
+        }
     }
     
     /**
@@ -346,8 +372,9 @@ class AppState {
         // GENA und PA berechnen
         this.calculateGenaAndPa(data, speciesData, bst);
     
-        // BW berechnen
-        this.bw = this.calculateBw(this.baseStats.speed);
+        // BW berechnen (Basis-BW ohne KÖ-Bonus)
+        this.baseBw = this.calculateBaseBw(this.baseStats.speed, bst);
+        this.bw = this.getTotalBw();
     }
     
     /**
@@ -588,6 +615,12 @@ class AppState {
         if (numValue < -9 || numValue > 9) return false;
         
         this.skillValues[skill] = numValue;
+        
+        // When KÖ changes, update the BW value dynamically
+        if (skill === 'KÖ') {
+            this.updateBwDisplay();
+        }
+        
         return true;
     }
 }

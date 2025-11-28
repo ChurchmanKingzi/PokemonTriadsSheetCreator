@@ -184,6 +184,10 @@ const ABILITY_COLORS = {
   "Doppelgänger": "#A8A878",    // Normal-Beige
   "Chemiekraft": "#A040A0",     // Gift-Lila
 
+  
+  "Glaskörper": "##FFFFFF",    // Weiß
+
+
   // Kampf/Stärke
   "Affenfokus": "#C03028",      // Kampf-Rot
   "Dynamobeine": "#C03028",     // Kampf-Rot
@@ -2450,7 +2454,7 @@ function getAbilities(pokemonID) {
     case 769:
       return ["Verklumpen", "Sandschleier", "Sandgewalt"];
     case 770:
-      return ["Verklumpen", "Sandschleier", "Sandgewalt"];
+      return ["Glaskörper", "Bruchrüstung", "Flammkörper"];
     case 771:
       return ["Magenkrempler", "Unkenntnis", "Giftdorn"];
     case 772:
@@ -4448,6 +4452,9 @@ function getAbilityDescription(Name){
 
     case "Zuckerhülle":
         return "Das Pokemon riecht extrem süß. Ziele in der Nähe wachen sofort auf und können nicht einschlafen, da der Geruch zu penetrant ist. Es kann sich niemals verstecken.";
+
+    case "Glaskörper":
+        return "Der Körper des Pokemon besteht komplett aus Glas. Seine Beweglichkeit ist stark eingeschränkt. Physische Angriffe fügen vierfachen, spezielle geviertelten Schaden zu.";
   }
 }
 
