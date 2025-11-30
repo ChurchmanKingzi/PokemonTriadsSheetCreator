@@ -65,11 +65,24 @@ class UiRenderer {
     
     /**
      * Aktualisiert die Attacken-Dropdown-Menüs mit deutschen Namen
+     * Unterstützt Separatoren zwischen Kategorien und exklusive Slots
+     * (gewählte Attacken werden in anderen Slots ausgegraut)
      */
     updateMoveSelects() {
         const moveSelects = document.querySelectorAll('.move-select');
         
-        moveSelects.forEach(select => {
+        // Sammle alle aktuell ausgewählten Attacken (für exklusive Slots)
+        const selectedMoveNames = new Set();
+        this.appState.moves.forEach((move, idx) => {
+            if (move && move.name) {
+                selectedMoveNames.add(move.name);
+            }
+        });
+        
+        moveSelects.forEach((select, selectIndex) => {
+            // Aktuell ausgewählten Wert merken
+            const currentValue = select.value;
+            
             // Bestehende Optionen entfernen, außer der ersten
             while (select.options.length > 1) {
                 select.remove(1);
@@ -77,13 +90,49 @@ class UiRenderer {
             
             // Neue Optionen hinzufügen mit deutschen Namen
             this.appState.availableMoves.forEach(move => {
+                // Separator-Behandlung
+                if (move.isSeparator) {
+                    const separator = createElement('option', {
+                        value: '',
+                        disabled: 'disabled',
+                        className: 'move-separator'
+                    }, move.label);
+                    separator.style.fontWeight = 'bold';
+                    separator.style.backgroundColor = '#e0e0e0';
+                    separator.style.color = '#666';
+                    select.appendChild(separator);
+                    return;
+                }
+                
+                // Prüfen ob diese Attacke in einem anderen Slot ausgewählt ist
+                const isSelectedElsewhere = selectedMoveNames.has(move.name) && 
+                    this.appState.moves[selectIndex]?.name !== move.name;
+                
                 const option = createElement('option', {
                     value: move.name // Englischer Name für Referenz
-                }, move.getDisplayName()); // Deutscher Anzeigename mit Level
+                }, move.getDisplayName()); // Deutscher Anzeigename mit Lernmethode
+                
+                // Wenn in anderem Slot ausgewählt, deaktivieren
+                if (isSelectedElsewhere) {
+                    option.disabled = true;
+                }
                 
                 select.appendChild(option);
             });
+            
+            // Vorherigen Wert wiederherstellen, falls noch gültig
+            if (currentValue) {
+                select.value = currentValue;
+            }
         });
+    }
+    
+    /**
+     * Aktualisiert alle Move-Selects nach einer Auswahländerung
+     * (für exklusive Slots - deaktiviert bereits gewählte Attacken in anderen Slots)
+     */
+    refreshMoveSelectsExclusivity() {
+        this.updateMoveSelects();
     }
     
     /**
@@ -478,6 +527,10 @@ class UiRenderer {
             
             this.appState.setMove(index, moveName);
             this.updateMoveDetails(index);
+            
+            // Alle Move-Selects aktualisieren für exklusive Slots
+            this.refreshMoveSelectsExclusivity();
+            
             autoSave(); // Automatisch speichern
         });
         

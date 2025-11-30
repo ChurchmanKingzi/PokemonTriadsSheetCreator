@@ -407,107 +407,239 @@ class ApiService {
     
     /**
      * Lädt und kategorisiert die Attacken eines Pokemon
+     * Kategorien (in dieser Reihenfolge, mit Separatoren):
+     * 1. Level-Up Attacken (aktuelle Generation) - sortiert nach Level
+     * 2. Level-Up Attacken (frühere Generationen) - mit Generation-Angabe
+     * 3. TM-Attacken (alle Spiele)
+     * 4. Andere Attacken (Tutor, Egg, etc.)
+     * 
+     * Jede Attacke erscheint nur in der ersten Kategorie, in der sie vorkommt!
+     * 
      * @param {Object} pokemonData - Pokemon-Daten
-     * @returns {Promise<Array>} Sortierte Liste der Attacken
+     * @returns {Promise<Array>} Sortierte Liste der Attacken mit Kategorien
      */
     async fetchPokemonMoves(pokemonData) {
         if (!pokemonData) return [];
         
-        const pokemonTypes = pokemonData.types.map(type => type.type.name);
+        // Aktuelle Spielversionen (neueste Generation zuerst)
+        const currentVersions = ['scarlet-violet', 'sword-shield', 'lets-go-pikachu-lets-go-eevee'];
         
-        // Kategorisiere Attacken
-        const levelUpMoves = [];
-        const eggMoves = [];
-        const tmMoves = [];
-        const sameTypeMoves = [];
-        const otherMoves = [];
-
-        // Spielversionen in Reihenfolge der Priorität
-        const gameVersions = [
-            GAME_VERSION,           // Primär: "sword-shield"
-            'ultra-sun-ultra-moon', // Fallback 1
-            'sun-moon',             // Fallback 2
-            'omega-ruby-alpha-sapphire', // Fallback 3
-            'x-y',                  // Fallback 4
-            'black-white',          // Fallback 5
-            'heartgold-soulsilver', // Fallback 6
-            'diamond-pearl',        // Fallback 7
-            'ruby-sapphire',        // Fallback 8
-            'gold-silver',          // Fallback 9
-            'red-blue'              // Fallback 10
-        ];
-
-        // Level-Up Attacken extrahieren
+        // Alle Spielversionen nach Generation geordnet (neueste zuerst)
+        const versionsByGeneration = {
+            9: ['scarlet-violet'],
+            8: ['sword-shield', 'brilliant-diamond-and-shining-pearl', 'lets-go-pikachu-lets-go-eevee'],
+            7: ['ultra-sun-ultra-moon', 'sun-moon'],
+            6: ['omega-ruby-alpha-sapphire', 'x-y'],
+            5: ['black-2-white-2', 'black-white'],
+            4: ['heartgold-soulsilver', 'platinum', 'diamond-pearl'],
+            3: ['emerald', 'firered-leafgreen', 'ruby-sapphire'],
+            2: ['crystal', 'gold-silver'],
+            1: ['yellow', 'red-blue']
+        };
+        
+        // Generation-Namen für die Anzeige
+        const generationNames = {
+            9: 'Gen 9', 8: 'Gen 8', 7: 'Gen 7', 6: 'Gen 6', 
+            5: 'Gen 5', 4: 'Gen 4', 3: 'Gen 3', 2: 'Gen 2', 1: 'Gen 1'
+        };
+        
+        // Kategorien für Attacken
+        const currentLevelUpMoves = [];      // Kategorie 1: Level-Up (aktuell)
+        const legacyLevelUpMoves = [];       // Kategorie 2: Level-Up (frühere Gens)
+        const tmMoves = [];                   // Kategorie 3: TM
+        const otherMoves = [];                // Kategorie 4: Andere (Tutor, Egg, etc.)
+        
+        // Set für bereits verarbeitete Attacken (zur Duplikat-Erkennung)
+        const processedMoveNames = new Set();
+        
+        // Alle Attacken laden und verarbeiten
         for (const moveEntry of pokemonData.moves) {
-            let moveDetails = null;
+            const moveName = moveEntry.move.name;
             
-            // Versuche jede Spielversion der Reihe nach, bis move_learn_method gefunden wird
-            for (const version of gameVersions) {
-                const versionDetails = moveEntry.version_group_details.find(
-                    detail => detail.version_group.name === version
+            // Attacken-Daten laden
+            let moveData;
+            try {
+                const moveResponse = await fetch(moveEntry.move.url);
+                moveData = await moveResponse.json();
+            } catch (error) {
+                console.error(`Fehler beim Laden der Attackendaten für ${moveName}:`, error);
+                continue;
+            }
+            
+            // Deutschen Namen der Attacke ermitteln
+            const germanMoveName = this.translationService.translateMoveName(moveName, moveData);
+            const germanType = this.translationService.translateTypeName(moveData.type.name);
+            
+            // Alle Versionsdetails dieser Attacke analysieren
+            const versionDetails = moveEntry.version_group_details;
+            
+            // 1. Prüfen auf Level-Up in aktueller Generation
+            let currentLevelUpDetail = null;
+            for (const version of currentVersions) {
+                const detail = versionDetails.find(
+                    d => d.version_group.name === version && d.move_learn_method.name === 'level-up'
                 );
-                
-                if (versionDetails) {
-                    moveDetails = versionDetails;
-                    break; // Sobald eine Version gefunden wurde, die Suche beenden
+                if (detail) {
+                    currentLevelUpDetail = detail;
+                    break;
                 }
             }
             
-            // Wenn keine Version gefunden wurde, die nächste Attacke versuchen
-            if (!moveDetails) continue;
+            if (currentLevelUpDetail && !processedMoveNames.has(moveName)) {
+                const move = this._createMoveObject(
+                    moveData, currentLevelUpDetail, germanMoveName, germanType,
+                    'current-level-up', `Lv ${currentLevelUpDetail.level_learned_at}`
+                );
+                currentLevelUpMoves.push(move);
+                processedMoveNames.add(moveName);
+                continue;
+            }
             
-            try {
-                // Informationen über die Attacke laden
-                const moveResponse = await fetch(moveEntry.move.url);
-                const moveData = await moveResponse.json();
+            // 2. Prüfen auf Level-Up in früheren Generationen
+            if (!processedMoveNames.has(moveName)) {
+                let legacyLevelUpDetail = null;
+                let legacyGeneration = null;
                 
-                // Deutschen Namen der Attacke ermitteln
-                const germanMoveName = this.translationService.translateMoveName(moveEntry.move.name, moveData);
+                // Von neuester zu ältester Generation suchen
+                for (let gen = 9; gen >= 1; gen--) {
+                    const versions = versionsByGeneration[gen] || [];
+                    for (const version of versions) {
+                        // Aktuelle Versionen überspringen (bereits geprüft)
+                        if (currentVersions.includes(version)) continue;
+                        
+                        const detail = versionDetails.find(
+                            d => d.version_group.name === version && d.move_learn_method.name === 'level-up'
+                        );
+                        if (detail) {
+                            legacyLevelUpDetail = detail;
+                            legacyGeneration = gen;
+                            break;
+                        }
+                    }
+                    if (legacyLevelUpDetail) break;
+                }
                 
-                // Typ der Attacke übersetzen
-                const germanType = this.translationService.translateTypeName(moveData.type.name);
-                
-                // Move-Objekt erstellen mit deutschen Namen
-                const move = new PokemonMove(
-                    moveData, 
-                    moveDetails,
-                    germanMoveName,
-                    germanType
+                if (legacyLevelUpDetail) {
+                    const levelInfo = legacyLevelUpDetail.level_learned_at > 0 
+                        ? `Lv ${legacyLevelUpDetail.level_learned_at}, ` 
+                        : '';
+                    const move = this._createMoveObject(
+                        moveData, legacyLevelUpDetail, germanMoveName, germanType,
+                        'legacy-level-up', `${levelInfo}${generationNames[legacyGeneration]}`
+                    );
+                    legacyLevelUpMoves.push(move);
+                    processedMoveNames.add(moveName);
+                    continue;
+                }
+            }
+            
+            // 3. Prüfen auf TM/HM in irgendeinem Spiel
+            if (!processedMoveNames.has(moveName)) {
+                const tmDetail = versionDetails.find(
+                    d => d.move_learn_method.name === 'machine'
                 );
                 
-                // In die richtige Kategorie einsortieren
-                if (move.isCategory('level-up')) {
-                    levelUpMoves.push(move);
-                } else if (move.isCategory('egg')) {
-                    eggMoves.push(move);
-                } else if (move.isCategory('machine')) {
+                if (tmDetail) {
+                    const move = this._createMoveObject(
+                        moveData, tmDetail, germanMoveName, germanType,
+                        'tm', 'TM'
+                    );
                     tmMoves.push(move);
-                } else if (move.isCategory('same-type', pokemonTypes)) {
-                    sameTypeMoves.push(move);
-                } else {
-                    otherMoves.push(move);
+                    processedMoveNames.add(moveName);
+                    continue;
                 }
-            } catch (error) {
-                console.error(`Fehler beim Laden der Attackendaten für ${moveEntry.move.name}:`, error);
+            }
+            
+            // 4. Alle anderen Lernmethoden (Tutor, Egg, etc.)
+            if (!processedMoveNames.has(moveName)) {
+                const otherDetail = versionDetails.find(
+                    d => ['tutor', 'egg', 'stadium-surfing-pikachu', 'light-ball-egg', 'colosseum-purification', 'xd-shadow', 'xd-purification', 'form-change', 'zygarde-cube'].includes(d.move_learn_method.name)
+                );
+                
+                if (otherDetail) {
+                    // Lernmethode für Anzeige formatieren
+                    const methodNames = {
+                        'tutor': 'Tutor',
+                        'egg': 'Ei',
+                        'stadium-surfing-pikachu': 'Event',
+                        'light-ball-egg': 'Ei (Lichtball)',
+                        'colosseum-purification': 'Colosseum',
+                        'xd-shadow': 'XD',
+                        'xd-purification': 'XD',
+                        'form-change': 'Formwandel',
+                        'zygarde-cube': 'Zygarde-Würfel'
+                    };
+                    const methodName = methodNames[otherDetail.move_learn_method.name] || otherDetail.move_learn_method.name;
+                    
+                    const move = this._createMoveObject(
+                        moveData, otherDetail, germanMoveName, germanType,
+                        'other', methodName
+                    );
+                    otherMoves.push(move);
+                    processedMoveNames.add(moveName);
+                }
             }
         }
         
-        // Level-Up Attacken nach Level sortieren
-        levelUpMoves.sort((a, b) => a.levelLearned - b.levelLearned);
+        // Sortieren
+        currentLevelUpMoves.sort((a, b) => a.levelLearned - b.levelLearned);
+        legacyLevelUpMoves.sort((a, b) => a.germanName.localeCompare(b.germanName, 'de'));
+        tmMoves.sort((a, b) => a.germanName.localeCompare(b.germanName, 'de'));
+        otherMoves.sort((a, b) => a.germanName.localeCompare(b.germanName, 'de'));
         
-        // Alle Kategorien zusammenführen
-        const allMoves = [
-            ...levelUpMoves,
-            ...eggMoves,
-            ...tmMoves,
-            ...sameTypeMoves,
-            ...otherMoves
-        ];
+        // Alle Kategorien mit Separatoren zusammenführen
+        const allMoves = [];
+        
+        // Kategorie 1: Aktuelle Level-Up Attacken
+        if (currentLevelUpMoves.length > 0) {
+            allMoves.push(...currentLevelUpMoves);
+        }
+        
+        // Separator 1
+        if (currentLevelUpMoves.length > 0 && legacyLevelUpMoves.length > 0) {
+            allMoves.push({ isSeparator: true, label: '── Frühere Generationen ──' });
+        }
+        
+        // Kategorie 2: Legacy Level-Up Attacken
+        if (legacyLevelUpMoves.length > 0) {
+            allMoves.push(...legacyLevelUpMoves);
+        }
+        
+        // Separator 2
+        if ((currentLevelUpMoves.length > 0 || legacyLevelUpMoves.length > 0) && tmMoves.length > 0) {
+            allMoves.push({ isSeparator: true, label: '── TM-Attacken ──' });
+        }
+        
+        // Kategorie 3: TM Attacken
+        if (tmMoves.length > 0) {
+            allMoves.push(...tmMoves);
+        }
+        
+        // Separator 3
+        if ((currentLevelUpMoves.length > 0 || legacyLevelUpMoves.length > 0 || tmMoves.length > 0) && otherMoves.length > 0) {
+            allMoves.push({ isSeparator: true, label: '── Andere ──' });
+        }
+        
+        // Kategorie 4: Andere Attacken
+        if (otherMoves.length > 0) {
+            allMoves.push(...otherMoves);
+        }
         
         // Im AppState speichern
         this.appState.setAvailableMoves(allMoves);
         
         return allMoves;
+    }
+    
+    /**
+     * Hilfsmethode zum Erstellen eines Move-Objekts mit erweiterter Kategorie-Info
+     * @private
+     */
+    _createMoveObject(moveData, methodData, germanName, germanType, category, learnMethodDisplay) {
+        const move = new PokemonMove(moveData, methodData, germanName, germanType);
+        move.category = category;
+        move.learnMethodDisplay = learnMethodDisplay;
+        return move;
     }
     
     /**

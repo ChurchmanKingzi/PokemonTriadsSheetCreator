@@ -728,10 +728,15 @@ class PokemonMove {
     }
     
     /**
-     * Gibt den Anzeigenamen des Moves zurück (inkl. Level, falls vorhanden)
+     * Gibt den Anzeigenamen des Moves zurück (inkl. Lernmethode in Klammern)
      * @returns {string} Anzeigename
      */
     getDisplayName() {
-        return `${this.germanName}${this.levelLearned ? ` (Level ${this.levelLearned})` : ''}`;
+        // Wenn learnMethodDisplay vorhanden ist, dieses verwenden
+        if (this.learnMethodDisplay) {
+            return `${this.germanName} (${this.learnMethodDisplay})`;
+        }
+        // Fallback für alte Move-Objekte
+        return `${this.germanName}${this.levelLearned ? ` (Lv ${this.levelLearned})` : ''}`;
     }
 }

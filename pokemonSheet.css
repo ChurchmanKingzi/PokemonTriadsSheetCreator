@@ -399,6 +399,22 @@ body {
     box-sizing: border-box;
 }
 
+/* Attacken-Separator-Stil */
+.move-select option.move-separator {
+    font-weight: bold;
+    background-color: #e2e8f0;
+    color: #4a5568;
+    text-align: center;
+    padding: 0.5rem;
+}
+
+/* Deaktivierte (bereits gewählte) Attacken - deutlich ausgegraut und durchgestrichen */
+.move-select option:disabled:not(.move-separator) {
+    color: #a0aec0;
+    background-color: #f1f5f9;
+    text-decoration: line-through;
+}
+
 /* Gemeinsame Input-Stile */
 .stat-input, .skill-input, .level-value-input, .exp-input {
     border: 1px solid #d1d5db;
@@ -1455,6 +1471,19 @@ body.dark-mode .move-select {
 body.dark-mode .move-select option {
     background-color: #16213e;
     color: #e0e0e0;
+}
+
+/* Dark Mode: Attacken-Separator */
+body.dark-mode .move-select option.move-separator {
+    background-color: #2d3748;
+    color: #a0aec0;
+}
+
+/* Dark Mode: Deaktivierte (bereits gewählte) Attacken - durchgestrichen und ausgegraut */
+body.dark-mode .move-select option:disabled:not(.move-separator) {
+    color: #4a5568;
+    background-color: #1a202c;
+    text-decoration: line-through;
 }
 
 body.dark-mode .move-details {
