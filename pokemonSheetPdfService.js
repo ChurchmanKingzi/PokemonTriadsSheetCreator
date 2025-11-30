@@ -118,13 +118,30 @@ class PdfService {
                 throw new Error('Pokemon-Sheet nicht gefunden');
             }
             
-            // Pokémon-Sheet als Canvas rendern
-            const canvas = await html2canvas(sheetContainer.firstChild, {
+            // Das gesamte Sheet-Element (nicht nur firstChild)
+            const sheetElement = sheetContainer.firstChild || sheetContainer;
+            
+            // Textareas temporär durch Divs ersetzen für korrekte Zeilenumbrüche
+            const textareaReplacements = this._replaceTextareasWithDivs(sheetElement);
+            
+            // Pokémon-Sheet als Canvas rendern mit erweiterten Optionen
+            const canvas = await html2canvas(sheetElement, {
                 scale: 2, // Höhere Auflösung für bessere Qualität
                 useCORS: true,
                 logging: false,
-                backgroundColor: '#FFFFFF'
+                backgroundColor: '#FFFFFF',
+                width: sheetElement.scrollWidth,
+                height: sheetElement.scrollHeight,
+                windowWidth: sheetElement.scrollWidth,
+                windowHeight: sheetElement.scrollHeight,
+                x: 0,
+                y: 0,
+                scrollX: 0,
+                scrollY: 0
             });
+            
+            // Textareas wiederherstellen
+            this._restoreTextareas(textareaReplacements);
             
             // Canvas-Dimensionen ermitteln
             const canvasWidth = canvas.width;
@@ -142,10 +159,11 @@ class PdfService {
             const pdfHeight = pdf.internal.pageSize.getHeight();
             
             // Skalierungsfaktor berechnen, um das Bild optimal anzupassen
+            // Reduzierter Rand (0.92 statt 0.95) um mehr Platz für Inhalt zu haben
             const scale = Math.min(
                 pdfWidth / canvasWidth,
                 pdfHeight / canvasHeight
-            ) * 0.95; // Kleiner Rand
+            ) * 0.92;
             
             // Neue Dimensionen berechnen
             const scaledWidth = canvasWidth * scale;
@@ -281,5 +299,80 @@ class PdfService {
         if (overlay && document.body.contains(overlay)) {
             document.body.removeChild(overlay);
         }
+    }
+    
+    /**
+     * Ersetzt Textareas temporär durch Divs für korrekte Darstellung in html2canvas
+     * @param {HTMLElement} container - Das Container-Element
+     * @returns {Array} Array mit Informationen zur Wiederherstellung
+     * @private
+     */
+    _replaceTextareasWithDivs(container) {
+        const replacements = [];
+        const textareas = container.querySelectorAll('textarea');
+        
+        textareas.forEach(textarea => {
+            // Computed styles kopieren
+            const computedStyle = window.getComputedStyle(textarea);
+            
+            // Div erstellen
+            const div = document.createElement('div');
+            div.className = textarea.className + ' textarea-pdf-replacement';
+            
+            // Text mit Zeilenumbrüchen setzen
+            // Ersetze \n durch <br> für HTML-Darstellung
+            const text = textarea.value || '';
+            div.innerHTML = text
+                .split('\n')
+                .map(line => line || '&nbsp;') // Leere Zeilen als &nbsp;
+                .join('<br>');
+            
+            // Wichtige Styles übernehmen
+            div.style.width = computedStyle.width;
+            div.style.minHeight = computedStyle.height;
+            div.style.padding = computedStyle.padding;
+            div.style.margin = computedStyle.margin;
+            div.style.border = computedStyle.border;
+            div.style.borderRadius = computedStyle.borderRadius;
+            div.style.backgroundColor = computedStyle.backgroundColor;
+            div.style.color = computedStyle.color;
+            div.style.fontSize = computedStyle.fontSize;
+            div.style.fontFamily = computedStyle.fontFamily;
+            div.style.lineHeight = computedStyle.lineHeight;
+            div.style.whiteSpace = 'pre-wrap';
+            div.style.wordWrap = 'break-word';
+            div.style.overflow = 'hidden';
+            div.style.boxSizing = 'border-box';
+            
+            // Speichere Referenz für Wiederherstellung
+            replacements.push({
+                textarea: textarea,
+                div: div,
+                parent: textarea.parentNode,
+                nextSibling: textarea.nextSibling
+            });
+            
+            // Textarea verstecken und Div einfügen
+            textarea.style.display = 'none';
+            textarea.parentNode.insertBefore(div, textarea.nextSibling);
+        });
+        
+        return replacements;
+    }
+    
+    /**
+     * Stellt die originalen Textareas wieder her
+     * @param {Array} replacements - Array mit Wiederherstellungsinformationen
+     * @private
+     */
+    _restoreTextareas(replacements) {
+        replacements.forEach(({ textarea, div }) => {
+            // Div entfernen
+            if (div.parentNode) {
+                div.parentNode.removeChild(div);
+            }
+            // Textarea wieder anzeigen
+            textarea.style.display = '';
+        });
     }
 }

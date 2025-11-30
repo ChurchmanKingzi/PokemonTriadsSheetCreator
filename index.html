@@ -13,6 +13,7 @@
             <button id="save-json-button" class="action-button save-button">JSON Speichern</button>
             <button id="save-pdf-button" class="action-button save-button" style="background-color: #4285F4;">PDF Speichern</button>
             <button id="load-pokemon-button" class="action-button load-button">Pokémon Laden</button>
+            <button id="dark-mode-button" class="action-button dark-mode-button">🌙 Dark Mode</button>
         </div>
         
         <!-- Pokémon-Auswahl -->
@@ -34,7 +35,6 @@
     <script src="pokemonSheetModels.js"></script>  <!-- AppState zuerst laden -->
     <script src="translationService.js"></script>
     <script src="diceCalculator.js"></script>
-    <script src="moveService.js"></script>  <!-- Attacken-Beschreibungen -->
     <script src="pokemonSheetUIRenderer.js"></script>
     <script src="pokemonSheetApiService.js"></script>
     <script src="pokemonSheetPdfService.js"></script>
@@ -45,6 +45,33 @@
     <script src="woundsComponent.js"></script>
     <script src="jsonExportService.js"></script>
     <script src="jsonImportService.js"></script>
-    <script src="pdfService.js"></script>
+    <script src="moveService.js"></script>
+    
+    <!-- Dark Mode Initialization -->
+    <script>
+        // Dark Mode Toggle Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkModeButton = document.getElementById('dark-mode-button');
+            
+            // Check for saved preference
+            const savedDarkMode = localStorage.getItem('darkMode');
+            if (savedDarkMode === 'true') {
+                document.body.classList.add('dark-mode');
+                darkModeButton.textContent = '☀️ Light Mode';
+            }
+            
+            // Toggle handler
+            darkModeButton.addEventListener('click', function() {
+                document.body.classList.toggle('dark-mode');
+                const isDarkMode = document.body.classList.contains('dark-mode');
+                
+                // Update button text
+                darkModeButton.textContent = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+                
+                // Save preference
+                localStorage.setItem('darkMode', isDarkMode);
+            });
+        });
+    </script>
 </body>
 </html>

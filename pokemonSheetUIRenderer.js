@@ -54,6 +54,13 @@ class UiRenderer {
         
         // Event-Listener hinzufügen
         this._addEventListeners();
+        
+        // Initial Level-Up Button Highlight prüfen
+        this._updateLevelUpButtonHighlight();
+        
+        // Initial Stat-Auswahl Radio-Buttons setzen
+        this._updatePrimaryStatSelection();
+        this._updateSecondaryStatSelection();
     }
     
     /**
@@ -86,14 +93,16 @@ class UiRenderer {
     updateMoveDetails(index) {
         const detailsContainer = document.getElementById(`move-details-${index}`);
         const descriptionContainer = document.getElementById(`move-description-container-${index}`);
-        const descriptionTextarea = document.getElementById(`move-description-${index}`);
         const move = this.appState.moves[index];
         
         if (!move) {
             detailsContainer.innerHTML = '';
-            // Beschreibungs-Textbox mit Standardnachricht füllen, wenn keine Attacke ausgewählt
-            if (descriptionTextarea) {
-                descriptionTextarea.value = "Keine Attacke ausgewählt";
+            // Beschreibungs-Textbox verstecken und leeren, wenn keine Attacke ausgewählt
+            if (descriptionContainer) {
+                const descriptionTextarea = document.getElementById(`move-description-${index}`);
+                if (descriptionTextarea) {
+                    descriptionTextarea.value = '';
+                }
             }
             return;
         }
@@ -119,18 +128,16 @@ class UiRenderer {
             );
         }
         
-        // Beschreibungs-Textbox mit Beschreibung aus moveService füllen
-        if (descriptionTextarea) {
-            // Prüfe ob eine benutzerdefinierte Beschreibung im Move gespeichert ist
-            if (move.customDescription && move.customDescription.trim() !== '') {
-                // Benutze die gespeicherte benutzerdefinierte Beschreibung
-                descriptionTextarea.value = move.customDescription;
-            } else {
-                // Lade die Standard-Beschreibung aus dem moveService
-                const moveDescription = typeof getMoveDescription === 'function' 
-                    ? getMoveDescription(move.germanName) 
-                    : `Keine Beschreibung für "${move.germanName}" verfügbar`;
-                descriptionTextarea.value = moveDescription;
+        // Beschreibungs-Textbox anzeigen, wenn eine Attacke ausgewählt ist
+        if (descriptionContainer) {
+            descriptionContainer.style.display = 'block';
+            
+            // Versuche gespeicherte Beschreibung wiederherzustellen, falls vorhanden
+            if (move.customDescription) {
+                const descriptionTextarea = document.getElementById(`move-description-${index}`);
+                if (descriptionTextarea) {
+                    descriptionTextarea.value = move.customDescription;
+                }
             }
         }
     }
@@ -170,18 +177,16 @@ class UiRenderer {
                 })
             ]),
             
-            // BW (neu) - readonly, da dynamisch berechnet
+            // BW (neu)
             createElement('div', { className: 'stat-item bw-item' }, [
                 createElement('span', { className: 'stat-name' }, 'BW:'),
                 createElement('input', {
                     type: 'number',
                     min: '0',
-                    max: '999',
+                    max: '99',
                     value: bw.toString(),
                     className: 'stat-input bw-input',
-                    id: 'bw-input',
-                    readonly: 'readonly',
-                    title: 'BW = ceil(Basis-Initiative / 4) + floor(BST / 12) + (KÖ × 5)'
+                    id: 'bw-input'
                 })
             ])
         ]);
@@ -189,21 +194,16 @@ class UiRenderer {
     
     /**
      * Erstellt den Statuswerte-Bereich mit Level-Up-Funktionalität
+     * Reihenfolge: KP/Initiative, dann Angriff/Verteidigung, dann Sp.Angriff/Sp.Verteidigung
      * @returns {HTMLElement} Der Statuswerte-Bereich
      * @private
      */
     _createStatsSection() {
         const { stats, currentHp } = this.appState;
         
-        // Erstelle den Stats-Container
+        // Erstelle den Stats-Container mit neuer Reihenfolge
         const statsSection = createElement('div', { className: 'stats' }, [
-            this._createEditableStatItem('Angriff', stats.attack, 'attack', 'attack-item'),
-            this._createEditableStatItem('Verteidigung', stats.defense, 'defense', 'defense-item'),
-            this._createEditableStatItem('Spez. Angriff', stats.spAttack, 'spAttack', 'sp-attack-item'),
-            this._createEditableStatItem('Spez. Verteidigung', stats.spDefense, 'spDefense', 'sp-defense-item'),
-            this._createEditableStatItem('Initiative', stats.speed, 'speed', 'speed-item'),
-            
-            // KP hier direkt als Teil der Stats-Grid
+            // Zeile 1: KP und Initiative
             createElement('div', { className: 'stat-item hp-item' }, [
                 createElement('span', { className: 'stat-name' }, 'KP:'),
                 createElement('div', { className: 'hp-inputs' }, [
@@ -226,7 +226,16 @@ class UiRenderer {
                         'data-stat': 'hp'
                     })
                 ])
-            ])
+            ]),
+            this._createEditableStatItem('Initiative', stats.speed, 'speed', 'speed-item'),
+            
+            // Zeile 2: Angriff und Verteidigung
+            this._createEditableStatItem('Angriff', stats.attack, 'attack', 'attack-item'),
+            this._createEditableStatItem('Verteidigung', stats.defense, 'defense', 'defense-item'),
+            
+            // Zeile 3: Spez. Angriff und Spez. Verteidigung
+            this._createEditableStatItem('Spez. Angriff', stats.spAttack, 'spAttack', 'sp-attack-item'),
+            this._createEditableStatItem('Spez. Verteidigung', stats.spDefense, 'spDefense', 'sp-defense-item')
         ]);
         
         return statsSection;
@@ -317,7 +326,7 @@ class UiRenderer {
                 className: 'move-details'
             }),
             
-            // Beschreibungs-Textbox (zeigt standardmäßig "Keine Attacke ausgewählt")
+            // Beschreibungs-Textbox (jetzt immer sichtbar)
             createElement('div', {
                 id: `move-description-container-${index}`,
                 className: 'move-description-container'
@@ -325,9 +334,9 @@ class UiRenderer {
                 createElement('textarea', {
                     id: `move-description-${index}`,
                     className: 'move-description',
-                    placeholder: 'Attacken-Beschreibung...',
+                    placeholder: 'Eigene Beschreibung eingeben...',
                     rows: 3
-                }, 'Keine Attacke ausgewählt')
+                })
             ])
         ]);
     }
@@ -523,7 +532,15 @@ class UiRenderer {
             autoSave(); // Automatisch speichern
         });
 
-        // BW wird dynamisch berechnet (KÖ × 5 + Basis-BW) - kein Event-Listener nötig
+        // Event-Listener für BW
+        addEventListenerSafe('#bw-input', 'change', e => {
+            const value = e.target.value;
+            
+            if (!this.appState.setBw(value)) {
+                e.target.value = this.appState.bw;
+            }
+            autoSave(); // Automatisch speichern
+        });
 
         // Event-Listener für Level-Änderung
         addEventListenerSafe('#level-value', 'change', e => {
@@ -741,7 +758,7 @@ class UiRenderer {
         // Überarbeitete Struktur
         const overviewSection = createElement('div', { className: 'pokemon-overview' }, [
             // Header-Container oben einfügen
-            headerContainer,
+            //headerContainer,
             
             // Basic info at top left (with friendship tracker inside)
             basicInfo,
@@ -779,8 +796,7 @@ class UiRenderer {
             createElement('input', {
                 type: 'text',
                 id: id,
-                className: 'text-field-input',
-                placeholder: label
+                className: 'text-field-input'
             })
         ]);
     }
@@ -844,17 +860,28 @@ class UiRenderer {
                 ])
             ]),
         
-            // Stat-Auswahl für Level-Up (unverändert)
+            // Stat-Auswahl für Level-Up - Primäre Wahl
             createElement('div', { className: 'stat-selection' }, [
-                createElement('div', { className: 'stat-selection-header' }, 'Wähle einen Statuswert:'),
+                createElement('div', { className: 'stat-selection-header' }, 'Erste Wahl (wenn zufälliger Stat ≠ diese):'),
             
-                // Bisherige Radio-Buttons
-                this._createStatRadioButton('attack', 'Angriff', this.appState.selectedStatForLevelUp === 'attack'),
-                this._createStatRadioButton('defense', 'Verteidigung', this.appState.selectedStatForLevelUp === 'defense'),
-                this._createStatRadioButton('spAttack', 'Sp. Angriff', this.appState.selectedStatForLevelUp === 'spAttack'),
-                this._createStatRadioButton('spDefense', 'Sp. Verteidigung', this.appState.selectedStatForLevelUp === 'spDefense'),
-                this._createStatRadioButton('speed', 'Initiative', this.appState.selectedStatForLevelUp === 'speed'),
-                this._createStatRadioButton('hp', 'KP', this.appState.selectedStatForLevelUp === 'hp')
+                this._createStatRadioButton('hp', 'KP', this.appState.primaryStatChoice === 'hp', 'primary'),
+                this._createStatRadioButton('speed', 'Initiative', this.appState.primaryStatChoice === 'speed', 'primary'),
+                this._createStatRadioButton('attack', 'Angriff', this.appState.primaryStatChoice === 'attack', 'primary'),
+                this._createStatRadioButton('defense', 'Verteidigung', this.appState.primaryStatChoice === 'defense', 'primary'),
+                this._createStatRadioButton('spAttack', 'Sp. Angriff', this.appState.primaryStatChoice === 'spAttack', 'primary'),
+                this._createStatRadioButton('spDefense', 'Sp. Verteidigung', this.appState.primaryStatChoice === 'spDefense', 'primary')
+            ]),
+            
+            // Stat-Auswahl für Level-Up - Sekundäre Wahl
+            createElement('div', { className: 'stat-selection stat-selection-secondary' }, [
+                createElement('div', { className: 'stat-selection-header' }, 'Zweite Wahl (wenn zufälliger Stat = erste Wahl):'),
+            
+                this._createStatRadioButton('hp', 'KP', this.appState.secondaryStatChoice === 'hp', 'secondary'),
+                this._createStatRadioButton('speed', 'Initiative', this.appState.secondaryStatChoice === 'speed', 'secondary'),
+                this._createStatRadioButton('attack', 'Angriff', this.appState.secondaryStatChoice === 'attack', 'secondary'),
+                this._createStatRadioButton('defense', 'Verteidigung', this.appState.secondaryStatChoice === 'defense', 'secondary'),
+                this._createStatRadioButton('spAttack', 'Sp. Angriff', this.appState.secondaryStatChoice === 'spAttack', 'secondary'),
+                this._createStatRadioButton('spDefense', 'Sp. Verteidigung', this.appState.secondaryStatChoice === 'spDefense', 'secondary')
             ])
         ]);
 
@@ -866,21 +893,23 @@ class UiRenderer {
      * @param {string} value - Der Wert des Radio-Buttons
      * @param {string} label - Das Label des Radio-Buttons
      * @param {boolean} checked - Ob der Radio-Button ausgewählt sein soll
+     * @param {string} group - Die Gruppe ('primary' oder 'secondary')
      * @returns {HTMLElement} Das Radio-Button-Element
      * @private
      */
-    _createStatRadioButton(value, label, checked = false) {
-        const id = `stat-radio-${value}`;
+    _createStatRadioButton(value, label, checked = false, group = 'primary') {
+        const id = `stat-radio-${group}-${value}`;
+        const name = group === 'primary' ? 'primary-stat' : 'secondary-stat';
 
         // Hier ist der kritische Teil, der sicherstellt, dass checked korrekt gesetzt wird
         const radioWrapper = createElement('div', { className: 'stat-radio-wrapper' }, [
             createElement('input', {
                 type: 'radio',
                 id,
-                name: 'selected-stat',
+                name,
                 value,
                 className: 'stat-radio',
-                checked: checked // Hier ist die Änderung - wir setzen das checked-Attribut direkt
+                checked: checked
             }),
             createElement('label', { for: id, className: 'stat-radio-label' }, label)
         ]);
@@ -896,28 +925,57 @@ class UiRenderer {
     _addLevelUpEventListeners(autoSave) {
         // Level-Up-Button
         addEventListenerSafe('#level-up-button', 'click', e => {
-            const levelUpResult = this.appState.levelUp();
+            // Prüfe ob Level-Up möglich ist
+            if (!this.appState.canLevelUp()) {
+                return;
+            }
             
-            if (levelUpResult) {
+            // Führe Level-Ups durch, solange möglich
+            const allResults = [];
+            let levelUpResult;
+            
+            do {
+                levelUpResult = this.appState.levelUp();
+                
+                if (levelUpResult) {
+                    allResults.push(levelUpResult);
+                }
+            } while (levelUpResult && levelUpResult.canLevelUpAgain);
+            
+            // UI aktualisieren wenn mindestens ein Level-Up durchgeführt wurde
+            if (allResults.length > 0) {
+                const lastResult = allResults[allResults.length - 1];
+                
                 // Level-Anzeige aktualisieren
                 const levelElement = document.getElementById('level-value');
                 if (levelElement) {
-                    levelElement.value = levelUpResult.newLevel.toString();
+                    levelElement.value = lastResult.newLevel.toString();
                 }
                 
                 // Alle Statuswerte aktualisieren
                 this._updateAllStats();
                 
-                // NEU: Max-EXP aktualisieren (Level²)
+                // EXP-Anzeigen aktualisieren
+                const currentExpInput = document.getElementById('current-exp-input');
                 const maxExpInput = document.getElementById('max-exp-input');
+                if (currentExpInput) {
+                    currentExpInput.value = lastResult.newCurrentExp.toString();
+                }
                 if (maxExpInput) {
-                    // Die für das nächste Level benötigte EXP berechnen (aktuelles Level zum Quadrat)
-                    const requiredExp = levelUpResult.newLevel * levelUpResult.newLevel;
-                    maxExpInput.value = requiredExp.toString();
+                    maxExpInput.value = lastResult.newRequiredExp.toString();
                 }
                 
-                // Erfolgsbenachrichtigung anzeigen
-                this._showLevelUpResult(levelUpResult);
+                // Stat-Erhöhungen als Popups anzeigen (für alle Level-Ups)
+                allResults.forEach((result, index) => {
+                    // Verzögere die Anzeige für jeden Level-Up
+                    setTimeout(() => {
+                        this._showStatIncrease(result.firstRoll.stat, result.firstRoll.result.difference);
+                        this._showStatIncrease(result.secondRoll.stat, result.secondRoll.result.difference);
+                    }, index * 500);
+                });
+                
+                // Button-Highlighting aktualisieren
+                this._updateLevelUpButtonHighlight();
                 
                 // Automatisch speichern
                 if (autoSave) {
@@ -926,9 +984,40 @@ class UiRenderer {
             }
         });
     
-        // Radio-Buttons für Statauswahl
-        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, 'input[name="selected-stat"]', 'change', e => {
-            this.appState.setSelectedStatForLevelUp(e.target.value);
+        // EXP-Input Listener für Button-Highlighting
+        addEventListenerSafe('#current-exp-input', 'input', e => {
+            this._updateLevelUpButtonHighlight();
+        });
+        
+        addEventListenerSafe('#current-exp-input', 'change', e => {
+            const value = e.target.value;
+            this.appState.setCurrentExp(value);
+            this._updateLevelUpButtonHighlight();
+            
+            if (autoSave) {
+                autoSave();
+            }
+        });
+    
+        // Radio-Buttons für primäre Statauswahl
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, 'input[name="primary-stat"]', 'change', e => {
+            this.appState.setPrimaryStatChoice(e.target.value);
+            
+            // UI aktualisieren falls die sekundäre Wahl automatisch korrigiert wurde
+            this._updateSecondaryStatSelection();
+            
+            // Automatisch speichern
+            if (autoSave) {
+                autoSave();
+            }
+        });
+        
+        // Radio-Buttons für sekundäre Statauswahl
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, 'input[name="secondary-stat"]', 'change', e => {
+            this.appState.setSecondaryStatChoice(e.target.value);
+            
+            // UI aktualisieren falls die Wahl automatisch korrigiert wurde
+            this._updateSecondaryStatSelection();
             
             // Automatisch speichern
             if (autoSave) {
@@ -945,6 +1034,49 @@ class UiRenderer {
                 }
             });
         });
+    }
+    
+    /**
+     * Aktualisiert die sekundäre Stat-Auswahl in der UI
+     * Wird aufgerufen wenn die primäre Wahl geändert wird und die sekundäre automatisch angepasst wurde
+     * @private
+     */
+    /**
+     * Aktualisiert die primäre Stat-Auswahl in der UI
+     * @private
+     */
+    _updatePrimaryStatSelection() {
+        const primaryRadio = document.querySelector(`input[name="primary-stat"][value="${this.appState.primaryStatChoice}"]`);
+        if (primaryRadio) {
+            primaryRadio.checked = true;
+        }
+    }
+    
+    /**
+     * Aktualisiert die sekundäre Stat-Auswahl in der UI
+     * Wird aufgerufen wenn die primäre Wahl geändert wird und die sekundäre automatisch angepasst wurde
+     * @private
+     */
+    _updateSecondaryStatSelection() {
+        const secondaryRadio = document.querySelector(`input[name="secondary-stat"][value="${this.appState.secondaryStatChoice}"]`);
+        if (secondaryRadio) {
+            secondaryRadio.checked = true;
+        }
+    }
+    
+    /**
+     * Aktualisiert das Highlighting des Level-Up-Buttons basierend auf EXP
+     * @private
+     */
+    _updateLevelUpButtonHighlight() {
+        const levelUpButton = document.getElementById('level-up-button');
+        if (!levelUpButton) return;
+        
+        if (this.appState.canLevelUp()) {
+            levelUpButton.classList.add('level-up-ready');
+        } else {
+            levelUpButton.classList.remove('level-up-ready');
+        }
     }
 
     /**
@@ -973,57 +1105,6 @@ class UiRenderer {
         });
     }
 
-    /**
-     * Zeigt das Ergebnis des Level-Ups an
-     * @param {Object} result - Das Ergebnis des Level-Ups
-     * @private
-     */
-    _showLevelUpResult(result) {
-        // Level-Up-Ergebnis-Element erstellen oder finden
-        let resultElement = document.getElementById('level-up-result');
-        
-        if (!resultElement) {
-            resultElement = createElement('div', { 
-                id: 'level-up-result',
-                className: 'level-up-result'
-            });
-            
-            // Nach dem Level-Up-Button einfügen
-            const levelUpButton = document.getElementById('level-up-button');
-            if (levelUpButton && levelUpButton.parentNode) {
-                levelUpButton.parentNode.insertBefore(resultElement, levelUpButton.nextSibling);
-            }
-        }
-        
-        // Ergebnis anzeigen
-        const { firstRoll, secondRoll } = result;
-        
-        // Text für den ersten Würfelwurf
-        const firstStatName = this._getStatDisplayName(firstRoll.stat);
-        const firstRollText = `${firstStatName}: +${firstRoll.result.difference} (Würfel: ${firstRoll.roll})`;
-        
-        // Text für den zweiten Würfelwurf
-        const secondStatName = this._getStatDisplayName(secondRoll.stat);
-        const secondRollText = `${secondStatName}: +${secondRoll.result.difference} (Würfel: ${secondRoll.roll})`;
-        
-        // Ergebnis zusammenstellen
-        resultElement.innerHTML = `
-            <div class="level-up-result-header">Level-Up erfolgreich!</div>
-            <div class="level-up-result-stat">${firstRollText}</div>
-            <div class="level-up-result-stat">${secondRollText}</div>
-        `;
-        
-        // Animation hinzufügen, um die Aufmerksamkeit auf das Ergebnis zu lenken
-        resultElement.classList.add('level-up-result-animate');
-        setTimeout(() => {
-            resultElement.classList.remove('level-up-result-animate');
-        }, 1000);
-        
-        // Animierte Stat-Erhöhungen anzeigen
-        this._showStatIncrease(firstRoll.stat, firstRoll.result.difference);
-        this._showStatIncrease(secondRoll.stat, secondRoll.result.difference);
-    }
-
     _showStatIncrease(statKey, increase) {
         // Finde das Input-Element für den Statuswert
         const statInput = statKey === 'hp' 
@@ -1032,8 +1113,10 @@ class UiRenderer {
         
         if (!statInput) return;
         
-        // Position des Inputs bestimmen
+        // Position des Inputs im Viewport bestimmen
         const rect = statInput.getBoundingClientRect();
+        
+        // Scroll-Offset hinzufügen für absolute Positionierung
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
         
@@ -1042,19 +1125,19 @@ class UiRenderer {
         bubbleElement.className = 'stat-increase-bubble';
         bubbleElement.textContent = `+${increase}`;
         
-        // Positioniere das Element über dem Statuswert
+        // Positioniere das Element absolut relativ zum Dokument (scrollt mit)
         bubbleElement.style.left = `${rect.left + scrollLeft + rect.width / 2 - 20}px`;
         bubbleElement.style.top = `${rect.top + scrollTop - 30}px`;
         
         // Füge das Element zum Dokument hinzu
         document.body.appendChild(bubbleElement);
         
-        // Entferne das Element nach der Animation
+        // Entferne das Element nach der Animation (verlängert auf 4 Sekunden)
         setTimeout(() => {
             if (document.body.contains(bubbleElement)) {
                 document.body.removeChild(bubbleElement);
             }
-        }, 3000);
+        }, 4000);
     }
 
     /**

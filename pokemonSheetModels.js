@@ -19,10 +19,15 @@ class AppState {
         this.gena = DEFAULT_VALUES.GENA_PA_DEFAULT;
         this.pa = DEFAULT_VALUES.GENA_PA_DEFAULT;
         this.bw = 0;
-        this.baseBw = 0; // Base BW without KÖ bonus
         this.moves = Array(DEFAULT_VALUES.MOVE_SLOTS).fill(null);
         this.availableMoves = [];
+        
+        // Neue Level-Up Stat-Auswahl: Primär und Sekundär
+        this.primaryStatChoice = 'hp';
+        this.secondaryStatChoice = 'speed';
+        // Behalte für Rückwärtskompatibilität
         this.selectedStatForLevelUp = 'hp';
+        
         this.level = 0;
         this.currentExp = 0; 
         this.baseStats = {};
@@ -131,16 +136,64 @@ class AppState {
     }
 
     /**
-     * Setzt den ausgewählten Stat für Level-Up
+     * Setzt den ausgewählten Stat für Level-Up (Rückwärtskompatibilität)
      * @param {string} statName - Name des Statuswerts
+     * @deprecated Use setPrimaryStatChoice and setSecondaryStatChoice instead
      */
     setSelectedStatForLevelUp(statName) {
         this.selectedStatForLevelUp = statName;
+        this.primaryStatChoice = statName;
+        // Nur korrigieren wenn beide jetzt identisch sind
+        if (this.primaryStatChoice === this.secondaryStatChoice) {
+            this._shiftSecondaryChoice();
+        }
         return true;
+    }
+    
+    /**
+     * Setzt die primäre Stat-Wahl für Level-Up
+     * @param {string} statName - Name des Statuswerts
+     */
+    setPrimaryStatChoice(statName) {
+        this.primaryStatChoice = statName;
+        this.selectedStatForLevelUp = statName; // Rückwärtskompatibilität
+        // Nur korrigieren wenn beide jetzt identisch sind
+        if (this.primaryStatChoice === this.secondaryStatChoice) {
+            this._shiftSecondaryChoice();
+        }
+        return true;
+    }
+    
+    /**
+     * Setzt die sekundäre Stat-Wahl für Level-Up
+     * @param {string} statName - Name des Statuswerts
+     */
+    setSecondaryStatChoice(statName) {
+        this.secondaryStatChoice = statName;
+        // Nur korrigieren wenn beide jetzt identisch sind
+        if (this.primaryStatChoice === this.secondaryStatChoice) {
+            this._shiftSecondaryChoice();
+        }
+        return true;
+    }
+    
+    /**
+     * Verschiebt die sekundäre Wahl um einen Wert nach unten
+     * Wird nur aufgerufen wenn primäre und sekundäre Wahl identisch sind
+     * Reihenfolge: KP -> Initiative -> Angriff -> Verteidigung -> Sp. Angriff -> Sp. Verteidigung -> KP
+     * @private
+     */
+    _shiftSecondaryChoice() {
+        const statOrder = ['hp', 'speed', 'attack', 'defense', 'spAttack', 'spDefense'];
+        const currentIndex = statOrder.indexOf(this.secondaryStatChoice);
+        const nextIndex = (currentIndex + 1) % statOrder.length;
+        this.secondaryStatChoice = statOrder[nextIndex];
     }
 
     /**
      * Führt einen Level-Up durch
+     * Neue Logik: Zufälliger Stat wird gewürfelt, dann wird entweder
+     * die primäre oder sekundäre Spielerwahl erhöht
      * @returns {Object} Ergebnis des Level-Ups
      */
     levelUp() {
@@ -149,34 +202,56 @@ class AppState {
         // Prüfen, ob Level-Grenze erreicht ist
         if (this.level >= DEFAULT_VALUES.MAX_LEVEL) return null;
         
+        // Prüfen, ob genug EXP vorhanden sind
+        const requiredExp = this.getRequiredExp();
+        if (this.currentExp < requiredExp) return null;
+        
+        // EXP abziehen
+        this.currentExp -= requiredExp;
+        
         // Level erhöhen
         this.level += 1;
         
         // Zufallszahlen basierend auf der Würfelklasse generieren
         const diceResults = this.rollDice(this.pokemonData.diceClass, 2);
         
-        // Erster Würfelwurf für den ausgewählten Stat
-        const selectedStatResult = this.applyDiceResultToStat(this.selectedStatForLevelUp, diceResults[0]);
+        // NEUE LOGIK:
+        // 1. Zufälliger Stat wird gewürfelt
+        const allStats = Object.keys(this.stats); // ['hp', 'attack', 'defense', 'spAttack', 'spDefense', 'speed']
+        const randomStat = allStats[Math.floor(Math.random() * allStats.length)];
         
-        // Zweiten Würfelwurf für einen zufälligen anderen Stat anwenden
-        const otherStats = Object.keys(this.stats).filter(stat => stat !== this.selectedStatForLevelUp);
-        const randomOtherStat = otherStats[Math.floor(Math.random() * otherStats.length)];
-        const randomStatResult = this.applyDiceResultToStat(randomOtherStat, diceResults[1]);
+        // 2. Erster Würfelwurf für den zufälligen Stat
+        const randomStatResult = this.applyDiceResultToStat(randomStat, diceResults[0]);
+        
+        // 3. Zweiter Stat basierend auf Spielerwahl:
+        //    - Wenn zufälliger Stat ≠ primäre Wahl → primäre Wahl wird erhöht
+        //    - Wenn zufälliger Stat = primäre Wahl → sekundäre Wahl wird erhöht
+        const playerChoiceStat = (randomStat !== this.primaryStatChoice) 
+            ? this.primaryStatChoice 
+            : this.secondaryStatChoice;
+        
+        const playerChoiceResult = this.applyDiceResultToStat(playerChoiceStat, diceResults[1]);
         
         // KP aktualisieren
         this.currentHp = this.stats.hp;
         
         return {
             newLevel: this.level,
+            newCurrentExp: this.currentExp,
+            newRequiredExp: this.getRequiredExp(),
+            canLevelUpAgain: this.canLevelUp(),
             firstRoll: {
-                stat: this.selectedStatForLevelUp,
+                stat: randomStat,
                 roll: diceResults[0],
-                result: selectedStatResult
+                result: randomStatResult,
+                isRandom: true
             },
             secondRoll: {
-                stat: randomOtherStat,
+                stat: playerChoiceStat,
                 roll: diceResults[1],
-                result: randomStatResult
+                result: playerChoiceResult,
+                isPlayerChoice: true,
+                usedPrimary: (randomStat !== this.primaryStatChoice)
             }
         };
     }
@@ -194,8 +269,8 @@ class AppState {
         
         this.currentExp = numValue;
         
-        // Überprüfe, ob ein Level-Up möglich ist
-        this.checkForLevelUp();
+        // NICHT mehr automatisch Level-Up durchführen
+        // Stattdessen wird nur geprüft, ob Level-Up möglich ist (für Button-Highlighting)
         
         return true;
     }
@@ -209,26 +284,22 @@ class AppState {
     }
 
     /**
-     * Überprüft, ob ein Level-Up möglich ist und führt es ggf. durch
-     * @returns {boolean} True, wenn ein Level-Up durchgeführt wurde
+     * Prüft, ob ein Level-Up möglich ist (EXP >= benötigte EXP)
+     * @returns {boolean} True, wenn Level-Up möglich ist
+     */
+    canLevelUp() {
+        if (this.level >= DEFAULT_VALUES.MAX_LEVEL) return false;
+        return this.currentExp >= this.getRequiredExp();
+    }
+
+    /**
+     * Diese Funktion wurde entfernt - Level-Up wird jetzt manuell über Button ausgelöst
+     * @deprecated Use canLevelUp() to check and levelUp() to perform
      */
     checkForLevelUp() {
-        const requiredExp = this.getRequiredExp();
-        
-        if (this.currentExp >= requiredExp) {
-            // Level erhöhen
-            this.level += 1;
-            
-            // Überschüssige EXP behalten
-            this.currentExp -= requiredExp;
-            
-            // Statuswerte aktualisieren
-            this.recalculateStats();
-            
-            return true;
-        }
-        
-        return false;
+        // Nicht mehr automatisch Level-Up durchführen
+        // Nur noch prüfen ob möglich ist
+        return this.canLevelUp();
     }
 
     /**
@@ -247,38 +318,13 @@ class AppState {
     }
 
     /**
-     * Berechnet den Basis-Bewegungswert (BW) ohne KÖ-Bonus
-     * Formel: ceil(baseSpeed / 4) + floor(BST / 12)
+     * Berechnet den Bewegungswert (BW) basierend auf dem Basis-Speed
      * @param {number} baseSpeed - Basis-Geschwindigkeitswert des Pokémon
-     * @param {number} bst - Base Stat Total des Pokémon
-     * @returns {number} Berechneter Basis-BW-Wert
+     * @returns {number} Berechneter BW-Wert
      */
-    calculateBaseBw(baseSpeed, bst) {
-        // BW = ceil(base Initiative / 4) + floor(BST / 12)
-        const speedComponent = Math.ceil(baseSpeed / 4);
-        const bstComponent = Math.floor(bst / 12);
-        return speedComponent + bstComponent;
-    }
-    
-    /**
-     * Berechnet den gesamten Bewegungswert (BW) inklusive KÖ-Bonus
-     * @returns {number} Gesamter BW-Wert
-     */
-    getTotalBw() {
-        const koValue = this.skillValues['KÖ'] || 0;
-        const koBonus = koValue * 5;
-        return this.baseBw + koBonus;
-    }
-    
-    /**
-     * Aktualisiert den BW-Wert und das UI
-     */
-    updateBwDisplay() {
-        this.bw = this.getTotalBw();
-        const bwInput = document.getElementById('bw-input');
-        if (bwInput) {
-            bwInput.value = this.bw.toString();
-        }
+    calculateBw(baseSpeed) {
+        // BW = 25% des Basis-Speed, aufgerundet
+        return Math.ceil(baseSpeed * 0.25);
     }
     
     /**
@@ -316,12 +362,11 @@ class AppState {
         const oldValue = this.stats[statName];
         let valueToAdd = diceResult;
         
-        // Spezielle Regeln für HP und Initiative
+        // Spezielle Regeln für HP
         if (statName === 'hp') {
             valueToAdd = diceResult * 3; // Dreifacher Wert für KP
-        } else if (statName === 'speed') {
-            valueToAdd = Math.ceil(diceResult / 2); // Halber Wert (aufgerundet) für Initiative
         }
+        // Initiative (speed) wird NICHT mehr halbiert - gleiche Behandlung wie andere Stats
         
         // Neuen Wert berechnen und setzen
         const newValue = oldValue + valueToAdd;
@@ -372,9 +417,8 @@ class AppState {
         // GENA und PA berechnen
         this.calculateGenaAndPa(data, speciesData, bst);
     
-        // BW berechnen (Basis-BW ohne KÖ-Bonus)
-        this.baseBw = this.calculateBaseBw(this.baseStats.speed, bst);
-        this.bw = this.getTotalBw();
+        // BW berechnen
+        this.bw = this.calculateBw(this.baseStats.speed);
     }
     
     /**
@@ -498,8 +542,8 @@ class AppState {
         // KP (HP) berechnen und verdreifachen
         const calculatedHp = calculateHP(this.baseStats.hp, this.level) * 3;
         
-        // Initiative (speed) halbieren und aufrunden
-        const calculatedSpeed = Math.ceil(calculateStat(this.baseStats.speed, this.level) / 2);
+        // Initiative (speed) wird NICHT mehr halbiert - gleiche Berechnung wie andere Stats
+        const calculatedSpeed = calculateStat(this.baseStats.speed, this.level);
         
         // Statuswerte berechnen
         this.stats = {
@@ -615,12 +659,6 @@ class AppState {
         if (numValue < -9 || numValue > 9) return false;
         
         this.skillValues[skill] = numValue;
-        
-        // When KÖ changes, update the BW value dynamically
-        if (skill === 'KÖ') {
-            this.updateBwDisplay();
-        }
-        
         return true;
     }
 }

@@ -1,5 +1,6 @@
 /**
  * Service für API-Anfragen an die Pokemon-API mit deutscher Übersetzung
+ * OPTIMIERT: fetchPokemonList lädt keine Species-Daten mehr vorab (Lazy Loading)
  */
 class ApiService {
     /**
@@ -10,124 +11,115 @@ class ApiService {
         this.appState = appState;
         this.translationService = new TranslationService();
         
+        // Cache Keys für LocalStorage
+        this.CACHE_KEY_POKEMON_LIST = 'pokemon_list_cache_v3';
+        this.CACHE_EXPIRY_DAYS = 7;
+        
         // Normale Pokemon IDs (1-1025) und spezielle IDs (10001-10277)
         this.standardPokemonRange = { min: 1, max: 1025 };
         this.specialPokemonRange = { min: 10001, max: 10277 };
     }
     
     /**
-     * Lädt die Liste aller Pokemon
+     * Prüft ob der Cache noch gültig ist
+     */
+    _isCacheValid(cacheData) {
+        if (!cacheData || !cacheData.timestamp) return false;
+        const cacheAge = Date.now() - cacheData.timestamp;
+        const maxAge = this.CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+        return cacheAge < maxAge;
+    }
+    
+    /**
+     * Speichert Daten im LocalStorage Cache
+     */
+    _saveToCache(key, data) {
+        try {
+            const cacheData = { timestamp: Date.now(), data: data };
+            localStorage.setItem(key, JSON.stringify(cacheData));
+        } catch (e) {
+            console.warn('Cache speichern fehlgeschlagen:', e);
+        }
+    }
+    
+    /**
+     * Lädt Daten aus dem LocalStorage Cache
+     */
+    _loadFromCache(key) {
+        try {
+            const cached = localStorage.getItem(key);
+            if (!cached) return null;
+            const cacheData = JSON.parse(cached);
+            if (this._isCacheValid(cacheData)) {
+                return cacheData.data;
+            }
+            localStorage.removeItem(key);
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Lädt die Liste aller Pokemon - OPTIMIERT
+     * Lädt NUR die Basisliste ohne Species-API-Calls für jeden Pokemon
      * @returns {Promise<Array>} Liste der Pokemon
      */
     async fetchPokemonList() {
         try {
+            // Erst aus Cache versuchen
+            const cachedList = this._loadFromCache(this.CACHE_KEY_POKEMON_LIST);
+            if (cachedList && cachedList.length > 0) {
+                console.log(`Pokemon-Liste aus Cache geladen (${cachedList.length} Einträge)`);
+                this.appState.pokemonList = cachedList;
+                return cachedList;
+            }
+            
+            console.log('Lade Pokemon-Liste von API (optimiert)...');
+            
             const response = await fetch(API.POKEMON_LIST);
             const data = await response.json();
             
-            // Pokemon-Liste mit deutschen Namen vorbereiten
             let pokemonList = [];
             
-            // Normale Pokemon verarbeiten (aus der API-Liste)
+            // Normale Pokemon verarbeiten - OHNE Species-Calls!
             for (const pokemon of data.results) {
-                try {
-                    // Pokemon-ID aus der URL extrahieren
-                    const pokemonId = this.extractPokemonIdFromUrl(pokemon.url);
-                    
-                    // Für jeden Pokémon die Species-Daten laden, um den deutschen Namen zu erhalten
-                    pokemon.name = normalizePokemonName(pokemon.name);
-                    const speciesResponse = await fetch(`${API.BASE_URL}/pokemon-species/${pokemonId}`);
-                    
-                    // Prüfen, ob die Antwort erfolgreich war
-                    if (!speciesResponse.ok) {
-                        console.error(`Fehler beim Laden der Species-Daten für ID ${pokemonId}: ${speciesResponse.status} ${speciesResponse.statusText}`);
-                        throw new Error(`Fehler beim Laden der Species-Daten für ID ${pokemonId}`);
-                    }
-                    
-                    // Prüfen, ob der Content-Type JSON ist
-                    const contentType = speciesResponse.headers.get('content-type');
-                    if (!contentType || !contentType.includes('application/json')) {
-                        console.error(`Unerwarteter Content-Type für Species-Daten ID ${pokemonId}: ${contentType}`);
-                        throw new Error(`Unerwarteter Content-Type für Species-Daten ID ${pokemonId}`);
-                    }
-                    
-                    const speciesData = await speciesResponse.json();
-                    
-                    // Deutschen Namen ermitteln
-                    const germanName = this.translationService.translatePokemonName(pokemon.name, speciesData);
-                    
-                    // Pokémon mit deutschem Namen und ID zur Liste hinzufügen
-                    pokemonList.push({
-                        id: pokemonId, // Pokemon-ID für API-Anfragen
-                        name: pokemon.name, // Englischer Name (für Referenz)
-                        germanName: germanName, // Deutscher Name (für die Anzeige)
-                        url: pokemon.url
-                    });
-                } catch (speciesError) {
-                    console.error(`Fehler beim Laden der Species-Daten für ID ${this.extractPokemonIdFromUrl(pokemon.url)}:`, speciesError);
-                    // Bei Fehler den Original-Eintrag verwenden mit ID
-                    pokemonList.push({
-                        ...pokemon,
-                        id: this.extractPokemonIdFromUrl(pokemon.url)
-                    });
-                }
+                const pokemonId = this.extractPokemonIdFromUrl(pokemon.url);
+                const normalizedName = normalizePokemonName(pokemon.name);
+                
+                // Deutschen Namen aus lokaler Tabelle holen (falls vorhanden)
+                const germanName = this.translationService.getGermanNameFromLocal(normalizedName) 
+                    || capitalizeFirstLetter(normalizedName);
+                
+                pokemonList.push({
+                    id: pokemonId,
+                    name: normalizedName,
+                    germanName: germanName,
+                    url: pokemon.url
+                });
             }
             
-            // ZUSÄTZLICH: Spezielle Pokemon mit IDs 10001-10277 laden und hinzufügen
+            // Spezielle Pokemon-IDs hinzufügen - auch ohne API-Calls
             for (let specialId = this.specialPokemonRange.min; specialId <= this.specialPokemonRange.max; specialId++) {
-                try {
-                    // Pokemon-Daten mit der ID direkt laden
-                    const pokemonResponse = await fetch(`${API.BASE_URL}/pokemon/${specialId}`);
-                    
-                    if (!pokemonResponse.ok) {
-                        console.error(`Spezielles Pokemon mit ID ${specialId} nicht gefunden: ${pokemonResponse.status}`);
-                        continue; // Zum nächsten Pokemon übergehen
-                    }
-                    
-                    const pokemonData = await pokemonResponse.json();
-                    
-                    // Species-Daten laden für den deutschen Namen
-                    const speciesResponse = await fetch(`${API.BASE_URL}/pokemon/${specialId}`);
-                    
-                    if (!speciesResponse.ok) {
-                        console.error(`Species-Daten für spezielles Pokemon ID ${specialId} nicht gefunden: ${speciesResponse.status}`);
-                        // Auch ohne Species-Daten hinzufügen (mit englischem Namen)
-                        pokemonList.push({
-                            id: specialId,
-                            name: normalizePokemonName(pokemonData.name),
-                            germanName: normalizePokemonName(pokemonData.name), // Fallback: englischer Name
-                            url: `${API.BASE_URL}/pokemon/${specialId}`
-                        });
-                        continue;
-                    }
-                    
-                    const speciesData = await speciesResponse.json();
-                    
-                    // Normalisierter Name
-                    const normalizedName = normalizePokemonName(pokemonData.name);
-                    
-                    // Deutschen Namen ermitteln
-                    const germanName = this.translationService.translatePokemonName(normalizedName, speciesData);
-                    
-                    // Spezielles Pokémon zur Liste hinzufügen
-                    pokemonList.push({
-                        id: specialId,
-                        name: normalizedName,
-                        germanName: germanName,
-                        url: `${API.BASE_URL}/pokemon/${specialId}`
-                    });
-                    
-                    console.log(`Spezielles Pokemon hinzugefügt: ID ${specialId}, Name: ${germanName}`);
-                } catch (error) {
-                    console.error(`Fehler beim Laden des speziellen Pokemon mit ID ${specialId}:`, error);
-                    // Fehler bei diesem Pokemon ignorieren und mit dem nächsten fortfahren
-                }
+                pokemonList.push({
+                    id: specialId,
+                    name: `special-${specialId}`,
+                    germanName: `Pokemon #${specialId}`,
+                    url: `${API.BASE_URL}/pokemon/${specialId}`,
+                    isSpecial: true
+                });
             }
             
             // Sortieren nach ID
             pokemonList = pokemonList.sort((a, b) => a.id - b.id);
             
+            // Im Cache speichern
+            this._saveToCache(this.CACHE_KEY_POKEMON_LIST, pokemonList);
+            
+            console.log(`Pokemon-Liste geladen: ${pokemonList.length} Einträge`);
             this.appState.pokemonList = pokemonList;
             return pokemonList;
+            
         } catch (error) {
             console.error('Fehler beim Laden der Pokemon-Liste:', error);
             return [];
@@ -183,6 +175,15 @@ class ApiService {
             
             // Deutschen Pokémon-Namen ermitteln
             const germanName = this.translationService.translatePokemonName(data.name, speciesData);
+            
+            // Pokemon in der Liste aktualisieren (für spezielle Pokemon)
+            const listEntry = this.appState.pokemonList.find(p => p.id === pokemonId);
+            if (listEntry && listEntry.isSpecial) {
+                listEntry.name = normalizePokemonName(data.name);
+                listEntry.germanName = germanName;
+                // Cache aktualisieren
+                this._saveToCache(this.CACHE_KEY_POKEMON_LIST, this.appState.pokemonList);
+            }
             
             // Typen ins Deutsche übersetzen
             const translatedTypes = data.types.map(typeInfo => {
@@ -269,15 +270,15 @@ class ApiService {
             // Fähigkeiten abrufen und im AppState speichern
             try {
                 // ID des Pokémon verwenden
-                const pokemonId = data.id;
+                const pokemonIdForAbilities = data.id;
                 
                 // Für alle Pokemon (reguläre und spezielle) Fähigkeiten laden
-                if (pokemonId && (
-                    (pokemonId >= this.standardPokemonRange.min && pokemonId <= this.standardPokemonRange.max) ||
-                    (pokemonId >= this.specialPokemonRange.min && pokemonId <= this.specialPokemonRange.max)
+                if (pokemonIdForAbilities && (
+                    (pokemonIdForAbilities >= this.standardPokemonRange.min && pokemonIdForAbilities <= this.standardPokemonRange.max) ||
+                    (pokemonIdForAbilities >= this.specialPokemonRange.min && pokemonIdForAbilities <= this.specialPokemonRange.max)
                 )) {
                     // Fähigkeiten mit Hilfe des abilityService abrufen
-                    const abilities = getAbilities(pokemonId);
+                    const abilities = getAbilities(pokemonIdForAbilities);
                     this.appState.abilities = abilities;
                 }
             } catch (abilitiesError) {
@@ -352,15 +353,15 @@ class ApiService {
                 let evolutionLevel = 0;
                 
                 // Level-basierte Evolution
-                if (evolutionDetails.min_level) {
+                if (evolutionDetails && evolutionDetails.min_level) {
                     evolutionLevel = evolutionDetails.min_level;
                 } 
                 // Freundschafts-basierte Evolution (schätzen Level 25-30)
-                else if (evolutionDetails.min_happiness) {
+                else if (evolutionDetails && evolutionDetails.min_happiness) {
                     evolutionLevel = 25;
                 } 
                 // Item-basierte Evolution (schätzen Level 20-30)
-                else if (evolutionDetails.item) {
+                else if (evolutionDetails && evolutionDetails.item) {
                     evolutionLevel = 20;
                 }
                 // Andere Evolutionsarten (schätzen Level 20)
@@ -507,5 +508,13 @@ class ApiService {
         this.appState.setAvailableMoves(allMoves);
         
         return allMoves;
+    }
+    
+    /**
+     * Löscht den Pokemon-Listen-Cache (für Debug/Reset)
+     */
+    clearCache() {
+        localStorage.removeItem(this.CACHE_KEY_POKEMON_LIST);
+        console.log('Pokemon-Listen-Cache gelöscht');
     }
 }
