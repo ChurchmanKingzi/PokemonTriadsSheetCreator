@@ -128,15 +128,30 @@ class UiRenderer {
             );
         }
         
-        // Beschreibungs-Textbox anzeigen, wenn eine Attacke ausgewählt ist
+        // Beschreibungs-Textbox anzeigen und befüllen, wenn eine Attacke ausgewählt ist
         if (descriptionContainer) {
             descriptionContainer.style.display = 'block';
+            const descriptionTextarea = document.getElementById(`move-description-${index}`);
             
-            // Versuche gespeicherte Beschreibung wiederherzustellen, falls vorhanden
-            if (move.customDescription) {
-                const descriptionTextarea = document.getElementById(`move-description-${index}`);
-                if (descriptionTextarea) {
+            if (descriptionTextarea) {
+                // Prüfe ob eine benutzerdefinierte Beschreibung existiert
+                if (move.customDescription) {
                     descriptionTextarea.value = move.customDescription;
+                } else {
+                    // Versuche Beschreibung aus moveService zu laden
+                    const germanMoveName = move.germanName || move.name;
+                    if (typeof getMoveDescription === 'function') {
+                        const serviceDescription = getMoveDescription(germanMoveName);
+                        if (serviceDescription && !serviceDescription.includes('Keine Beschreibung für')) {
+                            descriptionTextarea.value = serviceDescription;
+                            // Speichere die Beschreibung im Move-Objekt
+                            move.customDescription = serviceDescription;
+                        } else {
+                            descriptionTextarea.value = '';
+                        }
+                    } else {
+                        descriptionTextarea.value = '';
+                    }
                 }
             }
         }
