@@ -3,49 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokémon Charakterbogen</title>
+    <title>Pokémon Trainer & Team Manager</title>
     <link rel="stylesheet" href="pokemonSheet.css">
+    <link rel="stylesheet" href="trainerTabs.css">
+    <style>
+        /* CSS für klickbares Trainer-Feld im Pokemon-Sheet */
+        .trainer-field-clickable {
+            cursor: pointer !important;
+            background-color: #f0f8ff !important;
+            border-color: #4a90d9 !important;
+            transition: all 0.2s ease;
+        }
+        .trainer-field-clickable:hover {
+            background-color: #e0f0ff !important;
+            border-color: #2a70b9 !important;
+            box-shadow: 0 0 5px rgba(74, 144, 217, 0.3);
+        }
+        .trainer-field-clickable:focus {
+            outline: none;
+            box-shadow: 0 0 5px rgba(74, 144, 217, 0.5);
+        }
+        /* Dark Mode Support */
+        .dark-mode .trainer-field-clickable {
+            background-color: #2a3a4a !important;
+            border-color: #4a90d9 !important;
+        }
+        .dark-mode .trainer-field-clickable:hover {
+            background-color: #3a4a5a !important;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="title">Pokémon Charakterbogen</h1>
+        <h1 class="title">Pokémon Trainer & Team Manager</h1>
         <div class="action-buttons">
-            <button id="save-json-button" class="action-button save-button">JSON Speichern</button>
+            <button id="save-json-button" class="action-button save-button">Alles Speichern (JSON)</button>
             <button id="save-pdf-button" class="action-button save-button" style="background-color: #4285F4;">PDF Speichern</button>
-            <button id="load-pokemon-button" class="action-button load-button">Pokémon Laden</button>
+            <button id="load-pokemon-button" class="action-button load-button">Daten Laden</button>
             <button id="dark-mode-button" class="action-button dark-mode-button">🌙 Dark Mode</button>
         </div>
         
-        <!-- Pokémon-Auswahl -->
-        <div class="select-container">
-            <label for="pokemon-select" class="select-label">Pokémon auswählen:</label>
-            <select id="pokemon-select" class="pokemon-select">
-                <option value="">-- Pokémon auswählen --</option>
-                <!-- Wird mit JavaScript gefüllt -->
-            </select>
+        <!-- ==================== TRAINER VIEW ==================== -->
+        <div id="trainer-view" class="view-container">
+            <!-- Trainer-Tabs werden hier dynamisch eingefügt -->
+            <div id="trainer-tabs-wrapper" class="trainer-tabs-container">
+                <!-- Wird von trainerSheetApp.js gefüllt -->
+            </div>
+            
+            <!-- Trainer Sheet Container -->
+            <div id="trainer-sheet-container"></div>
         </div>
+        
+        <!-- ==================== POKEMON VIEW ==================== -->
+        <div id="pokemon-view" class="view-container" style="display: none;">
+            <!-- Zurück-Button zum Trainer -->
+            <div class="back-navigation">
+                <button id="back-to-trainer-btn" class="back-button" onclick="window.navigationService.showTrainerView()">
+                    ← Zurück zum Trainer
+                </button>
+            </div>
+            
+            <!-- Pokémon-Auswahl -->
+            <div class="select-container">
+                <label for="pokemon-select" class="select-label">Pokémon auswählen:</label>
+                <select id="pokemon-select" class="pokemon-select">
+                    <option value="">-- Pokémon auswählen --</option>
+                    <!-- Wird mit JavaScript gefüllt -->
+                </select>
+            </div>
 
-        <!-- Pokémon Sheet Container (wird mit JavaScript gefüllt) -->
-        <div id="pokemon-sheet-container"></div>
+            <!-- Pokemon Sheet Container (wird mit JavaScript gefüllt) -->
+            <div id="pokemon-sheet-container"></div>
+        </div>
     </div>
 
-    <!-- Module importieren -->
+    <!-- ==================== SCRIPTS ==================== -->
+    <!-- Basis-Module (Konstanten, Utils, Models) -->
     <script src="pokemonSheetConstants.js"></script>
     <script src="pokemonSheetUtils.js"></script>
-    <script src="pokemonSheetModels.js"></script>  <!-- AppState zuerst laden -->
+    <script src="pokemonSheetModels.js"></script>
+    
+    <!-- Storage-Service (muss früh geladen werden) -->
+    <script src="storageService.js"></script>
+    
+    <!-- Trainer-Services (vor Trainer-Modulen laden) -->
+    <script src="klasseService.js"></script>
+    <script src="vorteilService.js"></script>
+    <script src="nachteilService.js"></script>
+    <script src="perkService.js"></script>
+    <script src="kommandoService.js"></script>
+    
+    <!-- Trainer-Module (MULTI-TRAINER VERSION - vor Pokemon-App laden) -->
+    <script src="trainerSheetModels.js"></script>
+    <script src="navigationService.js"></script>
+    <script src="trainerSheetUIRenderer.js"></script>
+    
+    <!-- Trainer-Effekte -->
+    <script src="klasseEffekte.js"></script>
+    <script src="nachteilEffekte.js"></script>
+    
+    <!-- Services -->
     <script src="translationService.js"></script>
     <script src="diceCalculator.js"></script>
+    <script src="abilityService.js"></script>
+    <script src="moveService.js"></script>
+    
+    <!-- Pokemon-App Module -->
     <script src="pokemonSheetUIRenderer.js"></script>
     <script src="pokemonSheetApiService.js"></script>
     <script src="pokemonSheetPdfService.js"></script>
-    <script src="abilityService.js"></script>
-    <script src="storageService.js"></script>
     <script src="pokemonSheetApp.js"></script>
+    
+    <!-- Zusätzliche Komponenten -->
     <script src="searchableSelect.js"></script>
     <script src="woundsComponent.js"></script>
     <script src="jsonExportService.js"></script>
     <script src="jsonImportService.js"></script>
-    <script src="moveService.js"></script>
+    
+    <!-- Trainer-App (MULTI-TRAINER VERSION - nach Pokemon-App laden) -->
+    <script src="trainerSheetApp.js"></script>
     
     <!-- Dark Mode Initialization -->
     <script>

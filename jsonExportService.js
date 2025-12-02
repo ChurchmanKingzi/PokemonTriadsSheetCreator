@@ -1,10 +1,10 @@
 /**
- * Aktualisierter JSONExportService zur Verwaltung des JSON-Exports
- * Ohne eigene Event-Listener-Registrierung für Buttons
+ * JSONExportService zur Verwaltung des JSON-Exports
+ * Verwendet den globalen PokemonStorageService
  */
 class JSONExportService {
     constructor(appState, uiRenderer) {
-        this.appState = appState || window.pokemonApp.appState;
+        this.appState = appState || window.pokemonApp?.appState;
         this.uiRenderer = uiRenderer;
         
         console.log('JSON Export Service initialisiert');
@@ -14,20 +14,33 @@ class JSONExportService {
      * Exportiert den aktuellen Pokemon-Sheet als JSON
      */
     exportJSON() {
-        if (!this.appState.pokemonData) {
+        if (!this.appState?.pokemonData) {
             this._showToast('Bitte wähle zuerst ein Pokémon aus.', 'error');
             return;
         }
 
         try {
-            // Aktuelle Werte in ein Objekt packen
-            const characterData = this._gatherCharacterData();
+            // Daten über den StorageService sammeln
+            let characterData;
+            if (window.pokemonStorageService) {
+                characterData = window.pokemonStorageService.gatherCurrentPokemonData();
+            } else {
+                characterData = this._gatherCharacterData();
+            }
+            
+            if (!characterData) {
+                this._showToast('Fehler beim Sammeln der Daten.', 'error');
+                return;
+            }
+            
+            // Timestamp hinzufügen
+            characterData.timestamp = new Date().toISOString();
             
             // JSON-String erstellen
             const jsonString = JSON.stringify(characterData, null, 2);
             
             // Als Datei herunterladen
-            this._downloadJSON(jsonString, `Pokemon_${characterData.pokemonGermanName}_Lv${characterData.level}.json`);
+            this._downloadJSON(jsonString, `Pokemon_${characterData.pokemonGermanName || characterData.pokemonName}_Lv${characterData.level}.json`);
             
             this._showToast('Pokémon-Sheet erfolgreich als JSON exportiert', 'success');
         } catch (error) {
@@ -61,6 +74,7 @@ class JSONExportService {
             pokemonId: this.appState.pokemonData.id,
             pokemonName: this.appState.selectedPokemon,
             pokemonGermanName: this.appState.pokemonData.germanName || '',
+            types: this.appState.pokemonData.types || [],
             level: this.appState.level,
             currentExp: this.appState.currentExp || 0,
             stats: this.appState.stats,

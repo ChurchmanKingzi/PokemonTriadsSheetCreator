@@ -1854,3 +1854,4827 @@ body.dark-mode ::-webkit-scrollbar-thumb {
 body.dark-mode ::-webkit-scrollbar-thumb:hover {
     background: #6b7280;
 }
+/* ==================== TRAINER SHEET STYLES ==================== */
+
+/* View Container */
+.view-container {
+    width: 100%;
+}
+
+/* Back Navigation */
+.back-navigation {
+    margin-bottom: 1rem;
+}
+
+.back-button {
+    padding: 0.5rem 1rem;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.back-button:hover {
+    background-color: #5a6268;
+    transform: translateX(-3px);
+}
+
+/* Trainer Sheet */
+.trainer-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Trainer Basic Info */
+.trainer-basic-info {
+    /* Kein eigener Hintergrund/Border - das macht der collapsible Wrapper */
+}
+
+.trainer-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.info-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.info-field.full-width {
+    grid-column: span 2;
+}
+
+.info-field label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #4a5568;
+}
+
+.trainer-input {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+}
+
+.trainer-input:focus {
+    outline: 2px solid #4a90d9;
+    outline-offset: -1px;
+}
+
+/* Trainer Stats Section */
+.trainer-stats-section {
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+/* Dark Mode: Trainer Stats Section */
+body.dark-mode .trainer-stats-section {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+.trainer-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+.stat-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stat-field label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #4a5568;
+}
+
+.stat-input {
+    padding: 0.4rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.hp-field {
+    grid-column: span 2;
+}
+
+.hp-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.hp-current, .hp-max {
+    width: 60px !important;
+    text-align: center;
+}
+
+.hp-separator {
+    font-weight: bold;
+    color: #4a5568;
+}
+
+/* Pokemon Team Section */
+.pokemon-team-section {
+    /* Kein eigener Hintergrund/Border - das macht der collapsible Wrapper */
+}
+
+.team-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.team-header .section-title {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.add-slot-button {
+    width: 36px;
+    height: 36px;
+    background-color: #48bb78;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.add-slot-button:hover {
+    background-color: #38a169;
+    transform: scale(1.1);
+}
+
+/* Pokemon Slots Grid */
+.pokemon-slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+}
+
+.pokemon-slot {
+    position: relative;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    background-color: white;
+    transition: all 0.2s;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+}
+
+.pokemon-slot:hover {
+    border-color: #4a90d9;
+    box-shadow: 0 4px 12px rgba(74, 144, 217, 0.2);
+}
+
+.slot-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-align: center;
+}
+
+.empty-slot {
+    border-style: dashed;
+    background-color: #f7fafc;
+}
+
+.empty-slot-icon {
+    font-size: 2.5rem;
+    color: #a0aec0;
+    margin-bottom: 0.25rem;
+}
+
+.empty-slot-text {
+    font-size: 0.85rem;
+    color: #718096;
+}
+
+.filled-slot {
+    border-color: #48bb78;
+}
+
+/* ==================== POKEMON SLOT TYPE BACKGROUNDS ==================== */
+/* Typ-Farben für Pokemon-Slots - abgesoftete Hintergrundfarben */
+:root {
+    --type-normal: #A8A878;
+    --type-fire: #F08030;
+    --type-water: #6890F0;
+    --type-electric: #f1ff5c;
+    --type-grass: #78C850;
+    --type-ice: #98D8D8;
+    --type-fighting: #C03028;
+    --type-poison: #A040A0;
+    --type-ground: #E0C068;
+    --type-flying: #A890F0;
+    --type-psychic: #F85888;
+    --type-bug: #A8B820;
+    --type-rock: #B8A038;
+    --type-ghost: #705898;
+    --type-dragon: #7038F8;
+    --type-dark: #705848;
+    --type-steel: #B8B8D0;
+    --type-fairy: #EE99AC;
+}
+
+/* Single-Type Background */
+.pokemon-slot.type-normal { background: linear-gradient(135deg, rgba(168, 168, 120, 0.35) 0%, rgba(168, 168, 120, 0.15) 100%); }
+.pokemon-slot.type-fire { background: linear-gradient(135deg, rgba(240, 128, 48, 0.35) 0%, rgba(240, 128, 48, 0.15) 100%); }
+.pokemon-slot.type-water { background: linear-gradient(135deg, rgba(104, 144, 240, 0.35) 0%, rgba(104, 144, 240, 0.15) 100%); }
+.pokemon-slot.type-electric { background: linear-gradient(135deg, rgba(248, 208, 48, 0.35) 0%, rgba(248, 208, 48, 0.15) 100%); }
+.pokemon-slot.type-grass { background: linear-gradient(135deg, rgba(120, 200, 80, 0.35) 0%, rgba(120, 200, 80, 0.15) 100%); }
+.pokemon-slot.type-ice { background: linear-gradient(135deg, rgba(152, 216, 216, 0.35) 0%, rgba(152, 216, 216, 0.15) 100%); }
+.pokemon-slot.type-fighting { background: linear-gradient(135deg, rgba(192, 48, 40, 0.35) 0%, rgba(192, 48, 40, 0.15) 100%); }
+.pokemon-slot.type-poison { background: linear-gradient(135deg, rgba(160, 64, 160, 0.35) 0%, rgba(160, 64, 160, 0.15) 100%); }
+.pokemon-slot.type-ground { background: linear-gradient(135deg, rgba(224, 192, 104, 0.35) 0%, rgba(224, 192, 104, 0.15) 100%); }
+.pokemon-slot.type-flying { background: linear-gradient(135deg, rgba(168, 144, 240, 0.35) 0%, rgba(168, 144, 240, 0.15) 100%); }
+.pokemon-slot.type-psychic { background: linear-gradient(135deg, rgba(248, 88, 136, 0.35) 0%, rgba(248, 88, 136, 0.15) 100%); }
+.pokemon-slot.type-bug { background: linear-gradient(135deg, rgba(168, 184, 32, 0.35) 0%, rgba(168, 184, 32, 0.15) 100%); }
+.pokemon-slot.type-rock { background: linear-gradient(135deg, rgba(184, 160, 56, 0.35) 0%, rgba(184, 160, 56, 0.15) 100%); }
+.pokemon-slot.type-ghost { background: linear-gradient(135deg, rgba(112, 88, 152, 0.35) 0%, rgba(112, 88, 152, 0.15) 100%); }
+.pokemon-slot.type-dragon { background: linear-gradient(135deg, rgba(112, 56, 248, 0.35) 0%, rgba(112, 56, 248, 0.15) 100%); }
+.pokemon-slot.type-dark { background: linear-gradient(135deg, rgba(112, 88, 72, 0.35) 0%, rgba(112, 88, 72, 0.15) 100%); }
+.pokemon-slot.type-steel { background: linear-gradient(135deg, rgba(184, 184, 208, 0.35) 0%, rgba(184, 184, 208, 0.15) 100%); }
+.pokemon-slot.type-fairy { background: linear-gradient(135deg, rgba(238, 153, 172, 0.35) 0%, rgba(238, 153, 172, 0.15) 100%); }
+
+/* Dual-Type Background - Diagonal Split (Typ1 oben-rechts, Typ2 unten-links) */
+.pokemon-slot.dual-type-normal-fire { background: linear-gradient(135deg, rgba(168, 168, 120, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-normal-water { background: linear-gradient(135deg, rgba(168, 168, 120, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-normal-flying { background: linear-gradient(135deg, rgba(168, 168, 120, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-normal-fairy { background: linear-gradient(135deg, rgba(168, 168, 120, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-normal-grass { background: linear-gradient(135deg, rgba(168, 168, 120, 0.4) 50%, rgba(120, 200, 80, 0.4) 50%); }
+.pokemon-slot.dual-type-normal-psychic { background: linear-gradient(135deg, rgba(168, 168, 120, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-normal-ground { background: linear-gradient(135deg, rgba(168, 168, 120, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+
+.pokemon-slot.dual-type-fire-flying { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-fighting { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-dragon { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-rock { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(184, 160, 56, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-ground { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-steel { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-ghost { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-psychic { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-dark { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-bug { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(168, 184, 32, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-normal { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(168, 168, 120, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-poison { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-water { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-fire-fairy { background: linear-gradient(135deg, rgba(240, 128, 48, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+
+.pokemon-slot.dual-type-water-flying { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-water-poison { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-water-ice { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-water-psychic { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-water-ground { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-water-rock { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(184, 160, 56, 0.4) 50%); }
+.pokemon-slot.dual-type-water-fighting { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-water-ghost { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-water-dragon { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-water-dark { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-water-steel { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-water-fairy { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-water-electric { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(248, 208, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-water-bug { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(168, 184, 32, 0.4) 50%); }
+.pokemon-slot.dual-type-water-grass { background: linear-gradient(135deg, rgba(104, 144, 240, 0.4) 50%, rgba(120, 200, 80, 0.4) 50%); }
+
+.pokemon-slot.dual-type-electric-flying { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-electric-steel { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-electric-ice { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-electric-fairy { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-electric-dragon { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-electric-psychic { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-electric-normal { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(168, 168, 120, 0.4) 50%); }
+.pokemon-slot.dual-type-electric-ground { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-electric-poison { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-electric-dark { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-electric-bug { background: linear-gradient(135deg, rgba(248, 208, 48, 0.4) 50%, rgba(168, 184, 32, 0.4) 50%); }
+
+.pokemon-slot.dual-type-grass-poison { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-psychic { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-flying { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-ice { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-ground { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-fighting { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-dragon { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-dark { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-ghost { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-fairy { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-steel { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-fire { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-electric { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(248, 208, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-grass-rock { background: linear-gradient(135deg, rgba(120, 200, 80, 0.4) 50%, rgba(184, 160, 56, 0.4) 50%); }
+
+.pokemon-slot.dual-type-ice-flying { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-psychic { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-ground { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-water { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-ghost { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-steel { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-fairy { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-dragon { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-rock { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(184, 160, 56, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-bug { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(168, 184, 32, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-dark { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-ice-fire { background: linear-gradient(135deg, rgba(152, 216, 216, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+
+.pokemon-slot.dual-type-fighting-flying { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-psychic { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-steel { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-ice { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-dark { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-ghost { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-rock { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(184, 160, 56, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-ground { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-bug { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(168, 184, 32, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-poison { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-fairy { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-fighting-water { background: linear-gradient(135deg, rgba(192, 48, 40, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+
+.pokemon-slot.dual-type-poison-flying { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-ground { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-dark { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-fighting { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-ghost { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-fairy { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-dragon { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-water { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-fire { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-bug { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(168, 184, 32, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-rock { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(184, 160, 56, 0.4) 50%); }
+.pokemon-slot.dual-type-poison-steel { background: linear-gradient(135deg, rgba(160, 64, 160, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+
+.pokemon-slot.dual-type-ground-flying { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-rock { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(184, 160, 56, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-psychic { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-steel { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-dragon { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-ice { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-dark { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-ghost { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-water { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-fire { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-electric { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(248, 208, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-ground-bug { background: linear-gradient(135deg, rgba(224, 192, 104, 0.4) 50%, rgba(168, 184, 32, 0.4) 50%); }
+
+.pokemon-slot.dual-type-flying-dragon { background: linear-gradient(135deg, rgba(168, 144, 240, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-flying-steel { background: linear-gradient(135deg, rgba(168, 144, 240, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-flying-fairy { background: linear-gradient(135deg, rgba(168, 144, 240, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-flying-dark { background: linear-gradient(135deg, rgba(168, 144, 240, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-flying-psychic { background: linear-gradient(135deg, rgba(168, 144, 240, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-flying-ghost { background: linear-gradient(135deg, rgba(168, 144, 240, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-flying-ground { background: linear-gradient(135deg, rgba(168, 144, 240, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+
+.pokemon-slot.dual-type-psychic-fairy { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-flying { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-fighting { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-ghost { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-steel { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-ground { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-ice { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-dark { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-normal { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(168, 168, 120, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-dragon { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-fire { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-psychic-electric { background: linear-gradient(135deg, rgba(248, 88, 136, 0.4) 50%, rgba(248, 208, 48, 0.4) 50%); }
+
+.pokemon-slot.dual-type-bug-flying { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-poison { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-fighting { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-steel { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-ghost { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-grass { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(120, 200, 80, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-ground { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-rock { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(184, 160, 56, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-water { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-fire { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-electric { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(248, 208, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-psychic { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-fairy { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-bug-dark { background: linear-gradient(135deg, rgba(168, 184, 32, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+
+.pokemon-slot.dual-type-rock-flying { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-ground { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-dark { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-steel { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-water { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-ice { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-fire { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-fairy { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-poison { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-grass { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(120, 200, 80, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-psychic { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-dragon { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-rock-bug { background: linear-gradient(135deg, rgba(184, 160, 56, 0.4) 50%, rgba(168, 184, 32, 0.4) 50%); }
+
+.pokemon-slot.dual-type-ghost-poison { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-flying { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-fire { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-dark { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-ground { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-grass { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(120, 200, 80, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-steel { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-ice { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-fairy { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-dragon { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-water { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-fighting { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-ghost-normal { background: linear-gradient(135deg, rgba(112, 88, 152, 0.4) 50%, rgba(168, 168, 120, 0.4) 50%); }
+
+.pokemon-slot.dual-type-dragon-flying { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-ground { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-psychic { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-water { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-ice { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-dark { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-steel { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-fairy { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-fire { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-electric { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(248, 208, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-fighting { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-ghost { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-poison { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-dragon-normal { background: linear-gradient(135deg, rgba(112, 56, 248, 0.4) 50%, rgba(168, 168, 120, 0.4) 50%); }
+
+.pokemon-slot.dual-type-dark-flying { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-ice { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-fire { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-ghost { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-dragon { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-fighting { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-steel { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-fairy { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-ground { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-psychic { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-poison { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-normal { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(168, 168, 120, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-bug { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(168, 184, 32, 0.4) 50%); }
+.pokemon-slot.dual-type-dark-water { background: linear-gradient(135deg, rgba(112, 88, 72, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+
+.pokemon-slot.dual-type-steel-flying { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-psychic { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-rock { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(184, 160, 56, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-ground { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-dragon { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-fairy { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(238, 153, 172, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-bug { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(168, 184, 32, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-ghost { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-fighting { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-water { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-ice { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-electric { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(248, 208, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-dark { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-steel-normal { background: linear-gradient(135deg, rgba(184, 184, 208, 0.4) 50%, rgba(168, 168, 120, 0.4) 50%); }
+
+.pokemon-slot.dual-type-fairy-flying { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(168, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-psychic { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(248, 88, 136, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-fighting { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(192, 48, 40, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-water { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(104, 144, 240, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-dragon { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(112, 56, 248, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-grass { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(120, 200, 80, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-ghost { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(112, 88, 152, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-steel { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(184, 184, 208, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-dark { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(112, 88, 72, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-normal { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(168, 168, 120, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-poison { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(160, 64, 160, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-ground { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(224, 192, 104, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-electric { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(248, 208, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-fire { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(240, 128, 48, 0.4) 50%); }
+.pokemon-slot.dual-type-fairy-ice { background: linear-gradient(135deg, rgba(238, 153, 172, 0.4) 50%, rgba(152, 216, 216, 0.4) 50%); }
+
+/* Dark Mode: Typ-Hintergründe etwas kräftiger */
+body.dark-mode .pokemon-slot.type-normal { background: linear-gradient(135deg, rgba(168, 168, 120, 0.45) 0%, rgba(168, 168, 120, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-fire { background: linear-gradient(135deg, rgba(240, 128, 48, 0.45) 0%, rgba(240, 128, 48, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-water { background: linear-gradient(135deg, rgba(104, 144, 240, 0.45) 0%, rgba(104, 144, 240, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-electric { background: linear-gradient(135deg, rgba(248, 208, 48, 0.45) 0%, rgba(248, 208, 48, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-grass { background: linear-gradient(135deg, rgba(120, 200, 80, 0.45) 0%, rgba(120, 200, 80, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-ice { background: linear-gradient(135deg, rgba(152, 216, 216, 0.45) 0%, rgba(152, 216, 216, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-fighting { background: linear-gradient(135deg, rgba(192, 48, 40, 0.45) 0%, rgba(192, 48, 40, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-poison { background: linear-gradient(135deg, rgba(160, 64, 160, 0.45) 0%, rgba(160, 64, 160, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-ground { background: linear-gradient(135deg, rgba(224, 192, 104, 0.45) 0%, rgba(224, 192, 104, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-flying { background: linear-gradient(135deg, rgba(168, 144, 240, 0.45) 0%, rgba(168, 144, 240, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-psychic { background: linear-gradient(135deg, rgba(248, 88, 136, 0.45) 0%, rgba(248, 88, 136, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-bug { background: linear-gradient(135deg, rgba(168, 184, 32, 0.45) 0%, rgba(168, 184, 32, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-rock { background: linear-gradient(135deg, rgba(184, 160, 56, 0.45) 0%, rgba(184, 160, 56, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-ghost { background: linear-gradient(135deg, rgba(112, 88, 152, 0.45) 0%, rgba(112, 88, 152, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-dragon { background: linear-gradient(135deg, rgba(112, 56, 248, 0.45) 0%, rgba(112, 56, 248, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-dark { background: linear-gradient(135deg, rgba(112, 88, 72, 0.45) 0%, rgba(112, 88, 72, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-steel { background: linear-gradient(135deg, rgba(184, 184, 208, 0.45) 0%, rgba(184, 184, 208, 0.2) 100%); }
+body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rgba(238, 153, 172, 0.45) 0%, rgba(238, 153, 172, 0.2) 100%); }
+
+.pokemon-sprite {
+    width: 80px;
+    height: 80px;
+    image-rendering: pixelated;
+    margin-bottom: 0.25rem;
+}
+
+.pokemon-nickname {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #2d3748;
+    margin-bottom: 0.1rem;
+}
+
+.pokemon-species {
+    font-size: 0.75rem;
+    color: #718096;
+}
+
+.remove-slot-button {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    background-color: #fc8181;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.pokemon-slot:hover .remove-slot-button {
+    opacity: 1;
+}
+
+.remove-slot-button:hover {
+    background-color: #e53e3e;
+    transform: scale(1.1);
+}
+
+/* ==================== DRAG AND DROP STYLES ==================== */
+
+/* Drag Handle */
+.drag-handle {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a0aec0;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: grab;
+    opacity: 0;
+    transition: all 0.2s;
+    letter-spacing: -2px;
+    user-select: none;
+    border-radius: 4px;
+}
+
+.pokemon-slot:hover .drag-handle {
+    opacity: 1;
+}
+
+.drag-handle:hover {
+    color: #4a90d9;
+    background-color: rgba(74, 144, 217, 0.1);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Dragging State */
+.pokemon-slot.dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+.pokemon-slot[draggable="true"] {
+    cursor: grab;
+}
+
+.pokemon-slot[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* Drag Over State */
+.pokemon-slot.drag-over {
+    border-color: #4a90d9;
+    background-color: rgba(74, 144, 217, 0.05);
+}
+
+/* Position indicators */
+.pokemon-slot.drag-over-left {
+    box-shadow: -4px 0 0 0 #4a90d9;
+}
+
+.pokemon-slot.drag-over-right {
+    box-shadow: 4px 0 0 0 #4a90d9;
+}
+
+/* Drag Toast */
+.drag-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #48bb78;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+    z-index: 10000;
+    animation: slideUp 0.3s ease-out;
+}
+
+.drag-toast.fade-out {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Dark Mode Drag and Drop */
+.dark-mode .drag-handle {
+    color: #718096;
+}
+
+.dark-mode .drag-handle:hover {
+    color: #63b3ed;
+    background-color: rgba(99, 179, 237, 0.1);
+}
+
+.dark-mode .pokemon-slot.drag-over {
+    border-color: #63b3ed;
+    background-color: rgba(99, 179, 237, 0.1);
+}
+
+.dark-mode .pokemon-slot.drag-over-left {
+    box-shadow: -4px 0 0 0 #63b3ed;
+}
+
+.dark-mode .pokemon-slot.drag-over-right {
+    box-shadow: 4px 0 0 0 #63b3ed;
+}
+
+.dark-mode .drag-toast {
+    background-color: #38a169;
+}
+
+/* Trainer Skills Section */
+.trainer-skills-section {
+    /* Kein eigener Hintergrund/Border - das macht der collapsible Wrapper */
+}
+
+.skills-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.skill-category {
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #4a90d9;
+    margin-bottom: 0.5rem;
+}
+
+.category-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #2d3748;
+}
+
+.category-value {
+    width: 50px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.category-skills {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.skill-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0;
+}
+
+.skill-name {
+    font-size: 0.85rem;
+    color: #4a5568;
+}
+
+.skill-value {
+    width: 45px;
+    text-align: center;
+    padding: 0.2rem;
+    font-size: 0.85rem;
+}
+
+/* Trainer Link in Pokemon Sheet */
+.trainer-link {
+    cursor: pointer !important;
+    color: #4a90d9 !important;
+    text-decoration: underline;
+    background-color: #edf2f7 !important;
+}
+
+.trainer-link:hover {
+    background-color: #e2e8f0 !important;
+}
+
+/* Empty Slot Message */
+.empty-slot-message {
+    text-align: center;
+    padding: 3rem 1rem;
+    background-color: #f7fafc;
+    border: 2px dashed #cbd5e0;
+    border-radius: 0.5rem;
+}
+
+.empty-slot-message h2 {
+    color: #4a5568;
+    margin-bottom: 0.5rem;
+}
+
+.empty-slot-message p {
+    color: #718096;
+    margin-bottom: 1.5rem;
+}
+
+.back-to-trainer-btn {
+    padding: 0.75rem 1.5rem;
+    background-color: #4a90d9;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.back-to-trainer-btn:hover {
+    background-color: #3182ce;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 768px) {
+    .trainer-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-field.full-width {
+        grid-column: span 1;
+    }
+    
+    .trainer-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .hp-field {
+        grid-column: span 2;
+    }
+    
+    .pokemon-slots-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .skills-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .trainer-stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .pokemon-slots-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .pokemon-slot {
+        min-height: 100px;
+    }
+    
+    .pokemon-sprite {
+        width: 64px;
+        height: 64px;
+    }
+}
+
+/* Dark Mode Anpassungen für Trainer */
+/* Hintergrund/Border der Sektionen wird jetzt vom .collapsible-section Wrapper gehandhabt */
+
+.dark-mode .trainer-input,
+.dark-mode .stat-input,
+.dark-mode .skill-input {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+.dark-mode .info-field label,
+.dark-mode .stat-field label {
+    color: #cbd5e0;
+}
+
+.dark-mode .pokemon-slot {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+.dark-mode .pokemon-slot:hover {
+    border-color: #63b3ed;
+}
+
+.dark-mode .filled-slot {
+    border-color: #68d391;
+}
+
+.dark-mode .empty-slot {
+    background-color: #1a202c;
+}
+
+.dark-mode .empty-slot-icon,
+.dark-mode .empty-slot-text {
+    color: #718096;
+}
+
+.dark-mode .pokemon-nickname {
+    color: #e2e8f0;
+}
+
+.dark-mode .skill-category {
+    background-color: #1a202c;
+    border-color: #4a5568;
+}
+
+.dark-mode .category-name {
+    color: #e2e8f0;
+}
+
+.dark-mode .skill-name {
+    color: #cbd5e0;
+}
+
+.dark-mode .empty-slot-message {
+    background-color: #1a202c;
+    border-color: #4a5568;
+}
+
+.dark-mode .empty-slot-message h2 {
+    color: #e2e8f0;
+}
+
+.dark-mode .empty-slot-message p {
+    color: #a0aec0;
+}
+
+.dark-mode .back-button {
+    background-color: #4a5568;
+}
+
+.dark-mode .back-button:hover {
+    background-color: #2d3748;
+}
+
+.dark-mode .trainer-link {
+    background-color: #4a5568 !important;
+    color: #63b3ed !important;
+}
+
+.dark-mode .trainer-link:hover {
+    background-color: #2d3748 !important;
+}
+
+/* ==================== TRAINER TWO-COLUMN LAYOUT ==================== */
+.trainer-two-column-layout {
+    display: flex;
+    gap: 1.5rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.trainer-left-column {
+    flex: 1;
+    min-width: 0;
+}
+
+.trainer-right-column {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Trainer Info Grid */
+.trainer-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.info-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-field label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #4a5568;
+    margin-bottom: 0.25rem;
+}
+
+.trainer-input {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.trainer-input:focus {
+    outline: none;
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.1);
+}
+
+/* Trainer Dropdowns Grid */
+.trainer-dropdowns-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.dropdown-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.dropdown-field label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #4a5568;
+    margin-bottom: 0.25rem;
+}
+
+.trainer-select {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.trainer-select:focus {
+    outline: none;
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.1);
+}
+
+/* Selection Description Box */
+.selection-description {
+    margin-top: 0.5rem;
+}
+
+.description-box {
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.description-box strong {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.description-box p {
+    margin: 0;
+    color: #4a5568;
+}
+
+.desc-klasse {
+    background-color: #ebf8ff;
+    border-left: 4px solid #4299e1;
+}
+
+.desc-vorteil {
+    background-color: #f0fff4;
+    border-left: 4px solid #48bb78;
+}
+
+.desc-nachteil {
+    background-color: #fff5f5;
+    border-left: 4px solid #fc8181;
+}
+
+/* Character Image Container */
+.character-image-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.character-image-preview {
+    width: 100%;
+    max-width: 280px;
+    aspect-ratio: 3/4;
+    background-color: #e2e8f0;
+    border: 3px dashed #a0aec0;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.character-image-preview:hover {
+    border-color: #4a90d9;
+}
+
+.character-image-preview .character-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-placeholder-text {
+    color: #718096;
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 1rem;
+}
+
+.image-upload-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.image-upload-button {
+    padding: 0.5rem 1rem;
+    background-color: #4a90d9;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.image-upload-button:hover {
+    background-color: #3182ce;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(74, 144, 217, 0.3);
+}
+
+.image-remove-button {
+    padding: 0.5rem 1rem;
+    background-color: #fc8181;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.image-remove-button:hover {
+    background-color: #e53e3e;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(229, 62, 62, 0.3);
+}
+
+/* Second Class Field Animation */
+.second-class-field {
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+/* Responsive Anpassungen für Trainer Layout */
+@media (max-width: 992px) {
+    .trainer-two-column-layout {
+        flex-direction: column;
+    }
+    
+    .trainer-right-column {
+        order: -1;
+    }
+    
+    .character-image-preview {
+        max-width: 200px;
+        aspect-ratio: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .trainer-info-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .trainer-dropdowns-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .trainer-info-grid,
+    .trainer-dropdowns-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Dark Mode für neue Trainer-Elemente */
+.dark-mode .trainer-two-column-layout {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+.dark-mode .trainer-select {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+.dark-mode .description-box {
+    background-color: #1a202c;
+}
+
+.dark-mode .description-box p {
+    color: #cbd5e0;
+}
+
+.dark-mode .description-box strong {
+    color: #e2e8f0;
+}
+
+.dark-mode .desc-klasse {
+    border-left-color: #63b3ed;
+    background-color: rgba(99, 179, 237, 0.1);
+}
+
+.dark-mode .desc-vorteil {
+    border-left-color: #68d391;
+    background-color: rgba(104, 211, 145, 0.1);
+}
+
+.dark-mode .desc-nachteil {
+    border-left-color: #fc8181;
+    background-color: rgba(252, 129, 129, 0.1);
+}
+
+.dark-mode .character-image-preview {
+    background-color: #1a202c;
+    border-color: #4a5568;
+}
+
+.dark-mode .image-placeholder-text {
+    color: #a0aec0;
+}
+
+.dark-mode .info-field label,
+.dark-mode .dropdown-field label {
+    color: #cbd5e0;
+}
+
+/* ==================== CUSTOM DROPDOWNS MIT HOVER-TOOLTIPS ==================== */
+.custom-dropdown-container {
+    position: relative;
+    width: 100%;
+}
+
+.custom-dropdown-button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    background-color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.custom-dropdown-button:hover {
+    border-color: #4a90d9;
+}
+
+.custom-dropdown-button:focus {
+    outline: none;
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.1);
+}
+
+.dropdown-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dropdown-arrow {
+    margin-left: 0.5rem;
+    font-size: 0.7rem;
+    color: #718096;
+}
+
+.custom-dropdown-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #d1d5db;
+    border-top: none;
+    border-radius: 0 0 0.25rem 0.25rem;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.custom-dropdown-option {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.15s;
+}
+
+.custom-dropdown-option:hover {
+    background-color: #edf2f7;
+}
+
+.custom-dropdown-option:first-child {
+    color: #718096;
+    font-style: italic;
+}
+
+/* Hover-Tooltip für Dropdown-Optionen */
+.dropdown-hover-tooltip {
+    position: fixed;
+    max-width: 350px;
+    padding: 0.75rem 1rem;
+    background-color: #1a202c;
+    color: white;
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    z-index: 2000;
+    pointer-events: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.dropdown-hover-tooltip strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    color: #63b3ed;
+}
+
+.dropdown-hover-tooltip p {
+    margin: 0;
+    color: #e2e8f0;
+}
+
+/* Beschreibungen-Container für mehrere Beschreibungen */
+.selection-descriptions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+/* Dark Mode für Custom Dropdowns */
+.dark-mode .custom-dropdown-button {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+.dark-mode .custom-dropdown-button:hover {
+    border-color: #63b3ed;
+}
+
+.dark-mode .custom-dropdown-list {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+.dark-mode .custom-dropdown-option {
+    color: #e2e8f0;
+}
+
+.dark-mode .custom-dropdown-option:hover {
+    background-color: #4a5568;
+}
+
+.dark-mode .custom-dropdown-option:first-child {
+    color: #a0aec0;
+}
+
+.dark-mode .dropdown-hover-tooltip {
+    background-color: #1a202c;
+    border: 1px solid #4a5568;
+}
+/* ==================== TRAINER SHEET - NEUE STYLES ==================== */
+
+/* Dropdown-Breiten-Angleichung - Identisches Grid für beide Reihen */
+.trainer-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.trainer-dropdowns-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+/* Identische Breiten für Inputs und Dropdown-Buttons */
+.trainer-info-grid .trainer-input,
+.trainer-dropdowns-grid .custom-dropdown-button {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem;
+    min-height: 38px;
+}
+
+/* Skills-Container: 4 Spalten für alle Grundwerte in einer Reihe */
+.skills-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+/* Color-Coding für Grundwerte */
+/* KÖ - Rot */
+.skill-category[data-category="KÖ"] {
+    border-top: 3px solid #e53e3e;
+}
+
+.skill-category[data-category="KÖ"] .category-name {
+    color: #c53030;
+}
+
+.skill-category[data-category="KÖ"] .category-header {
+    border-bottom-color: #e53e3e;
+}
+
+/* WI - Blau */
+.skill-category[data-category="WI"] {
+    border-top: 3px solid #3182ce;
+}
+
+.skill-category[data-category="WI"] .category-name {
+    color: #2b6cb0;
+}
+
+.skill-category[data-category="WI"] .category-header {
+    border-bottom-color: #3182ce;
+}
+
+/* CH - Gelb/Gold */
+.skill-category[data-category="CH"] {
+    border-top: 3px solid #d69e2e;
+}
+
+.skill-category[data-category="CH"] .category-name {
+    color: #b7791f;
+}
+
+.skill-category[data-category="CH"] .category-header {
+    border-bottom-color: #d69e2e;
+}
+
+/* GL - Grün */
+.skill-category[data-category="GL"] {
+    border-top: 3px solid #38a169;
+}
+
+.skill-category[data-category="GL"] .category-name {
+    color: #276749;
+}
+
+.skill-category[data-category="GL"] .category-header {
+    border-bottom-color: #38a169;
+}
+
+/* Trainer-Stats: 2 Zeilen Layout mit Flexbox */
+.trainer-stats-section {
+    /* Kein eigener Hintergrund/Border - das macht der collapsible Wrapper */
+    
+    /* === ANPASSBARE GAP NACH KP === */
+    /* Diese Variable steuert den Abstand zwischen KP und Initiative/GENA/Glück */
+    --stats-gap-after-kp: 2.4vw; /* Relative Breite zum Viewport - leicht anzupassen */
+}
+
+/* Zeile 1: Level, KP, Initiative, GENA */
+.trainer-stats-row-1 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: flex-end;
+    margin-bottom: 0.75rem;
+}
+
+/* Extra Gap nach dem KP-Feld */
+.trainer-stats-row-1 .hp-field {
+    margin-right: var(--stats-gap-after-kp);
+}
+
+/* Zeile 2: Wunden, BW, PA */
+.trainer-stats-row-2 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: flex-end;
+}
+
+.trainer-stats-row .stat-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.trainer-stats-row .stat-field label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #4a5568;
+}
+
+/* Labels mit Formel-Tooltips - visueller Hinweis zum Hovern */
+.stat-label-with-formula {
+    cursor: help;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: #a0aec0;
+    text-underline-offset: 2px;
+}
+
+.stat-label-with-formula:hover {
+    color: #2b6cb0;
+    text-decoration-color: #2b6cb0;
+}
+
+.trainer-stats-row .stat-input {
+    padding: 0.4rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    width: 70px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* HP-Feld: Label und Inputs kompakt */
+.trainer-stats-row .hp-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.trainer-stats-row .hp-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.trainer-stats-row .hp-inputs input {
+    width: 50px;
+    text-align: center;
+    padding: 0.4rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.trainer-stats-row .hp-inputs span {
+    font-weight: bold;
+    color: #4a5568;
+}
+
+/* Glücks-Tokens Feld: ähnlich wie HP */
+.trainer-stats-row .luck-tokens-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.trainer-stats-row .luck-tokens-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.trainer-stats-row .luck-tokens-inputs input {
+    width: 50px;
+    text-align: center;
+    padding: 0.4rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.trainer-stats-row .luck-tokens-inputs span.luck-separator {
+    font-weight: bold;
+    color: #4a5568;
+}
+
+.trainer-stats-row .luck-tokens-field label {
+    color: #38a169; /* Grün für Glück */
+}
+
+/* Luck Max Wrapper */
+.luck-max-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.luck-max-wrapper .stat-reset-button {
+    margin-left: 0.25rem;
+}
+
+/* Wunden-Feld in Zeile 2 */
+.trainer-stats-row .wounds-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.trainer-stats-row .wounds-field label {
+    color: #c53030;
+}
+
+/* Inline Wunden-Bar (in Zeile 2) */
+.trainer-wounds-bar-inline {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+}
+
+/* ==================== TRAINER WUNDEN SYSTEM ==================== */
+.trainer-wounds-section {
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.trainer-wounds-section .section-title {
+    color: #c53030;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+/* Container für Titel und Kreise */
+.trainer-wounds-container {
+    margin-top: 0.5rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.trainer-wounds-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    color: #c53030;
+}
+
+/* Horizontale Anordnung der Wunden-Kreise - DIE WICHTIGE KLASSE */
+.trainer-wounds-bar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    width: 100%;
+    position: relative;
+    padding: 0.25rem 0;
+}
+
+/* Basis-Styles für Wunden-Kreise (wie bei Pokemon) */
+.trainer-wound-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #4a5568;
+    background-color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Farbverlauf von schwarz zu rot für die 10 Wunden-Kreise */
+.trainer-wound-circle:nth-child(1) { border-color: #000000; }
+.trainer-wound-circle:nth-child(2) { border-color: #1a0000; }
+.trainer-wound-circle:nth-child(3) { border-color: #330000; }
+.trainer-wound-circle:nth-child(4) { border-color: #4d0000; }
+.trainer-wound-circle:nth-child(5) { border-color: #660000; }
+.trainer-wound-circle:nth-child(6) { border-color: #800000; }
+.trainer-wound-circle:nth-child(7) { border-color: #990000; }
+.trainer-wound-circle:nth-child(8) { border-color: #b30000; }
+.trainer-wound-circle:nth-child(9) { border-color: #cc0000; }
+
+/* Letzter Kreis (10) - transparent für den Skull */
+.trainer-wound-circle:nth-child(10) { 
+    border-color: #ff0000;
+    background: transparent;
+    border: none;
+    width: 30px;
+    height: 30px;
+}
+
+.trainer-wound-circle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Markierte Wunden - Durchkreuzungs-X */
+.trainer-wound-circle.marked::before,
+.trainer-wound-circle.marked::after {
+    content: '';
+    position: absolute;
+    width: 115%;
+    height: 2px;
+    background-color: #C53030;
+    top: 50%;
+    left: 50%;
+    transform-origin: center;
+    z-index: 2;
+}
+
+.trainer-wound-circle.marked::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.trainer-wound-circle.marked::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* Totenschädel-Container (größer als normale Kreise) */
+.trainer-skull {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 1;
+    background-color: #d1d1d1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ff0000;
+}
+
+.trainer-skull svg {
+    width: 80%;
+    height: 80%;
+    fill: #333;
+    stroke: #000;
+    stroke-width: 1px;
+}
+
+/* Markierter letzter Kreis - längere Durchkreuzungslinien */
+.trainer-wound-circle:nth-child(10).marked::before,
+.trainer-wound-circle:nth-child(10).marked::after {
+    width: 140%;
+    height: 3px;
+}
+
+/* ==================== RESPONSIVE ANPASSUNGEN FÜR NEUE TRAINER-STYLES ==================== */
+@media (max-width: 1200px) {
+    .skills-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Gap nach KP bei mittleren Bildschirmen reduzieren */
+    .trainer-stats-section {
+        --stats-gap-after-kp: 3vw;
+    }
+}
+
+@media (max-width: 992px) {
+    .trainer-stats-row-1,
+    .trainer-stats-row-2 {
+        gap: 1rem;
+    }
+    
+    /* Gap nach KP weiter reduzieren */
+    .trainer-stats-section {
+        --stats-gap-after-kp: 2vw;
+    }
+}
+
+@media (max-width: 768px) {
+    .trainer-info-grid,
+    .trainer-dropdowns-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .trainer-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .skills-container {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Gap nach KP bei kleinen Bildschirmen auf Standard zurück */
+    .trainer-stats-section {
+        --stats-gap-after-kp: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .trainer-info-grid,
+    .trainer-dropdowns-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .trainer-stats-row-1,
+    .trainer-stats-row-2 {
+        gap: 0.75rem;
+    }
+    
+    /* Gap nach KP bei sehr kleinen Bildschirmen entfernen */
+    .trainer-stats-section {
+        --stats-gap-after-kp: 0;
+    }
+    
+    .trainer-wounds-bar,
+    .trainer-wounds-bar-inline {
+        overflow-x: auto;
+        justify-content: flex-start;
+        gap: 8px;
+        padding-bottom: 5px;
+    }
+    
+    .trainer-wound-circle {
+        flex-shrink: 0;
+    }
+}
+
+/* ==================== DARK MODE FÜR NEUE TRAINER-STYLES ==================== */
+/* Dark Mode: Color-Coding für Grundwerte (hellere Farben) */
+body.dark-mode .skill-category[data-category="KÖ"] {
+    border-top-color: #fc8181;
+}
+
+body.dark-mode .skill-category[data-category="KÖ"] .category-name {
+    color: #fc8181;
+}
+
+body.dark-mode .skill-category[data-category="KÖ"] .category-header {
+    border-bottom-color: #fc8181;
+}
+
+body.dark-mode .skill-category[data-category="WI"] {
+    border-top-color: #63b3ed;
+}
+
+body.dark-mode .skill-category[data-category="WI"] .category-name {
+    color: #63b3ed;
+}
+
+body.dark-mode .skill-category[data-category="WI"] .category-header {
+    border-bottom-color: #63b3ed;
+}
+
+body.dark-mode .skill-category[data-category="CH"] {
+    border-top-color: #fbd38d;
+}
+
+body.dark-mode .skill-category[data-category="CH"] .category-name {
+    color: #fbd38d;
+}
+
+body.dark-mode .skill-category[data-category="CH"] .category-header {
+    border-bottom-color: #fbd38d;
+}
+
+body.dark-mode .skill-category[data-category="GL"] {
+    border-top-color: #68d391;
+}
+
+body.dark-mode .skill-category[data-category="GL"] .category-name {
+    color: #68d391;
+}
+
+body.dark-mode .skill-category[data-category="GL"] .category-header {
+    border-bottom-color: #68d391;
+}
+
+/* Dark Mode: Trainer-Wunden */
+body.dark-mode .trainer-wounds-section {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+body.dark-mode .trainer-wounds-section .section-title {
+    color: #fc8181;
+}
+
+body.dark-mode .trainer-wounds-title {
+    color: #fc8181;
+}
+
+body.dark-mode .trainer-wound-circle {
+    background-color: #4a5568;
+}
+
+body.dark-mode .trainer-wound-circle:nth-child(10) {
+    background-color: transparent;
+}
+
+body.dark-mode .trainer-wound-circle.marked::before,
+body.dark-mode .trainer-wound-circle.marked::after {
+    background-color: #fc8181;
+}
+
+body.dark-mode .trainer-skull {
+    background-color: #4a5568;
+    border-color: #fc8181;
+}
+
+body.dark-mode .trainer-skull svg {
+    fill: #a0aec0;
+    stroke: #718096;
+}
+
+/* Dark Mode: Stats-Rows */
+body.dark-mode .trainer-stats-row .stat-field label {
+    color: #cbd5e0;
+}
+
+/* Dark Mode: Labels mit Formel-Tooltips */
+body.dark-mode .stat-label-with-formula {
+    text-decoration-color: #718096;
+}
+
+body.dark-mode .stat-label-with-formula:hover {
+    color: #63b3ed;
+    text-decoration-color: #63b3ed;
+}
+
+body.dark-mode .trainer-stats-row .stat-input,
+body.dark-mode .trainer-stats-row .hp-inputs input {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+body.dark-mode .trainer-stats-row .hp-inputs span {
+    color: #cbd5e0;
+}
+
+body.dark-mode .trainer-stats-row .wounds-field label {
+    color: #fc8181;
+}
+
+/* ==================== NEW TRAINER UI STYLES ==================== */
+
+/* Skills Header Row mit Punkteanzeige */
+.skills-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #cbd5e0;
+    padding-bottom: 0.5rem;
+}
+
+.skills-header-row .section-title {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+    flex-shrink: 0;
+}
+
+.points-display {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.points-label {
+    font-size: 0.85rem;
+    color: #4a5568;
+    font-weight: 500;
+}
+
+.points-label span {
+    font-weight: 700;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.25rem;
+    background-color: #e2e8f0;
+}
+
+/* Negative Punkte-Anzeige */
+.negative-points {
+    color: #c53030 !important;
+    background-color: #fed7d7 !important;
+}
+
+/* Berechnete Werte (read-only) */
+.calculated-value {
+    background-color: #e2e8f0 !important;
+    color: #4a5568 !important;
+    cursor: not-allowed;
+    font-weight: 600;
+}
+
+.calculated-value:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Leere Beschreibungsboxen */
+.empty-description {
+    opacity: 0.6;
+    background-color: #f7fafc !important;
+    border-style: dashed !important;
+}
+
+.empty-description-text {
+    font-style: italic;
+    color: #a0aec0;
+}
+
+/* Base stat inputs min value enforcement */
+.base-stat-input {
+    font-weight: 600;
+}
+
+/* Dark Mode: Neue Styles */
+body.dark-mode .skills-header-row {
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .points-label {
+    color: #cbd5e0;
+}
+
+body.dark-mode .points-label span {
+    background-color: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .negative-points {
+    color: #fc8181 !important;
+    background-color: rgba(252, 129, 129, 0.2) !important;
+}
+
+body.dark-mode .calculated-value {
+    background-color: #2d3748 !important;
+    color: #a0aec0 !important;
+}
+
+body.dark-mode .empty-description {
+    opacity: 0.5;
+    background-color: #1a202c !important;
+}
+
+body.dark-mode .empty-description-text {
+    color: #718096;
+}
+
+/* Responsive: Stats auf kleineren Bildschirmen */
+@media (max-width: 768px) {
+    .trainer-stats-row-1,
+    .trainer-stats-row-2 {
+        gap: 1rem;
+    }
+    
+    .skills-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .points-display {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 480px) {
+    .trainer-stats-row-1,
+    .trainer-stats-row-2 {
+        gap: 0.75rem;
+    }
+    
+    .points-display {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* ==================== NEUE STYLES FÜR EDITIERBARE STATS ==================== */
+
+/* Wrapper für Stat-Input mit Reset-Button */
+.stat-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Spezieller Wrapper für HP-Max (in der HP-Inputs Gruppe) */
+.hp-max-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Editierbare Stats (nicht mehr readonly) */
+.editable-stat {
+    background-color: #fff !important;
+    color: #2d3748 !important;
+    cursor: text !important;
+    transition: all 0.2s ease;
+}
+
+.editable-stat:hover {
+    border-color: #4299e1;
+}
+
+.editable-stat:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3);
+}
+
+/* Manuell überschriebene Werte - visueller Indikator */
+.editable-stat.manually-overridden {
+    background-color: #fffbeb !important;
+    border-color: #f59e0b !important;
+    color: #92400e !important;
+}
+
+.editable-stat.manually-overridden:focus {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+}
+
+/* Reset-Button für Stats */
+.stat-reset-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    background-color: #edf2f7;
+    color: #4a5568;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.stat-reset-button:hover {
+    background-color: #4299e1;
+    border-color: #3182ce;
+    color: white;
+    transform: rotate(180deg);
+}
+
+.stat-reset-button:active {
+    background-color: #2b6cb0;
+    transform: rotate(360deg);
+}
+
+/* Tooltip-Styling verbessert */
+.editable-stat[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    background-color: #1a202c;
+    color: white;
+    font-size: 12px;
+    white-space: nowrap;
+    border-radius: 4px;
+    z-index: 1000;
+    margin-bottom: 5px;
+}
+
+/* Anpassung für HP-Feld */
+.hp-field .hp-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.hp-field .hp-max-wrapper {
+    margin-left: 0;
+}
+
+/* Anpassung der Stat-Felder für bessere Ausrichtung */
+.trainer-stats-row .stat-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.trainer-stats-row .stat-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Anpassung der Input-Breite für Stats mit Reset-Button */
+.stat-input-wrapper .stat-input {
+    width: 60px;
+}
+
+.hp-max-wrapper .stat-input {
+    width: 50px;
+}
+
+/* ==================== DARK MODE FÜR NEUE STAT-STYLES ==================== */
+
+body.dark-mode .editable-stat {
+    background-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+    border-color: #4a5568 !important;
+}
+
+body.dark-mode .editable-stat:hover {
+    border-color: #63b3ed;
+}
+
+body.dark-mode .editable-stat:focus {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3);
+}
+
+body.dark-mode .editable-stat.manually-overridden {
+    background-color: #44337a !important;
+    border-color: #9f7aea !important;
+    color: #e9d8fd !important;
+}
+
+body.dark-mode .editable-stat.manually-overridden:focus {
+    box-shadow: 0 0 0 3px rgba(159, 122, 234, 0.3);
+}
+
+body.dark-mode .stat-reset-button {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+body.dark-mode .stat-reset-button:hover {
+    background-color: #4299e1;
+    border-color: #63b3ed;
+    color: white;
+}
+
+body.dark-mode .stat-reset-button:active {
+    background-color: #3182ce;
+}
+
+/* ==================== RESPONSIVE ANPASSUNGEN ==================== */
+
+@media (max-width: 768px) {
+    .stat-input-wrapper {
+        flex-wrap: nowrap;
+    }
+    
+    .stat-reset-button {
+        width: 22px;
+        height: 22px;
+        font-size: 12px;
+    }
+    
+    .stat-input-wrapper .stat-input {
+        width: 55px;
+    }
+    
+    .hp-max-wrapper .stat-input {
+        width: 45px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-reset-button {
+        width: 20px;
+        height: 20px;
+        font-size: 11px;
+    }
+    
+    .stat-input-wrapper .stat-input {
+        width: 50px;
+    }
+    
+    .hp-max-wrapper .stat-input {
+        width: 40px;
+    }
+}
+
+/* ==================== ANIMATION FÜR RESET ==================== */
+
+@keyframes resetPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(66, 153, 225, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(66, 153, 225, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(66, 153, 225, 0);
+    }
+}
+
+.editable-stat.just-reset {
+    animation: resetPulse 0.5s ease-out;
+}
+
+/* ==================== TOOLTIP-STYLING FÜR FORMELN ==================== */
+
+/* Native Tooltip-Verbesserung für bessere Lesbarkeit */
+.editable-stat {
+    position: relative;
+}
+
+/* Visueller Hinweis, dass ein Tooltip vorhanden ist */
+.editable-stat[title]::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 6px;
+    height: 6px;
+    background-color: #4299e1;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.editable-stat[title]:hover::before {
+    opacity: 0.6;
+}
+
+body.dark-mode .editable-stat[title]::before {
+    background-color: #63b3ed;
+}
+
+/* ==================== INVENTAR-STYLES ==================== */
+
+.trainer-inventory-section {
+    /* Kein eigener Hintergrund/Border - das macht der collapsible Wrapper */
+}
+
+.inventory-header-row {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #cbd5e0;
+    padding-bottom: 0.5rem;
+    gap: 0.75rem; /* Kompakter Abstand zwischen Elementen */
+}
+
+.inventory-header-row .section-title {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+    flex-shrink: 0;
+}
+
+/* Geld-Feld im Inventar-Header - direkt nach Titel, kein Extra-Margin */
+.inventory-header-row .money-field {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem; /* Kompakterer Abstand innerhalb des Geld-Felds */
+    flex-shrink: 0;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Plus-Button bleibt am Ende, aber nicht zu weit weg */
+.inventory-header-row .inventory-add-button {
+    margin-left: 0.5rem;
+}
+
+.money-field label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #4a5568;
+    white-space: nowrap;
+}
+
+.money-input {
+    width: 120px;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    text-align: right;
+    background-color: #f9fafb;
+    -moz-appearance: textfield;
+}
+
+.money-input::-webkit-inner-spin-button,
+.money-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.money-input:focus {
+    outline: none;
+    border-color: #4a5568;
+    background-color: #ffffff;
+}
+
+.money-symbol {
+    font-weight: bold;
+    font-size: 1rem;
+    color: #d69e2e; /* Gold/Gelb für Währung */
+}
+
+.inventory-add-button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background-color: #48bb78;
+    color: white;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.inventory-add-button:hover {
+    background-color: #38a169;
+    transform: scale(1.1);
+}
+
+.inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.inventory-header {
+    display: grid;
+    grid-template-columns: 1fr 60px 3fr 32px;
+    gap: 0.5rem;
+    padding: 0.5rem 0.25rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #4a5568;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.inventory-col-name {
+    padding-left: 0.5rem;
+}
+
+.inventory-col-quantity {
+    text-align: center;
+}
+
+.inventory-col-description {
+    padding-left: 0.5rem;
+}
+
+.inventory-item {
+    display: grid;
+    grid-template-columns: 1fr 60px 3fr 32px;
+    gap: 0.5rem;
+    align-items: stretch;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s ease;
+}
+
+.inventory-item:hover {
+    background-color: #f7fafc;
+}
+
+.inventory-name {
+    padding: 0.4rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    background-color: #f9fafb;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.inventory-name:focus {
+    outline: none;
+    border-color: #4a5568;
+    background-color: #ffffff;
+}
+
+.inventory-quantity {
+    padding: 0.4rem 0.25rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    text-align: center;
+    background-color: #f9fafb;
+    width: 100%;
+    -moz-appearance: textfield;
+}
+
+.inventory-quantity::-webkit-inner-spin-button,
+.inventory-quantity::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.inventory-quantity:focus {
+    outline: none;
+    border-color: #4a5568;
+    background-color: #ffffff;
+}
+
+.inventory-description-wrapper {
+    position: relative;
+    min-height: 36px;
+    max-height: 60px;
+    overflow: hidden;
+}
+
+.inventory-description {
+    width: 100%;
+    height: 100%;
+    min-height: 36px;
+    max-height: 60px;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    resize: none;
+    background-color: #f9fafb;
+    overflow-y: auto;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.inventory-description:focus {
+    outline: none;
+    border-color: #4a5568;
+    background-color: #ffffff;
+}
+
+.inventory-description::placeholder {
+    color: #a0aec0;
+    font-style: italic;
+}
+
+.inventory-remove-button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background-color: #fc8181;
+    color: white;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    align-self: center;
+}
+
+.inventory-remove-button:hover {
+    background-color: #f56565;
+    transform: scale(1.1);
+}
+
+/* Nur ein Eintrag - Remove-Button versteckt */
+.inventory-list:has(.inventory-item:only-of-type) .inventory-remove-button {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Dark Mode: Inventar */
+/* Hintergrund wird jetzt vom .collapsible-section Wrapper gehandhabt */
+
+body.dark-mode .inventory-header-row {
+    border-bottom-color: #4a5568;
+}
+
+/* Dark Mode: Geld-Feld */
+body.dark-mode .money-field label {
+    color: #cbd5e0;
+}
+
+body.dark-mode .money-input {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+body.dark-mode .money-input:focus {
+    background-color: #374151;
+    border-color: #63b3ed;
+}
+
+body.dark-mode .money-symbol {
+    color: #ecc94b;
+}
+
+/* Dark Mode: Glücks-Tokens */
+body.dark-mode .trainer-stats-row .luck-tokens-field label {
+    color: #68d391;
+}
+
+body.dark-mode .trainer-stats-row .luck-tokens-inputs input {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+body.dark-mode .trainer-stats-row .luck-tokens-inputs input:focus {
+    background-color: #374151;
+    border-color: #63b3ed;
+}
+
+body.dark-mode .trainer-stats-row .luck-tokens-inputs span.luck-separator {
+    color: #cbd5e0;
+}
+
+body.dark-mode .inventory-header {
+    color: #cbd5e0;
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .inventory-item:hover {
+    background-color: #374151;
+}
+
+body.dark-mode .inventory-name,
+body.dark-mode .inventory-quantity,
+body.dark-mode .inventory-description {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+body.dark-mode .inventory-name:focus,
+body.dark-mode .inventory-quantity:focus,
+body.dark-mode .inventory-description:focus {
+    background-color: #374151;
+    border-color: #63b3ed;
+}
+
+body.dark-mode .inventory-description::placeholder {
+    color: #718096;
+}
+
+body.dark-mode .inventory-add-button {
+    background-color: #48bb78;
+}
+
+body.dark-mode .inventory-add-button:hover {
+    background-color: #68d391;
+}
+
+body.dark-mode .inventory-remove-button {
+    background-color: #fc8181;
+}
+
+body.dark-mode .inventory-remove-button:hover {
+    background-color: #f56565;
+}
+
+/* Responsive: Inventar auf kleineren Bildschirmen */
+@media (max-width: 768px) {
+    .inventory-header,
+    .inventory-item {
+        grid-template-columns: 1fr 50px 2fr 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .inventory-header {
+        display: none;
+    }
+    
+    .inventory-item {
+        grid-template-columns: 1fr 50px;
+        grid-template-rows: auto auto;
+        gap: 0.25rem 0.5rem;
+    }
+    
+    .inventory-description-wrapper {
+        grid-column: 1 / -1;
+    }
+    
+    .inventory-remove-button {
+        grid-row: 1;
+        grid-column: 3;
+        width: 24px;
+        height: 24px;
+        font-size: 1rem;
+    }
+}
+
+/* ==================== PDF/PRINT STYLES FÜR INVENTAR ==================== */
+
+@media print {
+    .inventory-description-wrapper {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    .inventory-description {
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        white-space: pre-wrap !important;
+    }
+    
+    .inventory-add-button,
+    .inventory-remove-button {
+        display: none !important;
+    }
+    
+    .inventory-item {
+        page-break-inside: avoid;
+    }
+}
+
+/* Für PDF-Generierung via JavaScript */
+.pdf-mode .inventory-description-wrapper {
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.pdf-mode .inventory-description {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+}
+
+.pdf-mode .inventory-add-button,
+.pdf-mode .inventory-remove-button {
+    display: none !important;
+}
+
+/* ==================== TRAINER ATTACKEN SYSTEM ==================== */
+
+.trainer-attacks-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.attacks-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.attacks-title {
+    margin-bottom: 0 !important;
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+}
+
+.attack-add-button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background-color: #48bb78;
+    color: white;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.attack-add-button:hover {
+    background-color: #38a169;
+    transform: scale(1.1);
+}
+
+.attacks-table-container {
+    /* Kein max-height/overflow - Liste wächst dynamisch wie Perks/Kommandos */
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+}
+
+.attacks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.attacks-table thead {
+    position: sticky;
+    top: 0;
+    background-color: #edf2f7;
+    z-index: 1;
+}
+
+.attacks-table th {
+    padding: 0.5rem 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    color: #4a5568;
+    border-bottom: 2px solid #cbd5e0;
+    white-space: nowrap;
+}
+
+.attacks-table td {
+    padding: 0.25rem 0.25rem;
+    vertical-align: top;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.attacks-table tr:last-child td {
+    border-bottom: none;
+}
+
+.attacks-table tr:hover {
+    background-color: #f7fafc;
+}
+
+/* Spaltenbreiten */
+.attack-col-name {
+    width: 15%;
+    min-width: 100px;
+}
+
+.attack-col-type {
+    width: 10%;
+    min-width: 70px;
+}
+
+.attack-col-damage {
+    width: 10%;
+    min-width: 60px;
+}
+
+.attack-col-effect {
+    width: 60%;
+}
+
+.attack-col-actions {
+    width: 5%;
+    min-width: 36px;
+    text-align: center;
+}
+
+/* Input-Felder in der Tabelle */
+.attack-input {
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    background-color: #f9fafb;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.attack-input:focus {
+    outline: none;
+    border-color: #4a5568;
+    background-color: #ffffff;
+}
+
+.attack-input::placeholder {
+    color: #a0aec0;
+    font-style: italic;
+}
+
+/* Effekt-Textarea - scrollt bei langen Beschreibungen (analog zu Perks/Kommandos) */
+.attack-effect {
+    width: 100%;
+    min-height: 3.6em;
+    max-height: 3.6em;
+    resize: none;
+    line-height: 1.2;
+    font-family: inherit;
+    overflow-y: auto;
+}
+
+/* Remove-Button für Attacken */
+.attack-remove-button {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background-color: #fc8181;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.attack-remove-button:hover {
+    background-color: #f56565;
+    transform: scale(1.1);
+}
+
+/* Dark Mode: Attacken */
+body.dark-mode .trainer-attacks-section {
+    border-top-color: #4a5568;
+}
+
+body.dark-mode .attacks-table-container {
+    border-color: #4a5568;
+}
+
+body.dark-mode .attacks-table thead {
+    background-color: #374151;
+}
+
+body.dark-mode .attacks-table th {
+    color: #cbd5e0;
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .attacks-table td {
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .attacks-table tr:hover {
+    background-color: #374151;
+}
+
+body.dark-mode .attack-input {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+body.dark-mode .attack-input:focus {
+    background-color: #374151;
+    border-color: #63b3ed;
+}
+
+body.dark-mode .attack-input::placeholder {
+    color: #718096;
+}
+
+body.dark-mode .attack-add-button {
+    background-color: #48bb78;
+}
+
+body.dark-mode .attack-add-button:hover {
+    background-color: #68d391;
+}
+
+body.dark-mode .attack-remove-button {
+    background-color: #fc8181;
+}
+
+body.dark-mode .attack-remove-button:hover {
+    background-color: #f56565;
+}
+
+/* Responsive: Attacken auf kleineren Bildschirmen */
+@media (max-width: 768px) {
+    .attack-col-name {
+        min-width: 80px;
+    }
+    
+    .attack-col-type {
+        min-width: 60px;
+    }
+    
+    .attack-col-damage {
+        min-width: 50px;
+    }
+}
+
+@media (max-width: 480px) {
+    .attacks-table {
+        font-size: 0.75rem;
+    }
+    
+    .attacks-table th,
+    .attacks-table td {
+        padding: 0.25rem 0.2rem;
+    }
+    
+    .attack-input {
+        padding: 0.25rem 0.35rem;
+        font-size: 0.75rem;
+    }
+    
+    .attack-effect {
+        min-height: 32px;
+    }
+    
+    .attack-remove-button {
+        width: 20px;
+        height: 20px;
+        font-size: 0.9rem;
+    }
+}
+
+/* PDF-Modus für Attacken */
+@media print {
+    .attack-add-button,
+    .attack-remove-button {
+        display: none !important;
+    }
+    
+    .attack-row {
+        page-break-inside: avoid;
+    }
+    
+    .attack-effect {
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        white-space: pre-wrap !important;
+    }
+}
+
+.pdf-mode .attack-add-button,
+.pdf-mode .attack-remove-button {
+    display: none !important;
+}
+
+.pdf-mode .attack-effect {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+}
+
+/* ==================== PERKS & KOMMANDOS CONTAINER (Side-by-Side) ==================== */
+
+.perks-kommandos-container {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* ==================== TRAINER PERKS SYSTEM ==================== */
+
+.trainer-perks-section {
+    flex: 1;
+    min-width: 0;
+    max-width: 48%;
+}
+
+.perks-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.perks-title {
+    margin-bottom: 0 !important;
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+}
+
+.perk-add-button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background-color: #805ad5;
+    color: white;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.perk-add-button:hover {
+    background-color: #6b46c1;
+    transform: scale(1.1);
+}
+
+.perks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.perk-item {
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+
+.perk-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.perk-select {
+    flex: 1;
+    min-width: 0;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    background-color: white;
+}
+
+.perk-select option:disabled {
+    color: #a0aec0;
+    background-color: #f0f0f0;
+}
+
+.perk-choice-select {
+    width: 100px;
+    flex-shrink: 0;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    background-color: white;
+}
+
+.perk-remove-button {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background-color: #fc8181;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.perk-remove-button:hover {
+    background-color: #f56565;
+    transform: scale(1.1);
+}
+
+.perk-description-container {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.perk-description {
+    width: 100%;
+    min-height: 3.6em;
+    max-height: 3.6em;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    background-color: #faf5ff;
+    resize: none;
+    overflow-y: auto;
+    line-height: 1.2;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+/* ==================== TRAINER KOMMANDOS SYSTEM ==================== */
+
+.trainer-kommandos-section {
+    flex: 1;
+    min-width: 0;
+    max-width: 48%;
+}
+
+.kommandos-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.kommandos-title {
+    margin-bottom: 0 !important;
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+}
+
+.kommando-add-button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background-color: #dd6b20;
+    color: white;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.kommando-add-button:hover {
+    background-color: #c05621;
+    transform: scale(1.1);
+}
+
+.kommandos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.kommando-item {
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+
+.kommando-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.kommando-select {
+    flex: 1;
+    min-width: 0;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    background-color: white;
+}
+
+.kommando-select option:disabled {
+    color: #a0aec0;
+    background-color: #f0f0f0;
+}
+
+.kommando-choice-select {
+    width: 80px;
+    flex-shrink: 0;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    background-color: white;
+}
+
+.kommando-remove-button {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background-color: #fc8181;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.kommando-remove-button:hover {
+    background-color: #f56565;
+    transform: scale(1.1);
+}
+
+.kommando-description-container {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.kommando-description {
+    width: 100%;
+    min-height: 3.6em;
+    max-height: 3.6em;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    background-color: #fffaf0;
+    resize: none;
+    overflow-y: auto;
+    line-height: 1.2;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+/* ==================== DARK MODE: PERKS & KOMMANDOS ==================== */
+
+body.dark-mode .perks-kommandos-container {
+    border-top-color: #4a5568;
+}
+
+body.dark-mode .perk-item,
+body.dark-mode .kommando-item {
+    background-color: #374151;
+    border-color: #4a5568;
+}
+
+body.dark-mode .perk-select,
+body.dark-mode .perk-choice-select,
+body.dark-mode .kommando-select,
+body.dark-mode .kommando-choice-select {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+body.dark-mode .perk-select option:disabled,
+body.dark-mode .kommando-select option:disabled {
+    color: #718096;
+    background-color: #2d3748;
+}
+
+body.dark-mode .perk-description {
+    background-color: #44337a;
+    border-color: #553c9a;
+    color: #e2e8f0;
+}
+
+body.dark-mode .kommando-description {
+    background-color: #744210;
+    border-color: #975a16;
+    color: #e2e8f0;
+}
+
+body.dark-mode .perk-add-button {
+    background-color: #805ad5;
+}
+
+body.dark-mode .perk-add-button:hover {
+    background-color: #9f7aea;
+}
+
+body.dark-mode .kommando-add-button {
+    background-color: #dd6b20;
+}
+
+body.dark-mode .kommando-add-button:hover {
+    background-color: #ed8936;
+}
+
+/* ==================== PDF/PRINT STYLES FÜR PERKS & KOMMANDOS ==================== */
+
+@media print {
+    .perks-kommandos-container {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .perk-description,
+    .kommando-description {
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        white-space: pre-wrap !important;
+    }
+    
+    .perk-add-button,
+    .perk-remove-button,
+    .kommando-add-button,
+    .kommando-remove-button {
+        display: none !important;
+    }
+    
+    .perk-item,
+    .kommando-item {
+        page-break-inside: avoid;
+    }
+}
+
+.pdf-mode .perk-description,
+.pdf-mode .kommando-description {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+}
+
+.pdf-mode .perk-add-button,
+.pdf-mode .perk-remove-button,
+.pdf-mode .kommando-add-button,
+.pdf-mode .kommando-remove-button {
+    display: none !important;
+}
+
+/* ==================== RESPONSIVE: PERKS & KOMMANDOS ==================== */
+
+@media (max-width: 900px) {
+    .perks-kommandos-container {
+        flex-direction: column;
+    }
+    
+    .trainer-perks-section,
+    .trainer-kommandos-section {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .perk-select,
+    .kommando-select {
+        font-size: 0.8rem;
+    }
+    
+    .perk-description,
+    .kommando-description {
+        font-size: 0.75rem;
+    }
+    
+    .perk-choice-select,
+    .kommando-choice-select {
+        width: 70px;
+    }
+}
+
+/* ==================== PERK & KOMMANDO CUSTOM DROPDOWNS ==================== */
+
+.perk-dropdown-container,
+.kommando-dropdown-container {
+    flex: 1;
+    min-width: 0;
+}
+
+.perk-dropdown-container .custom-dropdown-button,
+.kommando-dropdown-container .custom-dropdown-button {
+    min-height: 36px;
+}
+
+.perk-dropdown-list,
+.kommando-dropdown-list {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+/* Deaktivierte Optionen (bereits gewählt) */
+.dropdown-option-disabled {
+    color: #a0aec0 !important;
+    background-color: #f7fafc !important;
+    cursor: not-allowed !important;
+    font-style: italic;
+}
+
+.dropdown-option-disabled:hover {
+    background-color: #f7fafc !important;
+}
+
+/* Responsive Anpassungen für Custom Dropdowns */
+@media (max-width: 480px) {
+    .perk-dropdown-container .custom-dropdown-button,
+    .kommando-dropdown-container .custom-dropdown-button {
+        font-size: 0.8rem;
+        padding: 0.4rem;
+    }
+    
+    .perk-dropdown-list .custom-dropdown-option,
+    .kommando-dropdown-list .custom-dropdown-option {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.5rem;
+    }
+}
+
+/* ==================== COLLAPSIBLE SEKTIONEN ==================== */
+
+.collapsible-section {
+    margin-bottom: 1rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.collapsible-section:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Collapsible Header */
+.collapsible-header {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: #edf2f7;
+    border-radius: 0.5rem 0.5rem 0 0;
+    cursor: default;
+    user-select: none;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.collapsible-section.collapsed .collapsible-header {
+    border-radius: 0.5rem;
+    border-bottom: none;
+}
+
+/* Drag Handle */
+.drag-handle-section {
+    cursor: grab;
+    padding: 0.25rem 0.5rem;
+    margin-right: 0.5rem;
+    color: #a0aec0;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    transition: color 0.2s ease;
+    user-select: none;
+}
+
+.drag-handle-section:hover {
+    color: #4a5568;
+}
+
+.drag-handle-section:active {
+    cursor: grabbing;
+}
+
+/* Collapsible Title */
+.collapsible-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2d3748;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.collapsible-title:hover {
+    color: #4a90d9;
+}
+
+/* Collapse Toggle Button */
+.collapse-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    margin-left: 0.5rem;
+    border: none;
+    border-radius: 4px;
+    background-color: transparent;
+    color: #4a5568;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.collapse-toggle:hover {
+    background-color: #e2e8f0;
+    color: #2d3748;
+}
+
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+/* Collapsible Content */
+.collapsible-content {
+    padding: 1rem;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+    max-height: 5000px; /* Großer Wert für offenen Zustand */
+    opacity: 1;
+}
+
+.collapsible-section.collapsed .collapsible-content {
+    max-height: 0;
+    padding: 0 1rem;
+    opacity: 0;
+}
+
+/* Drag & Drop States */
+.collapsible-section.dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.section-placeholder {
+    background-color: #bee3f8;
+    border: 2px dashed #4a90d9;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    transition: height 0.2s ease;
+}
+
+/* ==================== ANPASSUNGEN FÜR SEKTIONEN OHNE EIGENEN TITEL ==================== */
+
+/* Team Header inline (nur Button) */
+.team-header-inline {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.75rem;
+}
+
+/* Skills Points Display (ohne Titel) */
+.skills-points-display {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #cbd5e0;
+}
+
+.skills-points-display .points-display {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+/* Inventory Header ohne Titel */
+.inventory-header-row .section-title {
+    display: none;
+}
+
+/* ==================== DARK MODE: COLLAPSIBLE SEKTIONEN ==================== */
+
+body.dark-mode .collapsible-section {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+body.dark-mode .collapsible-header {
+    background-color: #374151;
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .drag-handle-section {
+    color: #718096;
+}
+
+body.dark-mode .drag-handle-section:hover {
+    color: #cbd5e0;
+}
+
+body.dark-mode .collapsible-title {
+    color: #e2e8f0;
+}
+
+body.dark-mode .collapsible-title:hover {
+    color: #63b3ed;
+}
+
+body.dark-mode .collapse-toggle {
+    color: #a0aec0;
+}
+
+body.dark-mode .collapse-toggle:hover {
+    background-color: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .section-placeholder {
+    background-color: rgba(66, 153, 225, 0.2);
+    border-color: #63b3ed;
+}
+
+body.dark-mode .skills-points-display {
+    border-bottom-color: #4a5568;
+}
+
+/* ==================== RESPONSIVE: COLLAPSIBLE SEKTIONEN ==================== */
+
+@media (max-width: 768px) {
+    .collapsible-header {
+        padding: 0.6rem 0.75rem;
+    }
+    
+    .collapsible-title {
+        font-size: 1rem;
+    }
+    
+    .drag-handle-section {
+        font-size: 1rem;
+        padding: 0.2rem 0.35rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .collapsible-header {
+        padding: 0.5rem 0.6rem;
+    }
+    
+    .collapsible-title {
+        font-size: 0.95rem;
+    }
+    
+    .collapsible-content {
+        padding: 0.75rem;
+    }
+    
+    .collapsible-section.collapsed .collapsible-content {
+        padding: 0 0.75rem;
+    }
+    
+    .collapse-toggle {
+        width: 24px;
+        height: 24px;
+        font-size: 0.8rem;
+    }
+}
+
+/* ==================== PDF/PRINT: COLLAPSIBLE SEKTIONEN ==================== */
+
+@media print {
+    .collapsible-section {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    
+    .collapsible-section.collapsed .collapsible-content {
+        max-height: none !important;
+        padding: 1rem !important;
+        opacity: 1 !important;
+    }
+    
+    .drag-handle-section,
+    .collapse-toggle {
+        display: none !important;
+    }
+    
+    .collapsible-header {
+        border-bottom: 2px solid #4a5568 !important;
+    }
+}
+
+.pdf-mode .collapsible-section.collapsed .collapsible-content {
+    max-height: none !important;
+    padding: 1rem !important;
+    opacity: 1 !important;
+}
+
+.pdf-mode .drag-handle-section,
+.pdf-mode .collapse-toggle {
+    display: none !important;
+}
+
+/**
+ * Multi-Trainer Tab System - CSS Erweiterungen
+ * Diese Datei enthält die Styles für das Trainer-Tab-System
+ * Muss NACH pokemonSheet.css eingebunden werden
+ */
+
+/* ==================== TRAINER TABS CONTAINER ==================== */
+
+.trainer-tabs-container {
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.trainer-tabs-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.trainer-tabs-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+    padding-right: 10px;
+    border-right: 2px solid #dee2e6;
+}
+
+/* ==================== TAB LIST ==================== */
+
+.trainer-tabs-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.trainer-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: white;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    color: #495057;
+    min-width: 100px;
+    position: relative;
+}
+
+.trainer-tab:hover {
+    border-color: #adb5bd;
+    background: #f8f9fa;
+    transform: translateY(-1px);
+}
+
+.trainer-tab.active {
+    background: linear-gradient(135deg, #4dabf7 0%, #228be6 100%);
+    border-color: #1971c2;
+    color: white;
+    box-shadow: 0 2px 8px rgba(34, 139, 230, 0.4);
+}
+
+.trainer-tab.active:hover {
+    background: linear-gradient(135deg, #339af0 0%, #1c7ed6 100%);
+}
+
+.trainer-tab-icon {
+    font-size: 16px;
+}
+
+.trainer-tab-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.trainer-tab-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.trainer-tab-close:hover {
+    background: rgba(255, 0, 0, 0.2);
+    opacity: 1;
+    color: #c92a2a;
+}
+
+.trainer-tab.active .trainer-tab-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+/* ==================== ADD TRAINER BUTTON ==================== */
+
+.trainer-tab-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: white;
+    border: 2px dashed #adb5bd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 20px;
+    color: #868e96;
+}
+
+.trainer-tab-add:hover {
+    border-color: #228be6;
+    color: #228be6;
+    background: #e7f5ff;
+    transform: scale(1.05);
+}
+
+/* ==================== TRAINER ACTIONS ==================== */
+
+.trainer-tab-actions {
+    display: flex;
+    gap: 5px;
+    margin-left: auto;
+    padding-left: 10px;
+    border-left: 2px solid #dee2e6;
+}
+
+.trainer-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    color: #495057;
+}
+
+.trainer-action-btn:hover {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+.trainer-action-btn.duplicate:hover {
+    background: #d3f9d8;
+    border-color: #51cf66;
+    color: #2f9e44;
+}
+
+.trainer-action-btn.delete:hover {
+    background: #ffe3e3;
+    border-color: #ff6b6b;
+    color: #c92a2a;
+}
+
+.trainer-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.trainer-action-btn:disabled:hover {
+    background: white;
+    border-color: #dee2e6;
+    color: #495057;
+}
+
+/* ==================== TAB CONTEXT MENU ==================== */
+
+.trainer-tab-context-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 150px;
+    padding: 5px 0;
+    display: none;
+}
+
+.trainer-tab-context-menu.show {
+    display: block;
+}
+
+.trainer-tab-context-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 13px;
+    color: #495057;
+}
+
+.trainer-tab-context-item:hover {
+    background: #f8f9fa;
+}
+
+.trainer-tab-context-item.danger {
+    color: #c92a2a;
+}
+
+.trainer-tab-context-item.danger:hover {
+    background: #ffe3e3;
+}
+
+/* ==================== TRAINER INFO BADGE ==================== */
+
+.trainer-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.trainer-tab.active .trainer-tab-badge {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ==================== DARK MODE ==================== */
+
+.dark-mode .trainer-tabs-container {
+    background: linear-gradient(135deg, #2b2b2b 0%, #1a1a1a 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .trainer-tabs-title {
+    color: #e0e0e0;
+    border-right-color: #444;
+}
+
+.dark-mode .trainer-tab {
+    background: #333;
+    border-color: #444;
+    color: #e0e0e0;
+}
+
+.dark-mode .trainer-tab:hover {
+    border-color: #555;
+    background: #3a3a3a;
+}
+
+.dark-mode .trainer-tab.active {
+    background: linear-gradient(135deg, #1971c2 0%, #1864ab 100%);
+    border-color: #1864ab;
+}
+
+.dark-mode .trainer-tab-add {
+    background: #333;
+    border-color: #555;
+    color: #aaa;
+}
+
+.dark-mode .trainer-tab-add:hover {
+    border-color: #4dabf7;
+    color: #4dabf7;
+    background: #2a3a4a;
+}
+
+.dark-mode .trainer-tab-actions {
+    border-left-color: #444;
+}
+
+.dark-mode .trainer-action-btn {
+    background: #333;
+    border-color: #444;
+    color: #e0e0e0;
+}
+
+.dark-mode .trainer-action-btn:hover {
+    background: #3a3a3a;
+    border-color: #555;
+}
+
+.dark-mode .trainer-action-btn.duplicate:hover {
+    background: #1e3a1e;
+    border-color: #2f9e44;
+    color: #51cf66;
+}
+
+.dark-mode .trainer-action-btn.delete:hover {
+    background: #3a1e1e;
+    border-color: #c92a2a;
+    color: #ff6b6b;
+}
+
+.dark-mode .trainer-tab-context-menu {
+    background: #2b2b2b;
+    border-color: #444;
+}
+
+.dark-mode .trainer-tab-context-item {
+    color: #e0e0e0;
+}
+
+.dark-mode .trainer-tab-context-item:hover {
+    background: #333;
+}
+
+.dark-mode .trainer-tab-context-item.danger {
+    color: #ff6b6b;
+}
+
+.dark-mode .trainer-tab-context-item.danger:hover {
+    background: #3a1e1e;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+    .trainer-tabs-container {
+        padding: 10px;
+    }
+    
+    .trainer-tabs-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .trainer-tabs-title {
+        border-right: none;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 8px;
+        padding-right: 0;
+        width: 100%;
+    }
+    
+    .trainer-tabs-list {
+        width: 100%;
+    }
+    
+    .trainer-tab {
+        min-width: 80px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+    
+    .trainer-tab-name {
+        max-width: 80px;
+    }
+    
+    .trainer-tab-actions {
+        border-left: none;
+        border-top: 2px solid #dee2e6;
+        padding-left: 0;
+        padding-top: 10px;
+        margin-left: 0;
+        margin-top: 10px;
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* ==================== ANIMATIONS ==================== */
+
+@keyframes tab-appear {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.trainer-tab {
+    animation: tab-appear 0.2s ease-out;
+}
+
+@keyframes tab-pulse {
+    0%, 100% {
+        box-shadow: 0 2px 8px rgba(34, 139, 230, 0.4);
+    }
+    50% {
+        box-shadow: 0 2px 16px rgba(34, 139, 230, 0.6);
+    }
+}
+
+.trainer-tab.active.new {
+    animation: tab-pulse 1s ease-in-out 2;
+}
+
+/* ==================== TRAINER TAB TOOLTIP ==================== */
+
+.trainer-tab[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 100;
+}
+
+.dark-mode .trainer-tab[data-tooltip]:hover::after {
+    background: #f8f9fa;
+    color: #333;
+}
+
+/* ==================== CONFIRMATION MODAL ==================== */
+
+.trainer-confirm-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.trainer-confirm-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.trainer-confirm-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 12px 0;
+}
+
+.trainer-confirm-message {
+    font-size: 14px;
+    color: #495057;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+}
+
+.trainer-confirm-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.trainer-confirm-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.trainer-confirm-btn.cancel {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.trainer-confirm-btn.cancel:hover {
+    background: #dee2e6;
+}
+
+.trainer-confirm-btn.confirm {
+    background: #fa5252;
+    color: white;
+}
+
+.trainer-confirm-btn.confirm:hover {
+    background: #e03131;
+}
+
+.dark-mode .trainer-confirm-content {
+    background: #2b2b2b;
+}
+
+.dark-mode .trainer-confirm-title {
+    color: #e0e0e0;
+}
+
+.dark-mode .trainer-confirm-message {
+    color: #aaa;
+}
+
+.dark-mode .trainer-confirm-btn.cancel {
+    background: #444;
+    color: #e0e0e0;
+}
+
+.dark-mode .trainer-confirm-btn.cancel:hover {
+    background: #555;
+}
+
+/* ==================== NOTEN-SEKTION ==================== */
+
+.trainer-grades-section {
+    padding: 0.5rem;
+}
+
+.grades-info-box {
+    background-color: #f0f7ff;
+    border: 1px solid #b3d4fc;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.grades-explanation {
+    margin: 0 0 0.75rem 0;
+    color: #333;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.grades-points-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.grades-points-label {
+    color: #333;
+}
+
+.grades-points-value {
+    background-color: #4CAF50;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+.grades-points-value.grades-warning {
+    background-color: #dc3545;
+    animation: pulse-warning 1s infinite;
+}
+
+@keyframes pulse-warning {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.grades-warning-box {
+    background-color: #fff3f3;
+    border: 2px solid #dc3545;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    color: #dc3545;
+    font-weight: 600;
+    text-align: center;
+}
+
+.grades-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.grades-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.grade-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+}
+
+.grade-subject-name {
+    flex: 1;
+    font-size: 0.875rem;
+    color: #333;
+    line-height: 1.3;
+}
+
+.grade-select {
+    width: 3.5rem;
+    padding: 0.375rem 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 2px solid #ccc;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    padding-right: 1.75rem;
+}
+
+.grade-select:hover {
+    border-color: #999;
+}
+
+.grade-select:focus {
+    outline: none;
+    border-color: #4285F4;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+/* Notenfarben */
+.grade-1 {
+    background-color: #1b5e20;
+    color: white;
+    border-color: #1b5e20;
+}
+
+.grade-2 {
+    background-color: #8bc34a;
+    color: #1b5e20;
+    border-color: #8bc34a;
+}
+
+.grade-3 {
+    background-color: #ffeb3b;
+    color: #333;
+    border-color: #ffc107;
+}
+
+.grade-4 {
+    background-color: #ff9800;
+    color: #333;
+    border-color: #ff9800;
+}
+
+.grade-5 {
+    background-color: #f44336;
+    color: white;
+    border-color: #f44336;
+}
+
+/* Dark Mode für Noten */
+body.dark-mode .grades-info-box {
+    background-color: #1a2634;
+    border-color: #2d4a6a;
+}
+
+body.dark-mode .grades-explanation {
+    color: #ccc;
+}
+
+body.dark-mode .grades-points-label {
+    color: #ccc;
+}
+
+body.dark-mode .grades-warning-box {
+    background-color: #2a1f1f;
+    border-color: #dc3545;
+    color: #ff6b6b;
+}
+
+body.dark-mode .grade-item {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+body.dark-mode .grade-subject-name {
+    color: #e0e0e0;
+}
+
+body.dark-mode .grade-select {
+    border-color: #4a5568;
+    background-color: #1a202c;
+    color: #e0e0e0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ccc' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+}
+
+body.dark-mode .grade-select:hover {
+    border-color: #718096;
+}
+
+body.dark-mode .grade-select:focus {
+    border-color: #4285F4;
+}
+
+/* Dark Mode Notenfarben */
+body.dark-mode .grade-1 {
+    background-color: #1b5e20;
+    color: white;
+    border-color: #2e7d32;
+}
+
+body.dark-mode .grade-2 {
+    background-color: #558b2f;
+    color: white;
+    border-color: #689f38;
+}
+
+body.dark-mode .grade-3 {
+    background-color: #f9a825;
+    color: #1a1a1a;
+    border-color: #fbc02d;
+}
+
+body.dark-mode .grade-4 {
+    background-color: #e65100;
+    color: white;
+    border-color: #ef6c00;
+}
+
+body.dark-mode .grade-5 {
+    background-color: #c62828;
+    color: white;
+    border-color: #d32f2f;
+}
+
+/* Responsive Design für Noten */
+@media (max-width: 768px) {
+    .grades-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .grade-item {
+        padding: 0.625rem;
+    }
+    
+    .grade-subject-name {
+        font-size: 0.8125rem;
+    }
+}
+/* ==================== TYP-MEISTERSCHAFT ==================== */
+
+.trainer-type-mastery-section {
+    padding: 0.5rem;
+}
+
+.type-mastery-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.type-mastery-favorite-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #f0f7ff;
+    border: 1px solid #b3d4fc;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+}
+
+.type-mastery-favorite-selector label {
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+}
+
+.favorite-type-select {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+    border: 2px solid #ccc;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    min-width: 160px;
+    background-color: white;
+}
+
+.favorite-type-select:hover {
+    border-color: #999;
+}
+
+.favorite-type-select:focus {
+    outline: none;
+    border-color: #FFD700;
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3);
+}
+
+.favorite-bonus-info {
+    font-size: 0.75rem;
+    color: #666;
+    font-style: italic;
+}
+
+.type-mastery-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.type-mastery-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+}
+
+.type-mastery-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem;
+    background-color: #f8f9fa;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.type-mastery-item.is-favorite {
+    background-color: #fffbeb;
+    border-color: #FFD700;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.type-mastery-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    width: 100%;
+    padding: 0.25rem 0.375rem;
+    border-radius: 0.25rem;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.type-icon {
+    font-size: 0.875rem;
+}
+
+.type-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.type-mastery-value-container {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    position: relative;
+}
+
+.type-mastery-input {
+    width: 2.5rem;
+    padding: 0.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    border: 2px solid #ccc;
+    border-radius: 0.375rem;
+    background-color: white;
+}
+
+.type-mastery-input:hover {
+    border-color: #999;
+}
+
+.type-mastery-input:focus {
+    outline: none;
+    border-color: #4285F4;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.type-mastery-item.is-favorite .type-mastery-input {
+    border-color: #FFD700;
+    background-color: #fffef5;
+}
+
+.type-mastery-item.is-favorite .type-mastery-input:focus {
+    border-color: #DAA520;
+    box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.3);
+}
+
+.favorite-indicator {
+    font-size: 0.875rem;
+    color: #FFD700;
+    text-shadow: 0 0 4px rgba(255, 215, 0, 0.6);
+    animation: sparkle 1.5s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+/* Dark Mode für Typ-Meisterschaft */
+body.dark-mode .type-mastery-favorite-selector {
+    background-color: #1a2634;
+    border-color: #2d4a6a;
+}
+
+body.dark-mode .type-mastery-favorite-selector label {
+    color: #ccc;
+}
+
+body.dark-mode .favorite-type-select {
+    background-color: #1a202c;
+    color: #e0e0e0;
+    border-color: #4a5568;
+}
+
+body.dark-mode .favorite-type-select:hover {
+    border-color: #718096;
+}
+
+body.dark-mode .favorite-bonus-info {
+    color: #999;
+}
+
+body.dark-mode .type-mastery-item {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+body.dark-mode .type-mastery-item.is-favorite {
+    background-color: #3d3a20;
+    border-color: #DAA520;
+    box-shadow: 0 0 8px rgba(218, 165, 32, 0.3);
+}
+
+body.dark-mode .type-mastery-input {
+    background-color: #1a202c;
+    color: #e0e0e0;
+    border-color: #4a5568;
+}
+
+body.dark-mode .type-mastery-input:hover {
+    border-color: #718096;
+}
+
+body.dark-mode .type-mastery-item.is-favorite .type-mastery-input {
+    background-color: #2a2a1a;
+    border-color: #DAA520;
+}
+
+/* Responsive Design für Typ-Meisterschaft */
+@media (max-width: 900px) {
+    .type-mastery-row {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 500px) {
+    .type-mastery-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .type-mastery-label {
+        font-size: 0.6875rem;
+    }
+    
+    .type-icon {
+        font-size: 0.75rem;
+    }
+    
+    .type-mastery-input {
+        width: 2.25rem;
+        font-size: 0.875rem;
+    }
+    
+    .type-mastery-favorite-selector {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}

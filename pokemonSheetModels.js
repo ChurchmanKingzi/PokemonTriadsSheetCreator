@@ -318,13 +318,51 @@ class AppState {
     }
 
     /**
-     * Berechnet den Bewegungswert (BW) basierend auf dem Basis-Speed
-     * @param {number} baseSpeed - Basis-Geschwindigkeitswert des Pokémon
+     * Berechnet den Bewegungswert (BW) basierend auf Basis-Initiative, BST und KÖ-Wert
+     * Formel: ceil(Basis-Initiative / 5) + ceil(BST / 15) + (5 * KÖ-Wert)
      * @returns {number} Berechneter BW-Wert
      */
-    calculateBw(baseSpeed) {
-        // BW = 25% des Basis-Speed, aufgerundet
-        return Math.ceil(baseSpeed * 0.25);
+    calculateBw() {
+        // Basis-Initiative aus den baseStats
+        const baseSpeed = this.baseStats.speed || 0;
+        
+        // BST aus pokemonData
+        const bst = this.pokemonData ? this.pokemonData.bst : 0;
+        
+        // KÖ-Wert aus den Fertigkeiten
+        const koValue = this.skillValues['KÖ'] || 0;
+        
+        // Formel anwenden
+        const speedComponent = Math.ceil(baseSpeed / 5);
+        const bstComponent = Math.ceil(bst / 15);
+        const koComponent = 5 * koValue;
+        
+        return speedComponent + bstComponent + koComponent;
+    }
+    
+    /**
+     * Generiert den Tooltip-Text für den BW-Wert
+     * @returns {string} Tooltip-Text mit der Formel
+     */
+    getBwTooltip() {
+        const baseSpeed = this.baseStats.speed || 0;
+        const bst = this.pokemonData ? this.pokemonData.bst : 0;
+        const koValue = this.skillValues['KÖ'] || 0;
+        
+        const speedComponent = Math.ceil(baseSpeed / 5);
+        const bstComponent = Math.ceil(bst / 15);
+        const koComponent = 5 * koValue;
+        
+        return `${speedComponent} (${baseSpeed} Init /5) + ${bstComponent} (${bst} BST /15) + ${koComponent} (5 × ${koValue} KÖ)`;
+    }
+    
+    /**
+     * Berechnet BW neu und aktualisiert den Wert
+     * Wird aufgerufen wenn sich der KÖ-Wert ändert
+     */
+    recalculateBw() {
+        this.bw = this.calculateBw();
+        return this.bw;
     }
     
     /**
@@ -383,11 +421,16 @@ class AppState {
      * Pokemon-Daten setzen und daraus abgeleitete Werte berechnen
      * @param {Object} data - Pokemon-Daten aus der API
      * @param {Object} speciesData - Arten-Daten aus der API
+     * @param {boolean} skipLevelCalculation - Wenn true, Level nicht aus BST berechnen (für gespeicherte Charakterbögen)
      */
-    setPokemonData(data, speciesData) {
-        // BST berechnen und Level festlegen (10% vom BST)
+    setPokemonData(data, speciesData, skipLevelCalculation = false) {
+        // BST berechnen
         const bst = data.stats.reduce((total, stat) => total + stat.base_stat, 0);
-        this.level = Math.max(1, Math.floor(bst * 0.1));
+        
+        // Level nur festlegen wenn skipLevelCalculation false ist
+        if (!skipLevelCalculation) {
+            this.level = Math.max(1, Math.floor(bst * 0.1));
+        }
         
         // Basis-Statuswerte speichern
         this.baseStats = {
@@ -411,14 +454,16 @@ class AppState {
         this.moves = Array(DEFAULT_VALUES.MOVE_SLOTS).fill(null);
         this.availableMoves = [];
         
-        // Statuswerte berechnen
-        this.recalculateStats();
+        // Statuswerte nur berechnen wenn skipLevelCalculation false ist
+        if (!skipLevelCalculation) {
+            this.recalculateStats();
+            
+            // GENA und PA berechnen
+            this.calculateGenaAndPa(data, speciesData, bst);
         
-        // GENA und PA berechnen
-        this.calculateGenaAndPa(data, speciesData, bst);
-    
-        // BW berechnen
-        this.bw = this.calculateBw(this.baseStats.speed);
+            // BW berechnen (verwendet jetzt baseStats.speed, bst und KÖ-Wert intern)
+            this.bw = this.calculateBw();
+        }
     }
     
     /**
@@ -453,16 +498,21 @@ class AppState {
     /**
      * Level setzen und Statuswerte neu berechnen
      * @param {number} newLevel - Neues Level
+     * @param {boolean} skipRecalculation - Wenn true, Stats nicht neu berechnen (für gespeicherte Charakterbögen)
      * @returns {boolean} True, wenn der Wert gültig war und gesetzt wurde
      */
-    setLevel(newLevel) {
+    setLevel(newLevel, skipRecalculation = false) {
         if (newLevel === '' || isNaN(newLevel)) return false;
         
         const level = parseInt(newLevel, 10);
         if (level < DEFAULT_VALUES.MIN_LEVEL || level > DEFAULT_VALUES.MAX_LEVEL) return false;
         
         this.level = level;
-        this.recalculateStats();
+        
+        // Stats nur neu berechnen wenn nicht übersprungen werden soll
+        if (!skipRecalculation) {
+            this.recalculateStats();
+        }
         return true;
     }
     

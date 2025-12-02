@@ -202,9 +202,9 @@ class JSONImportService {
     _applyRemainingData(data) {
         console.log('Überschreibe Standardwerte mit gespeicherten Werten...');
         
-        // Level setzen
+        // Level setzen (mit skipRecalculation = true, da wir die Stats selbst setzen)
         if (data.level !== undefined) {
-            this.appState.setLevel(data.level);
+            this.appState.setLevel(data.level, true); // true = skipRecalculation
             const levelInput = document.getElementById('level-value');
             if (levelInput) {
                 levelInput.value = data.level.toString();
@@ -258,14 +258,6 @@ class JSONImportService {
             }
         }
         
-        if (data.bw !== undefined) {
-            this.appState.setBw(data.bw);
-            const bwInput = document.getElementById('bw-input');
-            if (bwInput) {
-                bwInput.value = data.bw.toString();
-            }
-        }
-        
         // Wunden setzen, wenn vorhanden
         if (data.wounds !== undefined && typeof this.appState.setWounds === 'function') {
             this.appState.setWounds(data.wounds);
@@ -286,6 +278,20 @@ class JSONImportService {
                     skillInput.value = value.toString();
                 }
             });
+        }
+        
+        // BW neu berechnen basierend auf dem geladenen KÖ-Wert
+        // (BW hängt von Basis-Initiative, BST und KÖ ab)
+        if (this.appState.recalculateBw) {
+            this.appState.recalculateBw();
+            const bwInput = document.getElementById('bw-input');
+            if (bwInput) {
+                bwInput.value = this.appState.bw.toString();
+                // Tooltip aktualisieren
+                if (this.appState.getBwTooltip) {
+                    bwInput.title = this.appState.getBwTooltip();
+                }
+            }
         }
     
         // Strichliste für Freundschaft setzen

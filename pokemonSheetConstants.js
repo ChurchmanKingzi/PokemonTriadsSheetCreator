@@ -62,6 +62,7 @@ const SKILL_GROUPS = {
         'Ausweichen',
         'Handwerk',
         'Kampfsport',
+        'Klettern',
         'Nahkampf',
         'Reiten',
         'Schießen',

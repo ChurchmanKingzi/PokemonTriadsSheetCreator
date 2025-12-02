@@ -247,10 +247,11 @@ class UiRenderer {
                 createElement('input', {
                     type: 'number',
                     min: '0',
-                    max: '99',
+                    max: '999',
                     value: bw.toString(),
                     className: 'stat-input bw-input',
-                    id: 'bw-input'
+                    id: 'bw-input',
+                    title: this.appState.getBwTooltip ? this.appState.getBwTooltip() : ''
                 })
             ])
         ]);
@@ -553,6 +554,20 @@ class UiRenderer {
             
             if (!this.appState.setSkillValue(skill, value)) {
                 e.target.value = this.appState.skillValues[skill];
+            } else {
+                // Bei Änderung des KÖ-Werts: BW automatisch neu berechnen
+                if (skill === 'KÖ') {
+                    this.appState.recalculateBw();
+                    // BW-Input im UI aktualisieren
+                    const bwInput = document.getElementById('bw-input');
+                    if (bwInput) {
+                        bwInput.value = this.appState.bw.toString();
+                        // Tooltip aktualisieren
+                        if (this.appState.getBwTooltip) {
+                            bwInput.title = this.appState.getBwTooltip();
+                        }
+                    }
+                }
             }
             autoSave(); // Automatisch speichern
         });

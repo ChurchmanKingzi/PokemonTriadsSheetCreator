@@ -141,15 +141,19 @@ class ApiService {
     /**
      * Lädt die Details eines bestimmten Pokemon
      * @param {number} pokemonId - ID des Pokemon
+     * @param {boolean} skipLevelCalculation - Wenn true, Level/Stats nicht aus BST berechnen
      * @returns {Promise<Object|null>} Pokemon-Daten oder null bei Fehler
      */
-    async fetchPokemonDetails(pokemonId) {
+    async fetchPokemonDetails(pokemonId, skipLevelCalculation = false) {
         if (!pokemonId) {
             this.appState.selectedPokemon = null;
             this.appState.pokemonData = null;
             return null;
         }
     
+        // Flag für späteren Aufruf von setPokemonData speichern
+        this._skipLevelCalculation = skipLevelCalculation;
+        
         try {
             // Pokemon-Daten laden mit ID
             const response = await fetch(`${API.BASE_URL}/pokemon/${pokemonId}`);
@@ -265,7 +269,7 @@ class ApiService {
                 germanName: germanName,
                 types: translatedTypes
             };
-            this.appState.setPokemonData(enhancedData, speciesData);
+            this.appState.setPokemonData(enhancedData, speciesData, this._skipLevelCalculation);
             
             // Fähigkeiten abrufen und im AppState speichern
             try {
@@ -291,6 +295,43 @@ class ApiService {
             console.error('Fehler beim Laden der Pokemon-Daten:', error);
             return null;
         }
+    }
+    
+    /**
+     * Extrahiert alle Vorentwicklungs-IDs aus der Evolutionskette
+     * @param {number} currentPokemonId - ID des aktuellen Pokemon
+     * @param {Object} evolutionChainData - Die Evolutionsketten-Daten
+     * @returns {Array<number>} Array aller Vorentwicklungs-IDs (leer wenn Basis-Pokemon)
+     */
+    getPreEvolutionIds(currentPokemonId, evolutionChainData) {
+        if (!evolutionChainData || !evolutionChainData.chain) {
+            return [];
+        }
+        
+        const preEvolutionIds = [];
+        
+        // Rekursive Funktion zum Durchsuchen der Kette
+        const findPathToId = (node, path = []) => {
+            const nodeId = this.extractPokemonIdFromUrl(node.species.url);
+            
+            // Wenn wir das Ziel-Pokemon gefunden haben, ist der Pfad unsere Vorentwicklungsliste
+            if (nodeId === currentPokemonId) {
+                return path;
+            }
+            
+            // Rekursiv durch alle Evolutionen suchen
+            for (const evolution of node.evolves_to) {
+                const result = findPathToId(evolution, [...path, nodeId]);
+                if (result) {
+                    return result;
+                }
+            }
+            
+            return null;
+        };
+        
+        const path = findPathToId(evolutionChainData.chain);
+        return path || [];
     }
     
     /**
@@ -587,6 +628,92 @@ class ApiService {
         tmMoves.sort((a, b) => a.germanName.localeCompare(b.germanName, 'de'));
         otherMoves.sort((a, b) => a.germanName.localeCompare(b.germanName, 'de'));
         
+        // === NEU: Attacken von Vorentwicklungen laden ===
+        const preEvolutionMoves = [];
+        
+        // Vorentwicklungs-IDs aus pokemonData.speciesData holen (falls evolution_chain_data vorhanden)
+        const speciesData = pokemonData.speciesData || this.appState.pokemonData?.speciesData;
+        if (speciesData && speciesData.evolution_chain_data) {
+            const preEvoIds = this.getPreEvolutionIds(
+                pokemonData.id, 
+                speciesData.evolution_chain_data
+            );
+            
+            if (preEvoIds.length > 0) {
+                console.log(`Lade Attacken von ${preEvoIds.length} Vorentwicklung(en): ${preEvoIds.join(', ')}`);
+                
+                // Für jede Vorentwicklung die Attacken laden
+                for (const preEvoId of preEvoIds) {
+                    try {
+                        // Pokemon-Daten der Vorentwicklung laden
+                        const preEvoResponse = await fetch(`${API.BASE_URL}/pokemon/${preEvoId}`);
+                        if (!preEvoResponse.ok) continue;
+                        
+                        const preEvoData = await preEvoResponse.json();
+                        
+                        // Deutschen Namen für die Vorentwicklung ermitteln
+                        let preEvoGermanName = '';
+                        try {
+                            const preEvoSpeciesResponse = await fetch(preEvoData.species.url);
+                            const preEvoSpeciesData = await preEvoSpeciesResponse.json();
+                            preEvoGermanName = this.translationService.translatePokemonName(
+                                preEvoData.name, 
+                                preEvoSpeciesData
+                            );
+                        } catch (e) {
+                            preEvoGermanName = capitalizeFirstLetter(preEvoData.name);
+                        }
+                        
+                        // Alle Attacken der Vorentwicklung durchgehen
+                        for (const moveEntry of preEvoData.moves) {
+                            const moveName = moveEntry.move.name;
+                            
+                            // Überspringen, wenn diese Attacke bereits verarbeitet wurde
+                            if (processedMoveNames.has(moveName)) continue;
+                            
+                            // Attacken-Daten laden
+                            let moveData;
+                            try {
+                                const moveResponse = await fetch(moveEntry.move.url);
+                                moveData = await moveResponse.json();
+                            } catch (error) {
+                                console.error(`Fehler beim Laden der Attackendaten für ${moveName}:`, error);
+                                continue;
+                            }
+                            
+                            // Deutschen Namen der Attacke ermitteln
+                            const germanMoveName = this.translationService.translateMoveName(moveName, moveData);
+                            const germanType = this.translationService.translateTypeName(moveData.type.name);
+                            
+                            // Prüfen, ob diese Attacke tatsächlich lernbar war
+                            const versionDetails = moveEntry.version_group_details;
+                            const hasValidLearnMethod = versionDetails.some(d => 
+                                ['level-up', 'machine', 'tutor', 'egg'].includes(d.move_learn_method.name)
+                            );
+                            
+                            if (hasValidLearnMethod) {
+                                const move = this._createMoveObject(
+                                    moveData, 
+                                    versionDetails[0], 
+                                    germanMoveName, 
+                                    germanType,
+                                    'pre-evolution', 
+                                    `Via ${preEvoGermanName}`
+                                );
+                                preEvolutionMoves.push(move);
+                                processedMoveNames.add(moveName);
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Fehler beim Laden der Vorentwicklungs-Attacken für ID ${preEvoId}:`, error);
+                    }
+                }
+            }
+        }
+        
+        // Vorentwicklungs-Attacken sortieren
+        preEvolutionMoves.sort((a, b) => a.germanName.localeCompare(b.germanName, 'de'));
+        
         // Alle Kategorien mit Separatoren zusammenführen
         const allMoves = [];
         
@@ -623,6 +750,16 @@ class ApiService {
         // Kategorie 4: Andere Attacken
         if (otherMoves.length > 0) {
             allMoves.push(...otherMoves);
+        }
+        
+        // Separator 4: Vorentwicklungs-Attacken
+        if ((currentLevelUpMoves.length > 0 || legacyLevelUpMoves.length > 0 || tmMoves.length > 0 || otherMoves.length > 0) && preEvolutionMoves.length > 0) {
+            allMoves.push({ isSeparator: true, label: '── Via Vorentwicklung ──' });
+        }
+        
+        // Kategorie 5: Vorentwicklungs-Attacken
+        if (preEvolutionMoves.length > 0) {
+            allMoves.push(...preEvolutionMoves);
         }
         
         // Im AppState speichern
