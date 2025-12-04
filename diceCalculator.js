@@ -147,6 +147,15 @@ class DiceCalculator {
             }
         }
         
+        // 5. Begrenzung: 2W100 ist ausschließlich legendären/mystischen Pokémon vorbehalten
+        // Wenn ein nicht-legendäres Pokémon durch die Regeln auf 2W100 steigen würde,
+        // wird es auf 2W12 begrenzt
+        const maxNonLegendaryIndex = 8; // 2W12
+        if (!pokemonData.isLegendary && !pokemonData.isMythical && diceClassIndex > maxNonLegendaryIndex) {
+            tooltipText += "\n2W100 nur für Legendäre ➔ begrenzt auf 2W12";
+            diceClassIndex = maxNonLegendaryIndex;
+        }
+        
         // Ergebnis zusammenstellen
         const result = {
             diceType: diceClasses[diceClassIndex],

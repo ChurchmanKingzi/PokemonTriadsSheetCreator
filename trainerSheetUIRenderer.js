@@ -30,6 +30,7 @@ class TrainerUIRenderer {
             { id: 'skills', title: 'Fertigkeiten', create: () => this._createSkillsSection() },
             { id: 'combat', title: 'Kampfwerte', create: () => this._createStatsSection() },
             { id: 'inventory', title: 'Inventar', create: () => this._createInventorySection() },
+            { id: 'notes', title: 'Notizen', create: () => this._createNotesSection() },
             { id: 'type-mastery', title: 'Typ-Meisterschaft', create: () => this._createTypeMasterySection(), defaultCollapsed: true },
             { id: 'grades', title: 'Noten', create: () => this._createGradesSection(), defaultCollapsed: true }
         ];
@@ -781,6 +782,13 @@ class TrainerUIRenderer {
                 ${createStatField('trainer-pa', 'PA', this.trainerState.pa, 'pa', formulas.pa)}
             </div>
             
+            <!-- Zeile für Statuseffekte -->
+            <div class="trainer-stats-row trainer-stats-row-status">
+                <div class="stat-field status-effects-field" style="flex: 1;">
+                    ${this._createStatusContainerHTML()}
+                </div>
+            </div>
+            
             <!-- Perks & Kommandos Container (nebeneinander, ÜBER Attacken) -->
             <div class="perks-kommandos-container">
                 <!-- Perks-Bereich (linke Seite) -->
@@ -1356,6 +1364,112 @@ class TrainerUIRenderer {
     }
     
     /**
+     * Erstellt das HTML für die Statuseffekt-Icons (Trainer)
+     * @returns {string} HTML-String für die Statuseffekte
+     * @private
+     */
+    _createStatusEffectsHTML() {
+        // Prüfen ob STATUS_EFFECTS verfügbar ist
+        const statusEffects = window.STATUS_EFFECTS || (typeof STATUS_EFFECTS !== 'undefined' ? STATUS_EFFECTS : null);
+        
+        if (!statusEffects) {
+            console.warn('STATUS_EFFECTS nicht gefunden. Stelle sicher, dass statusEffectsComponent.js vor trainerSheetUIRenderer.js geladen wird.');
+            return '<span style="color: #999; font-size: 0.8rem;">Statuseffekte nicht verfügbar</span>';
+        }
+        
+        // Statuseffekte für Trainer (ohne "Verwirrt")
+        const trainerStatuses = Object.values(statusEffects).filter(s => !s.pokemonOnly);
+        
+        // Aktive Statuses aus dem State laden
+        const activeStatuses = this.trainerState.statusEffects || [];
+        
+        // Vorschau-Emojis für eingeklappten Zustand
+        const previewEmojis = activeStatuses
+            .map(id => statusEffects[id]?.emoji || '')
+            .filter(e => e)
+            .join(' ');
+        const previewContent = previewEmojis || '<span class="status-effects-preview-empty">keine</span>';
+        
+        // Einklapp-Zustand aus localStorage laden
+        let isCollapsed = false;
+        try {
+            isCollapsed = localStorage.getItem('statusEffects_collapsed_trainer-status-effects') === '1';
+        } catch (e) {}
+        
+        return trainerStatuses.map(status => {
+            const isActive = activeStatuses.includes(status.id);
+            const activeClass = isActive ? 'active' : 'inactive';
+            
+            return `
+                <div class="status-icon-wrapper" data-status-id="${status.id}" title="${status.name}">
+                    <div class="status-icon ${activeClass}" 
+                         data-status-id="${status.id}"
+                         style="--status-color: ${status.color}; --status-border-color: ${status.borderColor};">
+                        <span class="status-emoji">${status.emoji}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    /**
+     * Erstellt den vollständigen einklappbaren Status-Container HTML für Trainer
+     * @returns {string} HTML-String
+     * @private
+     */
+    _createStatusContainerHTML() {
+        // Einklapp-Zustand aus localStorage laden
+        let isCollapsed = false;
+        try {
+            isCollapsed = localStorage.getItem('statusEffects_collapsed_trainer-status-effects') === '1';
+        } catch (e) {}
+        
+        // Aktive Statuses für Vorschau
+        const statusEffects = window.STATUS_EFFECTS || {};
+        const activeStatuses = this.trainerState.statusEffects || [];
+        const previewEmojis = activeStatuses
+            .map(id => statusEffects[id]?.emoji || '')
+            .filter(e => e)
+            .join(' ');
+        const previewContent = previewEmojis || '<span class="status-effects-preview-empty">keine</span>';
+        
+        return `
+            <div class="status-effects-container${isCollapsed ? ' collapsed' : ''}" id="trainer-status-effects">
+                <div class="status-effects-header" id="trainer-status-effects-header">
+                    <button type="button" class="status-effects-toggle" title="Ein-/Ausklappen">▼</button>
+                    <span class="status-effects-title">Status:</span>
+                    <span class="status-effects-preview" id="trainer-status-effects-preview">${previewContent}</span>
+                </div>
+                <div class="status-effects-icons">
+                    ${this._createStatusEffectsHTML()}
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Aktualisiert die Vorschau der aktiven Statuseffekte (Trainer)
+     * @private
+     */
+    _updateStatusEffectsPreview() {
+        const preview = document.getElementById('trainer-status-effects-preview');
+        if (!preview) return;
+        
+        const statusEffects = window.STATUS_EFFECTS || {};
+        const activeStatuses = this.trainerState.statusEffects || [];
+        
+        if (activeStatuses.length === 0) {
+            preview.innerHTML = '<span class="status-effects-preview-empty">keine</span>';
+        } else {
+            const emojis = activeStatuses
+                .map(id => statusEffects[id]?.emoji || '')
+                .filter(e => e)
+                .join(' ');
+            preview.textContent = emojis;
+        }
+    }
+    
+    /**
      * Erstellt das HTML für die Trainer-Wunden (Legacy, für Kompatibilität)
      * @private
      */
@@ -1475,9 +1589,8 @@ class TrainerUIRenderer {
     _createPokemonSlotHTML(slot, index) {
         if (slot.isEmpty()) {
             return `
-                <div class="pokemon-slot empty-slot" data-slot-index="${index}" draggable="true">
-                    <div class="drag-handle" title="Ziehen zum Verschieben">⋮⋮</div>
-                    <div class="slot-content" onclick="window.navigationService.showPokemonView(${index})">
+                <div class="pokemon-slot empty-slot" data-slot-index="${index}">
+                    <div class="slot-content">
                         <div class="empty-slot-icon">+</div>
                         <span class="empty-slot-text">Leer</span>
                     </div>
@@ -1492,9 +1605,8 @@ class TrainerUIRenderer {
             const typeClasses = this._getTypeClasses(slot.types);
             
             return `
-                <div class="pokemon-slot filled-slot ${typeClasses}" data-slot-index="${index}" draggable="true">
-                    <div class="drag-handle" title="Ziehen zum Verschieben">⋮⋮</div>
-                    <div class="slot-content" onclick="window.navigationService.showPokemonView(${index})">
+                <div class="pokemon-slot filled-slot ${typeClasses}" data-slot-index="${index}">
+                    <div class="slot-content">
                         <img src="${slot.spriteUrl}" alt="${displayName}" class="pokemon-sprite">
                         ${showNickname ? `<span class="pokemon-nickname">${slot.nickname}</span>` : ''}
                         <span class="pokemon-species">${slot.germanName || slot.pokemonName}</span>
@@ -1594,6 +1706,14 @@ class TrainerUIRenderer {
         const remainingBasePoints = this.trainerState.getRemainingBaseStatPoints();
         const remainingSkillPoints = this.trainerState.getRemainingSkillPoints();
         
+        // Farben für Kategorien
+        const categoryColors = {
+            'KÖ': '#e53e3e', // Rot
+            'WI': '#3182ce', // Blau
+            'CH': '#d69e2e', // Gelb/Gold
+            'GL': '#38a169'  // Grün
+        };
+        
         let html = `
             <div class="skills-points-display">
                 <div class="points-display">
@@ -1604,14 +1724,21 @@ class TrainerUIRenderer {
         `;
         html += '<div class="skills-container">';
         
-        // Für jede Kategorie
-        Object.entries(SKILL_GROUPS).forEach(([category, skills]) => {
+        // Für jede Kategorie (Trainer verwendet erweiterte Skill-Liste)
+        const skillGroups = typeof TRAINER_SKILL_GROUPS !== 'undefined' ? TRAINER_SKILL_GROUPS : SKILL_GROUPS;
+        Object.entries(skillGroups).forEach(([category, skills]) => {
             const categoryLabels = {
                 'KÖ': 'Körper (KÖ)',
                 'WI': 'Wissen (WI)',
                 'CH': 'Charisma (CH)',
                 'GL': 'Glück (GL)'
             };
+            
+            const color = categoryColors[category] || '#718096';
+            
+            // Custom Skills für diese Kategorie holen
+            const customSkills = this.trainerState.getCustomSkills ? 
+                this.trainerState.getCustomSkills(category) : [];
             
             // data-category Attribut für Color-Coding
             html += `
@@ -1625,6 +1752,7 @@ class TrainerUIRenderer {
                     <div class="category-skills">
             `;
             
+            // Standard-Skills
             skills.forEach(skill => {
                 html += `
                     <div class="skill-row">
@@ -1636,7 +1764,36 @@ class TrainerUIRenderer {
                 `;
             });
             
-            html += '</div></div>';
+            // Benutzerdefinierte Skills
+            customSkills.forEach((customSkill, index) => {
+                html += `
+                    <div class="skill-row custom-skill-row" data-category="${category}" data-custom-index="${index}">
+                        <input type="text" class="custom-skill-name trainer-custom-skill-name" 
+                               data-category="${category}" data-custom-index="${index}"
+                               value="${this._escapeHtml(customSkill.name)}" 
+                               placeholder="Neue Fertigkeit">
+                        <input type="number" class="skill-value skill-input trainer-custom-skill-value" 
+                               data-category="${category}" data-custom-index="${index}"
+                               value="${customSkill.value || 1}"
+                               min="-9" max="9">
+                        <button type="button" class="trainer-custom-skill-remove-btn" 
+                                data-category="${category}" data-custom-index="${index}"
+                                title="Fertigkeit entfernen">×</button>
+                    </div>
+                `;
+            });
+            
+            // Plus-Button für neue Skills
+            html += `
+                    </div>
+                    <div class="add-skill-container">
+                        <button type="button" class="add-custom-skill-btn trainer-add-custom-skill-btn" 
+                                data-category="${category}"
+                                style="background-color: ${color}; border-color: ${color};"
+                                title="Neue ${categoryLabels[category] || category}-Fertigkeit hinzufügen">+</button>
+                    </div>
+                </div>
+            `;
         });
         
         html += '</div>';
@@ -1744,6 +1901,288 @@ class TrainerUIRenderer {
         
         container.innerHTML = html;
         this._addInventoryEventListeners();
+    }
+    
+    // ==================== NOTIZEN ====================
+    
+    /**
+     * Erstellt die Notizen-Sektion mit Tabs
+     * @private
+     */
+    _createNotesSection() {
+        const section = document.createElement('div');
+        section.className = 'trainer-notes-section';
+        
+        // Aktiver Tab (default: personen)
+        const activeTab = 'personen';
+        
+        let html = `
+            <div class="notes-tabs">
+                <button type="button" class="notes-tab active" data-tab="personen">👤 Personen</button>
+                <button type="button" class="notes-tab" data-tab="orte">📍 Orte</button>
+                <button type="button" class="notes-tab" data-tab="sonstiges">📝 Sonstiges</button>
+            </div>
+            
+            <div class="notes-content">
+                <!-- Personen Tab -->
+                <div class="notes-tab-content active" data-tab-content="personen">
+                    <div class="notes-header-row">
+                        <button type="button" class="notes-add-button" data-category="personen" title="Person hinzufügen">+</button>
+                    </div>
+                    <div class="notes-list" id="notes-list-personen">
+                        <div class="notes-table-header notes-personen-header">
+                            <span class="notes-col-name">Name</span>
+                            <span class="notes-col-rolle">Rolle</span>
+                            <span class="notes-col-notizen">Notizen</span>
+                            <span class="notes-col-actions"></span>
+                        </div>
+                        ${this._renderNoteEntries('personen')}
+                    </div>
+                </div>
+                
+                <!-- Orte Tab -->
+                <div class="notes-tab-content" data-tab-content="orte">
+                    <div class="notes-header-row">
+                        <button type="button" class="notes-add-button" data-category="orte" title="Ort hinzufügen">+</button>
+                    </div>
+                    <div class="notes-list" id="notes-list-orte">
+                        <div class="notes-table-header notes-orte-header">
+                            <span class="notes-col-name">Name</span>
+                            <span class="notes-col-notizen">Notizen</span>
+                            <span class="notes-col-actions"></span>
+                        </div>
+                        ${this._renderNoteEntries('orte')}
+                    </div>
+                </div>
+                
+                <!-- Sonstiges Tab -->
+                <div class="notes-tab-content" data-tab-content="sonstiges">
+                    <div class="notes-header-row">
+                        <button type="button" class="notes-add-button" data-category="sonstiges" title="Eintrag hinzufügen">+</button>
+                    </div>
+                    <div class="notes-list" id="notes-list-sonstiges">
+                        <div class="notes-table-header notes-sonstiges-header">
+                            <span class="notes-col-ueberschrift">Überschrift</span>
+                            <span class="notes-col-notizen">Notizen</span>
+                            <span class="notes-col-actions"></span>
+                        </div>
+                        ${this._renderNoteEntries('sonstiges')}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        section.innerHTML = html;
+        return section;
+    }
+    
+    /**
+     * Rendert alle Notiz-Einträge einer Kategorie
+     * @param {string} category - 'personen', 'orte' oder 'sonstiges'
+     * @private
+     */
+    _renderNoteEntries(category) {
+        const entries = this.trainerState.notes[category] || [];
+        return entries.map((entry, index) => this._renderNoteEntry(category, entry, index)).join('');
+    }
+    
+    /**
+     * Rendert einen einzelnen Notiz-Eintrag
+     * @param {string} category - Kategorie des Eintrags
+     * @param {NoteEntry} entry - Der Notiz-Eintrag
+     * @param {number} index - Index des Eintrags
+     * @private
+     */
+    _renderNoteEntry(category, entry, index) {
+        if (category === 'personen') {
+            return `
+                <div class="notes-item notes-personen-item" data-category="${category}" data-index="${index}">
+                    <input type="text" class="notes-input notes-name" 
+                           data-category="${category}" data-index="${index}" data-field="name"
+                           value="${this._escapeHtml(entry.name || '')}" 
+                           placeholder="Name">
+                    <input type="text" class="notes-input notes-rolle" 
+                           data-category="${category}" data-index="${index}" data-field="rolle"
+                           value="${this._escapeHtml(entry.rolle || '')}" 
+                           placeholder="Rolle">
+                    <div class="notes-notizen-wrapper">
+                        <textarea class="notes-textarea notes-notizen" 
+                                  data-category="${category}" data-index="${index}" data-field="notizen"
+                                  placeholder="Notizen...">${this._escapeHtml(entry.notizen || '')}</textarea>
+                    </div>
+                    <button type="button" class="notes-remove-button" 
+                            data-category="${category}" data-index="${index}" title="Eintrag entfernen">×</button>
+                </div>
+            `;
+        } else if (category === 'orte') {
+            return `
+                <div class="notes-item notes-orte-item" data-category="${category}" data-index="${index}">
+                    <input type="text" class="notes-input notes-name" 
+                           data-category="${category}" data-index="${index}" data-field="name"
+                           value="${this._escapeHtml(entry.name || '')}" 
+                           placeholder="Ortsname">
+                    <div class="notes-notizen-wrapper">
+                        <textarea class="notes-textarea notes-notizen" 
+                                  data-category="${category}" data-index="${index}" data-field="notizen"
+                                  placeholder="Notizen...">${this._escapeHtml(entry.notizen || '')}</textarea>
+                    </div>
+                    <button type="button" class="notes-remove-button" 
+                            data-category="${category}" data-index="${index}" title="Eintrag entfernen">×</button>
+                </div>
+            `;
+        } else if (category === 'sonstiges') {
+            return `
+                <div class="notes-item notes-sonstiges-item" data-category="${category}" data-index="${index}">
+                    <input type="text" class="notes-input notes-ueberschrift" 
+                           data-category="${category}" data-index="${index}" data-field="ueberschrift"
+                           value="${this._escapeHtml(entry.ueberschrift || '')}" 
+                           placeholder="Überschrift">
+                    <div class="notes-notizen-wrapper">
+                        <textarea class="notes-textarea notes-notizen" 
+                                  data-category="${category}" data-index="${index}" data-field="notizen"
+                                  placeholder="Notizen...">${this._escapeHtml(entry.notizen || '')}</textarea>
+                    </div>
+                    <button type="button" class="notes-remove-button" 
+                            data-category="${category}" data-index="${index}" title="Eintrag entfernen">×</button>
+                </div>
+            `;
+        }
+        return '';
+    }
+    
+    /**
+     * Aktualisiert die Notizen-Anzeige für eine Kategorie
+     * @param {string} category - 'personen', 'orte' oder 'sonstiges'
+     */
+    updateNotes(category) {
+        const container = document.getElementById(`notes-list-${category}`);
+        if (!container) return;
+        
+        // Header beibehalten
+        let headerHtml = '';
+        if (category === 'personen') {
+            headerHtml = `
+                <div class="notes-table-header notes-personen-header">
+                    <span class="notes-col-name">Name</span>
+                    <span class="notes-col-rolle">Rolle</span>
+                    <span class="notes-col-notizen">Notizen</span>
+                    <span class="notes-col-actions"></span>
+                </div>
+            `;
+        } else if (category === 'orte') {
+            headerHtml = `
+                <div class="notes-table-header notes-orte-header">
+                    <span class="notes-col-name">Name</span>
+                    <span class="notes-col-notizen">Notizen</span>
+                    <span class="notes-col-actions"></span>
+                </div>
+            `;
+        } else if (category === 'sonstiges') {
+            headerHtml = `
+                <div class="notes-table-header notes-sonstiges-header">
+                    <span class="notes-col-ueberschrift">Überschrift</span>
+                    <span class="notes-col-notizen">Notizen</span>
+                    <span class="notes-col-actions"></span>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = headerHtml + this._renderNoteEntries(category);
+        this._addNotesEntryEventListeners(category);
+    }
+    
+    /**
+     * Fügt Event-Listener für Notizen hinzu (nur einmalig bei Initialisierung)
+     * @private
+     */
+    _addNotesEventListeners() {
+        // Tab-Wechsel - durch Klonen alte Listener entfernen
+        document.querySelectorAll('.notes-tab').forEach(tab => {
+            const newTab = tab.cloneNode(true);
+            tab.parentNode.replaceChild(newTab, tab);
+            
+            newTab.addEventListener('click', (e) => {
+                const targetTab = e.target.dataset.tab;
+                
+                // Alle Tabs und Contents deaktivieren
+                document.querySelectorAll('.notes-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.notes-tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Gewählten Tab und Content aktivieren
+                e.target.classList.add('active');
+                document.querySelector(`[data-tab-content="${targetTab}"]`)?.classList.add('active');
+            });
+        });
+        
+        // Hinzufügen-Buttons - durch Klonen alte Listener entfernen
+        document.querySelectorAll('.notes-add-button').forEach(btn => {
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            newBtn.addEventListener('click', (e) => {
+                const category = e.target.dataset.category;
+                this.trainerState.addNote(category);
+                this.updateNotes(category);
+            });
+        });
+        
+        // Entry-spezifische Listener für alle Kategorien
+        ['personen', 'orte', 'sonstiges'].forEach(category => {
+            this._addNotesEntryEventListeners(category);
+        });
+    }
+    
+    /**
+     * Fügt Event-Listener für Notiz-Einträge einer Kategorie hinzu
+     * @param {string} category - Die Kategorie
+     * @private
+     */
+    _addNotesEntryEventListeners(category) {
+        const container = document.getElementById(`notes-list-${category}`);
+        if (!container) return;
+        
+        // Entfernen-Buttons - durch Klonen alte Listener entfernen
+        container.querySelectorAll('.notes-remove-button').forEach(btn => {
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            newBtn.addEventListener('click', (e) => {
+                const cat = e.target.dataset.category;
+                const index = parseInt(e.target.dataset.index, 10);
+                
+                if (this.trainerState.removeNote(cat, index)) {
+                    this.updateNotes(cat);
+                }
+            });
+        });
+        
+        // Input-Felder - durch Klonen alte Listener entfernen
+        container.querySelectorAll('.notes-input, .notes-textarea').forEach(input => {
+            const newInput = input.cloneNode(true);
+            input.parentNode.replaceChild(newInput, input);
+            
+            newInput.addEventListener('change', (e) => {
+                const cat = e.target.dataset.category;
+                const index = parseInt(e.target.dataset.index, 10);
+                const field = e.target.dataset.field;
+                const value = e.target.value;
+                
+                this.trainerState.updateNote(cat, index, { [field]: value });
+            });
+            
+            // Auch bei Input für schnelleres Feedback (debounced)
+            newInput.addEventListener('input', (e) => {
+                const cat = e.target.dataset.category;
+                const index = parseInt(e.target.dataset.index, 10);
+                const field = e.target.dataset.field;
+                const value = e.target.value;
+                
+                clearTimeout(newInput._updateTimeout);
+                newInput._updateTimeout = setTimeout(() => {
+                    this.trainerState.updateNote(cat, index, { [field]: value });
+                }, 300);
+            });
+        });
     }
     
     // ==================== TYP-MEISTERSCHAFT ====================
@@ -2271,6 +2710,70 @@ class TrainerUIRenderer {
             });
         });
         
+        // Statuseffekte Header Toggle (Ein-/Ausklappen)
+        const statusHeader = document.getElementById('trainer-status-effects-header');
+        if (statusHeader) {
+            statusHeader.addEventListener('click', (e) => {
+                // Nicht toggled wenn auf ein Icon geklickt
+                if (e.target.classList.contains('status-icon') || 
+                    e.target.classList.contains('status-emoji') ||
+                    e.target.classList.contains('status-icon-wrapper')) {
+                    return;
+                }
+                
+                const container = document.getElementById('trainer-status-effects');
+                if (container) {
+                    container.classList.toggle('collapsed');
+                    const isCollapsed = container.classList.contains('collapsed');
+                    try {
+                        localStorage.setItem('statusEffects_collapsed_trainer-status-effects', isCollapsed ? '1' : '0');
+                    } catch (e) {}
+                }
+            });
+        }
+        
+        // Statuseffekte Toggle-Listener
+        document.querySelectorAll('#trainer-status-effects .status-icon-wrapper').forEach(wrapper => {
+            wrapper.addEventListener('click', () => {
+                const statusId = wrapper.dataset.statusId;
+                const icon = wrapper.querySelector('.status-icon');
+                
+                if (!icon) return;
+                
+                // Toggle Status
+                const isCurrentlyActive = icon.classList.contains('active');
+                
+                if (isCurrentlyActive) {
+                    icon.classList.remove('active');
+                    icon.classList.add('inactive');
+                    // Aus Array entfernen
+                    if (!this.trainerState.statusEffects) {
+                        this.trainerState.statusEffects = [];
+                    }
+                    const index = this.trainerState.statusEffects.indexOf(statusId);
+                    if (index > -1) {
+                        this.trainerState.statusEffects.splice(index, 1);
+                    }
+                } else {
+                    icon.classList.remove('inactive');
+                    icon.classList.add('active');
+                    // Zu Array hinzufügen
+                    if (!this.trainerState.statusEffects) {
+                        this.trainerState.statusEffects = [];
+                    }
+                    if (!this.trainerState.statusEffects.includes(statusId)) {
+                        this.trainerState.statusEffects.push(statusId);
+                    }
+                }
+                
+                // Vorschau aktualisieren
+                this._updateStatusEffectsPreview();
+                
+                // Auto-Save
+                this.trainerState._notifyChange();
+            });
+        });
+        
         // Skill-Inputs - NUR im Trainer-Sheet-Container, nicht im Pokemon-Sheet!
         const trainerContainer = document.getElementById('trainer-sheet-container');
         if (trainerContainer) {
@@ -2318,6 +2821,9 @@ class TrainerUIRenderer {
         // Inventar Event-Listener
         this._addInventoryEventListeners();
         
+        // Notizen Event-Listener
+        this._addNotesEventListeners();
+        
         // Attacken Event-Listener
         this._addAttackEventListeners();
         
@@ -2332,6 +2838,119 @@ class TrainerUIRenderer {
         
         // Noten Event-Listener
         this._addGradesEventListeners();
+        
+        // Custom-Skills Event-Listener
+        this._addCustomSkillEventListeners();
+    }
+    
+    /**
+     * Fügt Event-Listener für benutzerdefinierte Fertigkeiten hinzu
+     * @private
+     */
+    _addCustomSkillEventListeners() {
+        const trainerContainer = document.getElementById('trainer-sheet-container');
+        if (!trainerContainer) return;
+        
+        // Plus-Buttons für neue Custom-Skills
+        trainerContainer.querySelectorAll('.trainer-add-custom-skill-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const category = e.target.dataset.category;
+                if (category && this.trainerState.addCustomSkill) {
+                    this.trainerState.addCustomSkill(category);
+                    this._refreshSkillsSection();
+                }
+            });
+        });
+        
+        // Name-Änderungen bei Custom-Skills
+        trainerContainer.querySelectorAll('.trainer-custom-skill-name').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const category = e.target.dataset.category;
+                const index = parseInt(e.target.dataset.customIndex, 10);
+                const name = e.target.value.trim() || 'Neue Fertigkeit';
+                
+                if (this.trainerState.updateCustomSkill) {
+                    this.trainerState.updateCustomSkill(category, index, { name });
+                }
+            });
+        });
+        
+        // Wert-Änderungen bei Custom-Skills
+        trainerContainer.querySelectorAll('.trainer-custom-skill-value').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const category = e.target.dataset.category;
+                const index = parseInt(e.target.dataset.customIndex, 10);
+                const value = parseInt(e.target.value, 10);
+                
+                if (this.trainerState.updateCustomSkill) {
+                    this.trainerState.updateCustomSkill(category, index, { value });
+                }
+                
+                // Verbleibende Punkte aktualisieren
+                this._updateRemainingPoints();
+            });
+        });
+        
+        // Entfernen-Buttons bei Custom-Skills
+        trainerContainer.querySelectorAll('.trainer-custom-skill-remove-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const category = e.target.dataset.category;
+                const index = parseInt(e.target.dataset.customIndex, 10);
+                
+                if (this.trainerState.removeCustomSkill) {
+                    this.trainerState.removeCustomSkill(category, index);
+                    this._refreshSkillsSection();
+                }
+            });
+        });
+    }
+    
+    /**
+     * Aktualisiert die Skills-Sektion nach Änderungen an benutzerdefinierten Fertigkeiten
+     * @private
+     */
+    _refreshSkillsSection() {
+        const skillsWrapper = document.querySelector('[data-section-id="skills"]');
+        if (!skillsWrapper) return;
+        
+        const contentContainer = skillsWrapper.querySelector('.collapsible-content');
+        if (!contentContainer) return;
+        
+        // Neue Skills-Sektion erstellen
+        const newSkillsSection = this._createSkillsSection();
+        
+        // Alte Sektion ersetzen
+        contentContainer.innerHTML = '';
+        contentContainer.appendChild(newSkillsSection);
+        
+        // Event-Listener neu initialisieren
+        this._addCustomSkillEventListeners();
+        
+        // Skill-Input Event-Listener auch neu initialisieren
+        const trainerContainer = document.getElementById('trainer-sheet-container');
+        if (trainerContainer) {
+            trainerContainer.querySelectorAll('.skill-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const skillName = e.target.dataset.skill;
+                    const baseStats = ['KÖ', 'WI', 'CH', 'GL'];
+                    
+                    if (baseStats.includes(skillName)) {
+                        let value = parseInt(e.target.value, 10) || 1;
+                        if (value < 1) {
+                            value = 1;
+                            e.target.value = 1;
+                        }
+                        this.trainerState.setSkillValue(skillName, value);
+                        this._updateCombatValues();
+                        this._updateStatTooltips();
+                    } else if (skillName) {
+                        this.trainerState.setSkillValue(skillName, e.target.value);
+                    }
+                    
+                    this._updateRemainingPoints();
+                });
+            });
+        }
     }
     
     /**
@@ -2368,7 +2987,7 @@ class TrainerUIRenderer {
             input.addEventListener('input', (e) => {
                 const index = parseInt(e.target.dataset.index, 10);
                 const field = e.target.dataset.field;
-                this.trainerState.updateInventoryItem(index, field, e.target.value);
+                this.trainerState.updateInventoryItem(index, { [field]: e.target.value });
             });
         });
     }
@@ -2589,61 +3208,266 @@ class TrainerUIRenderer {
     
     /**
      * Fügt Drag-and-Drop Event-Listener hinzu
+     * CUSTOM IMPLEMENTATION mit Mouse-Events (nicht natives HTML5 Drag-and-Drop)
+     * Der gesamte Slot ist draggable - Klick vs. Drag wird durch Bewegung unterschieden
      * @private
      */
     _addDragAndDropListeners() {
-        const slots = document.querySelectorAll('.pokemon-slot');
+        const container = document.getElementById('pokemon-slots-container');
+        if (!container) {
+            console.error('[DragDrop] pokemon-slots-container nicht gefunden!');
+            return;
+        }
         
-        slots.forEach(slot => {
-            // Drag Start
-            slot.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', slot.dataset.slotIndex);
-                slot.classList.add('dragging');
-                
-                // Setze ein transparentes Drag-Bild (optional)
-                const dragImage = slot.cloneNode(true);
-                dragImage.style.opacity = '0.5';
-                document.body.appendChild(dragImage);
-                e.dataTransfer.setDragImage(dragImage, 50, 50);
-                setTimeout(() => dragImage.remove(), 0);
-            });
+        const slots = container.querySelectorAll('.pokemon-slot');
+        console.log(`[DragDrop] Initialisiere Custom Drag-and-Drop für ${slots.length} Pokemon-Slots`);
+        
+        // State für das Dragging
+        let isDragging = false;
+        let dragStarted = false; // Unterscheidung: Maus gedrückt vs. tatsächlich gezogen
+        let draggedSlot = null;
+        let draggedSlotIndex = null;
+        let dragClone = null;
+        let startX = 0;
+        let startY = 0;
+        const DRAG_THRESHOLD = 8; // Pixel die bewegt werden müssen bevor Drag startet
+        
+        // Referenz auf this für Callbacks
+        const self = this;
+        
+        // Hilfsfunktion: Finde den Slot unter dem Cursor
+        const getSlotAtPosition = (x, y) => {
+            const elements = document.elementsFromPoint(x, y);
+            for (const el of elements) {
+                if (el.classList.contains('pokemon-slot') && el !== dragClone) {
+                    return el;
+                }
+                // Auch Parent-Slots finden
+                const parentSlot = el.closest('.pokemon-slot');
+                if (parentSlot && parentSlot !== dragClone) {
+                    return parentSlot;
+                }
+            }
+            return null;
+        };
+        
+        // ========== MOUSE MOVE (global) ==========
+        const onMouseMove = (e) => {
+            if (!isDragging || !draggedSlot) return;
             
-            // Drag End
-            slot.addEventListener('dragend', () => {
-                slot.classList.remove('dragging');
-                document.querySelectorAll('.pokemon-slot').forEach(s => {
+            const deltaX = Math.abs(e.clientX - startX);
+            const deltaY = Math.abs(e.clientY - startY);
+            
+            // Prüfe ob Drag-Schwelle überschritten wurde
+            if (!dragStarted && (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD)) {
+                dragStarted = true;
+                
+                // Jetzt erst den Clone erstellen
+                draggedSlot.classList.add('dragging');
+                
+                // Clone erstellen - kopiere das Original so genau wie möglich
+                dragClone = draggedSlot.cloneNode(true);
+                dragClone.classList.remove('dragging');
+                dragClone.classList.add('drag-clone');
+                
+                // Berechne die exakte Größe des Originals
+                const rect = draggedSlot.getBoundingClientRect();
+                const computedStyle = window.getComputedStyle(draggedSlot);
+                
+                dragClone.style.cssText = `
+                    position: fixed;
+                    left: ${e.clientX - (rect.width / 2)}px;
+                    top: ${e.clientY - (rect.height / 2)}px;
+                    width: ${rect.width}px;
+                    height: ${rect.height}px;
+                    margin: 0;
+                    z-index: 10000;
+                    pointer-events: none;
+                    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+                    opacity: 0.95;
+                    cursor: grabbing;
+                `;
+                
+                // Animation im Clone deaktivieren
+                const cloneSprite = dragClone.querySelector('.pokemon-sprite');
+                if (cloneSprite) {
+                    cloneSprite.style.animation = 'none';
+                }
+                
+                // Remove-Button im Clone verstecken
+                const cloneRemoveBtn = dragClone.querySelector('.remove-slot-button');
+                if (cloneRemoveBtn) {
+                    cloneRemoveBtn.style.display = 'none';
+                }
+                
+                document.body.appendChild(dragClone);
+                document.body.style.cursor = 'grabbing';
+                
+                console.log(`[DragDrop] Drag gestartet von Slot ${draggedSlotIndex}`);
+            }
+            
+            // Clone-Position aktualisieren (nur wenn Drag wirklich gestartet)
+            if (dragStarted && dragClone) {
+                const rect = draggedSlot.getBoundingClientRect();
+                dragClone.style.left = (e.clientX - (rect.width / 2)) + 'px';
+                dragClone.style.top = (e.clientY - (rect.height / 2)) + 'px';
+                
+                // Highlight auf Ziel-Slot
+                const targetSlot = getSlotAtPosition(e.clientX, e.clientY);
+                
+                // Alle Highlights entfernen
+                container.querySelectorAll('.pokemon-slot').forEach(s => {
                     s.classList.remove('drag-over');
                 });
-            });
-            
-            // Drag Over
-            slot.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                const draggingSlot = document.querySelector('.pokemon-slot.dragging');
-                if (draggingSlot && draggingSlot !== slot) {
-                    slot.classList.add('drag-over');
-                }
-            });
-            
-            // Drag Leave
-            slot.addEventListener('dragleave', () => {
-                slot.classList.remove('drag-over');
-            });
-            
-            // Drop
-            slot.addEventListener('drop', (e) => {
-                e.preventDefault();
-                slot.classList.remove('drag-over');
                 
-                const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-                const toIndex = parseInt(slot.dataset.slotIndex, 10);
-                
-                if (fromIndex !== toIndex) {
-                    this.trainerState.swapPokemonSlots(fromIndex, toIndex);
-                    this.updatePokemonSlots();
+                // Neuen Highlight setzen
+                if (targetSlot && targetSlot !== draggedSlot) {
+                    targetSlot.classList.add('drag-over');
                 }
+            }
+        };
+        
+        // ========== MOUSE UP (global) ==========
+        const onMouseUp = (e) => {
+            if (!isDragging) return;
+            
+            const wasDragging = dragStarted;
+            const clickedSlotIndex = draggedSlotIndex;
+            
+            // Ziel-Slot finden (nur wenn wirklich gedraggt wurde)
+            if (wasDragging) {
+                const targetSlot = getSlotAtPosition(e.clientX, e.clientY);
+                
+                if (targetSlot && targetSlot !== draggedSlot) {
+                    const fromIndex = parseInt(draggedSlotIndex, 10);
+                    const toIndex = parseInt(targetSlot.dataset.slotIndex, 10);
+                    
+                    console.log(`[DragDrop] Tausche Slot ${fromIndex} mit Slot ${toIndex}`);
+                    
+                    if (!isNaN(fromIndex) && !isNaN(toIndex) && fromIndex !== toIndex) {
+                        const success = self.trainerState.swapPokemonSlots(fromIndex, toIndex);
+                        
+                        if (success) {
+                            console.log('[DragDrop] Tausch erfolgreich!');
+                            self._showDragToast('Pokemon getauscht!');
+                            
+                            // Cleanup
+                            self._cleanupDrag(dragClone, draggedSlot, container);
+                            isDragging = false;
+                            dragStarted = false;
+                            draggedSlot = null;
+                            draggedSlotIndex = null;
+                            dragClone = null;
+                            
+                            // UI aktualisieren
+                            self.updatePokemonSlots();
+                            
+                            if (window.trainerManager) {
+                                window.trainerManager.notifyChange();
+                            }
+                            
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            // Cleanup
+            self._cleanupDrag(dragClone, draggedSlot, container);
+            
+            // Wenn NICHT gedraggt wurde (nur geklickt), dann Navigation auslösen
+            if (!wasDragging && clickedSlotIndex !== null) {
+                console.log(`[DragDrop] Klick auf Slot ${clickedSlotIndex} - Navigation`);
+                window.navigationService.showPokemonView(parseInt(clickedSlotIndex, 10));
+            }
+            
+            isDragging = false;
+            dragStarted = false;
+            draggedSlot = null;
+            draggedSlotIndex = null;
+            dragClone = null;
+        };
+        
+        // Globale Event-Listener
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        
+        // Event-Listener für jeden Slot
+        slots.forEach(slot => {
+            const slotIndex = slot.dataset.slotIndex;
+            
+            // Deaktiviere natives Drag-and-Drop komplett
+            slot.setAttribute('draggable', 'false');
+            
+            // Entferne den onclick vom slot-content (wir handhaben das jetzt selbst)
+            const slotContent = slot.querySelector('.slot-content');
+            if (slotContent) {
+                slotContent.removeAttribute('onclick');
+                slotContent.style.cursor = 'grab';
+            }
+            
+            // ========== MOUSE DOWN auf gesamten Slot ==========
+            slot.addEventListener('mousedown', function(e) {
+                // Ignoriere Klicks auf den Remove-Button
+                if (e.target.classList.contains('remove-slot-button')) {
+                    return;
+                }
+                
+                e.preventDefault();
+                
+                isDragging = true;
+                dragStarted = false; // Noch kein Drag, nur Maus gedrückt
+                draggedSlot = slot;
+                draggedSlotIndex = slotIndex;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                // Cursor ändern um Drag-Möglichkeit anzuzeigen
+                slot.style.cursor = 'grabbing';
             });
         });
+        
+        console.log('[DragDrop] Custom Drag-and-Drop Initialisierung abgeschlossen');
+    }
+    
+    /**
+     * Räumt nach einem Drag auf
+     * @private
+     */
+    _cleanupDrag(dragClone, draggedSlot, container) {
+        if (dragClone && dragClone.parentNode) {
+            dragClone.remove();
+        }
+        if (draggedSlot) {
+            draggedSlot.classList.remove('dragging');
+            draggedSlot.style.cursor = '';
+        }
+        if (container) {
+            container.querySelectorAll('.pokemon-slot').forEach(s => {
+                s.classList.remove('drag-over');
+            });
+        }
+        document.body.style.cursor = '';
+    }
+    
+    /**
+     * Zeigt eine Toast-Nachricht für Drag-Operationen
+     * @param {string} message - Die anzuzeigende Nachricht
+     * @private
+     */
+    _showDragToast(message) {
+        const existingToast = document.querySelector('.drag-toast');
+        if (existingToast) existingToast.remove();
+        
+        const toast = document.createElement('div');
+        toast.className = 'drag-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => toast.remove(), 300);
+        }, 2000);
     }
     
     /**
@@ -2934,6 +3758,19 @@ class TrainerUIRenderer {
             const input = document.querySelector(`input[data-skill="${skill}"]`);
             if (input) input.value = value;
         });
+        
+        // Statuseffekte laden und UI aktualisieren
+        if (this.trainerState.statusEffects && Array.isArray(this.trainerState.statusEffects)) {
+            this.trainerState.statusEffects.forEach(statusId => {
+                const icon = document.querySelector(`#trainer-status-effects .status-icon[data-status-id="${statusId}"]`);
+                if (icon) {
+                    icon.classList.remove('inactive');
+                    icon.classList.add('active');
+                }
+            });
+            // Vorschau aktualisieren
+            this._updateStatusEffectsPreview();
+        }
     }
     
     /**

@@ -55,6 +55,11 @@ class UiRenderer {
         // Event-Listener hinzufügen
         this._addEventListeners();
         
+        // Statuseffekte aus dem AppState laden (falls vorhanden)
+        if (this._statusEffectsComponent && this.appState.statusEffects) {
+            this._statusEffectsComponent.setActiveStatuses(this.appState.statusEffects);
+        }
+        
         // Initial Level-Up Button Highlight prüfen
         this._updateLevelUpButtonHighlight();
         
@@ -294,16 +299,113 @@ class UiRenderer {
             ]),
             this._createEditableStatItem('Initiative', stats.speed, 'speed', 'speed-item'),
             
-            // Zeile 2: Angriff und Verteidigung
-            this._createEditableStatItem('Angriff', stats.attack, 'attack', 'attack-item'),
-            this._createEditableStatItem('Verteidigung', stats.defense, 'defense', 'defense-item'),
+            // Zeile 2: Angriff und Verteidigung (mit Modifikatoren)
+            this._createModifiableStatItem('Angriff', stats.attack, 'attack', 'attack-item'),
+            this._createModifiableStatItem('Verteidigung', stats.defense, 'defense', 'defense-item'),
             
-            // Zeile 3: Spez. Angriff und Spez. Verteidigung
-            this._createEditableStatItem('Spez. Angriff', stats.spAttack, 'spAttack', 'sp-attack-item'),
-            this._createEditableStatItem('Spez. Verteidigung', stats.spDefense, 'spDefense', 'sp-defense-item')
+            // Zeile 3: Spez. Angriff und Spez. Verteidigung (mit Modifikatoren)
+            this._createModifiableStatItem('Spez. Ang.', stats.spAttack, 'spAttack', 'sp-attack-item'),
+            this._createModifiableStatItem('Spez. Vert.', stats.spDefense, 'spDefense', 'sp-defense-item'),
+            
+            // Zeile 4: Utility-Buttons (Vollheilung und Reset aller Temp-Stats)
+            this._createStatUtilityButtons()
         ]);
         
         return statsSection;
+    }
+    
+    /**
+     * Erstellt ein modifizierbares Kampfwert-Element mit temporären Modifikatoren
+     * Kompaktes Layout: Name | Wert | Reset | − | ±Input | + alles in einer Zeile
+     * @param {string} name - Name des Statuswerts
+     * @param {number} permaValue - Permanenter Wert des Statuswerts
+     * @param {string} statKey - Schlüssel des Statuswerts im stats-Objekt
+     * @param {string} className - Zusätzliche CSS-Klasse für das Element
+     * @returns {HTMLElement} Das Statuswert-Element
+     * @private
+     */
+    _createModifiableStatItem(name, permaValue, statKey, className = '') {
+        const tempMod = this.appState.getTempStatModifier(statKey);
+        const effectiveValue = permaValue + tempMod;
+        
+        // Bestimme die Farbe basierend auf dem Vergleich
+        let valueColorClass = '';
+        if (tempMod > 0) {
+            valueColorClass = 'stat-boosted';
+        } else if (tempMod < 0) {
+            valueColorClass = 'stat-reduced';
+        }
+        
+        return createElement('div', { className: `stat-item modifiable-stat-item ${className}` }, [
+            createElement('span', { className: 'stat-name' }, `${name}:`),
+            // Hauptwert (editierbar, zeigt effektiven Wert)
+            createElement('input', {
+                type: 'number',
+                min: DEFAULT_VALUES.MIN_STAT,
+                max: DEFAULT_VALUES.MAX_STAT,
+                value: effectiveValue.toString(),
+                className: `stat-input stat-effective-value ${valueColorClass}`,
+                'data-stat': statKey,
+                'data-perma-value': permaValue.toString(),
+                id: `stat-${statKey}`
+            }),
+            // Einzelner Reset-Button für diesen Stat
+            createElement('button', {
+                type: 'button',
+                className: 'stat-reset-btn',
+                'data-stat': statKey,
+                title: `${name} auf Perma-Wert zurücksetzen`
+            }, '↺'),
+            // Minus-Button (rot)
+            createElement('button', {
+                type: 'button',
+                className: 'stat-mod-btn stat-mod-minus',
+                'data-stat': statKey,
+                title: 'Wert verringern'
+            }, '−'),
+            // Input für den Modifikator-Betrag
+            createElement('input', {
+                type: 'number',
+                min: '0',
+                max: '9999',
+                value: '',
+                placeholder: '±',
+                className: 'stat-mod-input',
+                'data-stat': statKey,
+                id: `mod-input-${statKey}`
+            }),
+            // Plus-Button (grün)
+            createElement('button', {
+                type: 'button',
+                className: 'stat-mod-btn stat-mod-plus',
+                'data-stat': statKey,
+                title: 'Wert erhöhen'
+            }, '+')
+        ]);
+    }
+    
+    /**
+     * Erstellt die Utility-Buttons (Vollheilung und Reset aller Temp-Stats)
+     * @returns {HTMLElement} Der Button-Container
+     * @private
+     */
+    _createStatUtilityButtons() {
+        return createElement('div', { className: 'stat-utility-buttons' }, [
+            // Vollheilungs-Button
+            createElement('button', {
+                type: 'button',
+                className: 'stat-utility-btn full-heal-btn',
+                id: 'full-heal-btn',
+                title: 'KP vollständig wiederherstellen'
+            }, '❤️ Vollheilung'),
+            // Reset aller temporären Stats
+            createElement('button', {
+                type: 'button',
+                className: 'stat-utility-btn reset-all-temps-btn',
+                id: 'reset-all-temps-btn',
+                title: 'Alle temporären Kampfwert-Modifikationen zurücksetzen'
+            }, '↺ Alle Werte zurücksetzen')
+        ]);
     }
 
     /**
@@ -314,10 +416,40 @@ class UiRenderer {
         // Erstellen des Statuswerte-Bereichs
         const statsArea = createElement('div', { className: 'stats-area' }, [
             // Die Stats-Grid direkt ohne separaten HP-Bereich
-            this._createStatsSection()
+            this._createStatsSection(),
+            // Statuseffekte-Container
+            this._createStatusEffectsSection()
         ]);
         
         return statsArea;
+    }
+    
+    /**
+     * Erstellt den Statuseffekte-Bereich für Pokemon
+     * @returns {HTMLElement} Der Statuseffekte-Container
+     * @private
+     */
+    _createStatusEffectsSection() {
+        // StatusEffectsComponent für Pokemon erstellen
+        if (!this._statusEffectsComponent) {
+            this._statusEffectsComponent = new StatusEffectsComponent({
+                isPokemon: true,
+                containerId: 'pokemon-status-effects',
+                onStatusChange: (statuses) => {
+                    // AppState aktualisieren
+                    if (this.appState) {
+                        this.appState.statusEffects = statuses;
+                    }
+                    // Auto-Save triggern
+                    if (window.pokemonStorageService) {
+                        window.pokemonStorageService.triggerAutoSave();
+                    }
+                }
+            });
+        }
+        
+        // Element erstellen und zurückgeben
+        return this._statusEffectsComponent.createStatusEffectsElement();
     }
     
     
@@ -427,14 +559,91 @@ class UiRenderer {
     }
     
     /**
-     * Erstellt eine Fertigkeiten-Kategorie
+     * Erstellt eine Fertigkeiten-Kategorie mit Farbcodierung und Plus-Button
      * @param {string} category - Name der Kategorie
      * @param {Array} skills - Liste der Fertigkeiten in der Kategorie
      * @returns {HTMLElement} Das Kategorie-Element
      * @private
      */
     _createSkillCategory(category, skills) {
-        return createElement('div', { className: 'skill-category' }, [
+        // Farben für Kategorien
+        const categoryColors = {
+            'KÖ': '#e53e3e', // Rot
+            'WI': '#3182ce', // Blau
+            'CH': '#d69e2e', // Gelb/Gold
+            'GL': '#38a169'  // Grün
+        };
+        
+        const color = categoryColors[category] || '#718096';
+        
+        // Custom Skills für diese Kategorie holen
+        const customSkills = this.appState.getCustomSkills ? 
+            this.appState.getCustomSkills(category) : [];
+        
+        // Skills-Liste erstellen
+        const skillsList = createElement('div', { className: 'skills-list' });
+        
+        // Standard-Skills hinzufügen
+        skills.forEach(skill => {
+            skillsList.appendChild(
+                createElement('div', { className: 'skill-item' }, [
+                    createElement('span', { className: 'skill-name' }, skill),
+                    createElement('input', {
+                        type: 'number',
+                        min: '-9',
+                        max: '9',
+                        value: this.appState.skillValues[skill].toString(),
+                        className: 'skill-input',
+                        dataset: { skill }
+                    })
+                ])
+            );
+        });
+        
+        // Benutzerdefinierte Skills hinzufügen
+        customSkills.forEach((customSkill, index) => {
+            const customSkillItem = createElement('div', { 
+                className: 'skill-item custom-skill-item',
+                dataset: { category, customIndex: index.toString() }
+            }, [
+                createElement('input', {
+                    type: 'text',
+                    value: customSkill.name,
+                    className: 'skill-name-input custom-skill-name',
+                    dataset: { category, customIndex: index.toString() },
+                    placeholder: 'Neue Fertigkeit'
+                }),
+                createElement('input', {
+                    type: 'number',
+                    min: '-9',
+                    max: '9',
+                    value: customSkill.value.toString(),
+                    className: 'skill-input custom-skill-value',
+                    dataset: { category, customIndex: index.toString() }
+                }),
+                createElement('button', {
+                    type: 'button',
+                    className: 'custom-skill-remove-btn',
+                    dataset: { category, customIndex: index.toString() },
+                    title: 'Fertigkeit entfernen'
+                }, '×')
+            ]);
+            skillsList.appendChild(customSkillItem);
+        });
+        
+        // Plus-Button für neue Skills
+        const addButton = createElement('button', {
+            type: 'button',
+            className: 'add-custom-skill-btn',
+            dataset: { category },
+            style: `background-color: ${color}; border-color: ${color};`,
+            title: `Neue ${category}-Fertigkeit hinzufügen`
+        }, '+');
+        
+        return createElement('div', { 
+            className: 'skill-category',
+            dataset: { category }
+        }, [
             // Kategorie-Header
             createElement('div', { className: 'skill-header' }, [
                 createElement('span', { className: 'category-name' }, category),
@@ -449,21 +658,10 @@ class UiRenderer {
             ]),
             
             // Skills-Liste
-            createElement('div', { className: 'skills-list' },
-                skills.map(skill => 
-                    createElement('div', { className: 'skill-item' }, [
-                        createElement('span', { className: 'skill-name' }, skill),
-                        createElement('input', {
-                            type: 'number',
-                            min: '-9',
-                            max: '9',
-                            value: this.appState.skillValues[skill].toString(),
-                            className: 'skill-input',
-                            dataset: { skill }
-                        })
-                    ])
-                )
-            )
+            skillsList,
+            
+            // Plus-Button Container
+            createElement('div', { className: 'add-skill-container' }, [addButton])
         ]);
     }
     
@@ -510,7 +708,7 @@ class UiRenderer {
                 setTimeout(() => {
                     const app = window.pokemonApp;
                     if (app && app.storageService) {
-                        app.storageService.saveCurrentSheet();
+                        app.storageService.saveCurrentPokemon();
                     }
                 }, 500);
             }
@@ -520,6 +718,9 @@ class UiRenderer {
         
         // Freundschafts-Strichliste initialisieren
         this._initFriendshipTally();
+        
+        // Entwicklungs-Feature initialisieren
+        this._initEvolutionFeature();
 
         // Event-Listener für Attacken
         delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.move-select', 'change', e => {
@@ -572,14 +773,79 @@ class UiRenderer {
             autoSave(); // Automatisch speichern
         });
         
+        // Event-Listener für Plus-Buttons (benutzerdefinierte Fertigkeiten hinzufügen)
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.add-custom-skill-btn', 'click', e => {
+            const category = e.target.dataset.category;
+            if (category && this.appState.addCustomSkill) {
+                this.appState.addCustomSkill(category);
+                // Skills-Sektion neu rendern
+                this._refreshSkillsSection();
+                autoSave();
+            }
+        });
+        
+        // Event-Listener für Custom-Skill-Name Änderungen
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.custom-skill-name', 'change', e => {
+            const category = e.target.dataset.category;
+            const index = parseInt(e.target.dataset.customIndex, 10);
+            const name = e.target.value.trim();
+            
+            if (this.appState.updateCustomSkill) {
+                this.appState.updateCustomSkill(category, index, { name });
+                autoSave();
+            }
+        });
+        
+        // Event-Listener für Custom-Skill-Wert Änderungen
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.custom-skill-value', 'change', e => {
+            const category = e.target.dataset.category;
+            const index = parseInt(e.target.dataset.customIndex, 10);
+            const value = parseInt(e.target.value, 10);
+            
+            if (this.appState.updateCustomSkill) {
+                this.appState.updateCustomSkill(category, index, { value });
+                autoSave();
+            }
+        });
+        
+        // Event-Listener für Custom-Skill entfernen
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.custom-skill-remove-btn', 'click', e => {
+            const category = e.target.dataset.category;
+            const index = parseInt(e.target.dataset.customIndex, 10);
+            
+            if (this.appState.removeCustomSkill) {
+                this.appState.removeCustomSkill(category, index);
+                // Skills-Sektion neu rendern
+                this._refreshSkillsSection();
+                autoSave();
+            }
+        });
+        
         // Event-Listener für Statuswerte
         delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.stat-input', 'change', e => {
             if (e.target.dataset.stat) {
                 const statName = e.target.dataset.stat;
-                const value = e.target.value;
+                let value = parseInt(e.target.value, 10);
+                
+                // Für modifizierbare Stats: temporären Modifikator abziehen,
+                // damit der eingegebene Wert als EFFEKTIVER Wert interpretiert wird
+                // und der korrekte permanente Wert berechnet wird
+                const modifiableStats = ['attack', 'defense', 'spAttack', 'spDefense'];
+                let tempMod = 0;
+                if (modifiableStats.includes(statName)) {
+                    tempMod = this.appState.getTempStatModifier(statName);
+                    value = value - tempMod;
+                }
                 
                 if (!this.appState.setStat(statName, value)) {
-                    e.target.value = this.appState.stats[statName];
+                    // Bei Fehler: effektiven Wert wiederherstellen (perma + tempMod)
+                    const currentPerma = this.appState.stats[statName] || 0;
+                    e.target.value = currentPerma + tempMod;
+                } else {
+                    // Nach erfolgreichem Setzen: dataset.permaValue aktualisieren
+                    if (modifiableStats.includes(statName)) {
+                        e.target.dataset.permaValue = value.toString();
+                    }
                 }
             }
             autoSave(); // Automatisch speichern
@@ -676,8 +942,117 @@ class UiRenderer {
         addEventListenerSafe('#nickname-input', 'input', autoSave);
         addEventListenerSafe('#item-input', 'input', autoSave);
         
+        // Event-Listener für Kampfwert-Modifikatoren
+        this._addStatModifierEventListeners(autoSave);
+        
         // Event-Listener für die Export/Import-Buttons
         this._addExportImportButtonListeners();
+    }
+    
+    /**
+     * Fügt Event-Listener für die Kampfwert-Modifikatoren hinzu
+     * @param {Function} autoSave - Callback für automatisches Speichern
+     * @private
+     */
+    _addStatModifierEventListeners(autoSave) {
+        const modifiableStats = ['attack', 'defense', 'spAttack', 'spDefense'];
+        
+        // Plus-Buttons
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.stat-mod-plus', 'click', e => {
+            const statKey = e.target.dataset.stat;
+            if (!statKey || !modifiableStats.includes(statKey)) return;
+            
+            const modInput = document.getElementById(`mod-input-${statKey}`);
+            const delta = parseInt(modInput?.value, 10) || 0;
+            
+            if (delta > 0) {
+                this.appState.modifyTempStat(statKey, delta);
+                modInput.value = '';
+                this._updateStatDisplay(statKey);
+                autoSave();
+            }
+        });
+        
+        // Minus-Buttons
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.stat-mod-minus', 'click', e => {
+            const statKey = e.target.dataset.stat;
+            if (!statKey || !modifiableStats.includes(statKey)) return;
+            
+            const modInput = document.getElementById(`mod-input-${statKey}`);
+            const delta = parseInt(modInput?.value, 10) || 0;
+            
+            if (delta > 0) {
+                this.appState.modifyTempStat(statKey, -delta);
+                modInput.value = '';
+                this._updateStatDisplay(statKey);
+                autoSave();
+            }
+        });
+        
+        // Einzelne Reset-Buttons
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.stat-reset-btn', 'click', e => {
+            const statKey = e.target.dataset.stat;
+            if (!statKey || !modifiableStats.includes(statKey)) return;
+            
+            this.appState.resetTempStat(statKey);
+            this._updateStatDisplay(statKey);
+            autoSave();
+        });
+        
+        // Alle Werte zurücksetzen Button
+        addEventListenerSafe('#reset-all-temps-btn', 'click', () => {
+            this.appState.resetAllTempStats();
+            modifiableStats.forEach(statKey => this._updateStatDisplay(statKey));
+            autoSave();
+        });
+        
+        // Vollheilungs-Button
+        addEventListenerSafe('#full-heal-btn', 'click', () => {
+            this.appState.fullHeal();
+            const currentHpInput = document.getElementById('current-hp-input');
+            if (currentHpInput) {
+                currentHpInput.value = this.appState.currentHp.toString();
+            }
+            autoSave();
+        });
+        
+        // Modifikator-Eingabefelder: Enter-Taste zum Bestätigen
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.stat-mod-input', 'keypress', e => {
+            if (e.key === 'Enter') {
+                const statKey = e.target.dataset.stat;
+                if (!statKey) return;
+                
+                // Bei Enter: Plus-Button simulieren (positiver Modifikator)
+                const plusBtn = document.querySelector(`.stat-mod-plus[data-stat="${statKey}"]`);
+                if (plusBtn) plusBtn.click();
+            }
+        });
+    }
+    
+    /**
+     * Aktualisiert die Anzeige eines einzelnen modifizierbaren Stats
+     * @param {string} statKey - Der Stat-Key (attack, defense, etc.)
+     * @private
+     */
+    _updateStatDisplay(statKey) {
+        const statInput = document.getElementById(`stat-${statKey}`);
+        if (!statInput) return;
+        
+        const permaValue = this.appState.stats[statKey] || 0;
+        const tempMod = this.appState.getTempStatModifier(statKey);
+        const effectiveValue = permaValue + tempMod;
+        
+        // Wert aktualisieren
+        statInput.value = effectiveValue.toString();
+        statInput.dataset.permaValue = permaValue.toString();
+        
+        // Farb-Klassen aktualisieren
+        statInput.classList.remove('stat-boosted', 'stat-reduced');
+        if (tempMod > 0) {
+            statInput.classList.add('stat-boosted');
+        } else if (tempMod < 0) {
+            statInput.classList.add('stat-reduced');
+        }
     }
     
     /**
@@ -892,9 +1267,12 @@ class UiRenderer {
         const levelUpSection = createElement('div', { className: 'level-up-section' }, [
             // Obere Zeile mit Level-Anzeige und Würfelklasse
             createElement('div', { className: 'level-display-row' }, [
-                // Würfelklasse (hier neu positioniert)
+                // Würfelklasse (hier neu positioniert) - mit Tooltip für Erklärung
                 createElement('div', { className: 'dice-class-container' }, [
-                    createElement('span', { className: 'dice-class' }, this.appState.pokemonData.diceClass)
+                    createElement('span', { 
+                        className: 'dice-class',
+                        title: this.appState.pokemonData.diceClassTooltip || 'Würfelklasse'
+                    }, this.appState.pokemonData.diceClass)
                 ])
             ]),
         
@@ -940,6 +1318,23 @@ class UiRenderer {
                             readonly: 'readonly'
                         })
                     ])
+                ]),
+                
+                // Entwickeln-Container mit Icons und Button
+                createElement('div', { className: 'evolution-container', id: 'evolution-container' }, [
+                    // Container für die Entwicklungs-Icons (werden dynamisch befüllt)
+                    createElement('div', { 
+                        className: 'evolution-icons-container', 
+                        id: 'evolution-icons-container' 
+                    }),
+                    
+                    // Entwickeln-Button
+                    createElement('button', {
+                        id: 'evolve-button',
+                        className: 'evolve-button',
+                        type: 'button',
+                        disabled: 'disabled' // Standardmäßig deaktiviert, bis Entwicklungen geladen sind
+                    }, '✨ Entwickeln!')
                 ])
             ]),
         
@@ -1471,6 +1866,22 @@ class UiRenderer {
             });
         }, 500);
     }
+    
+    /**
+     * Aktualisiert die Skills-Sektion nach Änderungen an benutzerdefinierten Fertigkeiten
+     * @private
+     */
+    _refreshSkillsSection() {
+        const skillsTable = document.querySelector('.skills-table');
+        if (!skillsTable) return;
+        
+        // Neue Skills-Sektion erstellen
+        const newSkillsSection = this._createSkillsSection();
+        
+        // Alte Sektion ersetzen
+        skillsTable.parentNode.replaceChild(newSkillsSection, skillsTable);
+    }
+    
     /**
      * Hilfsmethode zum Auslösen der Auto-Save-Funktion
      * @private
@@ -1489,8 +1900,8 @@ class UiRenderer {
         // Kleine Verzögerung, um UI-Updates abzuschließen
         setTimeout(() => {
             try {
-                // Direkt die saveCurrentSheet-Methode des StorageService aufrufen
-                window.pokemonApp.storageService.saveCurrentSheet();
+                // Direkt die saveCurrentPokemon-Methode des StorageService aufrufen
+                window.pokemonApp.storageService.saveCurrentPokemon();
             } catch (error) {
                 console.error("Fehler beim Speichern des Charakterbogens:", error);
             }
@@ -1505,5 +1916,287 @@ class UiRenderer {
         if (typeof window.renderTallyMarks === 'function') {
             window.renderTallyMarks(this.appState.tallyMarks);
         }
+    }
+    
+    /**
+     * Initialisiert das Entwicklungs-Feature
+     * Lädt mögliche Entwicklungen und rendert die Icons
+     * @private
+     */
+    _initEvolutionFeature() {
+        // Verzögerung um sicherzustellen, dass das DOM bereit ist
+        setTimeout(async () => {
+            const evolveButton = document.getElementById('evolve-button');
+            const iconsContainer = document.getElementById('evolution-icons-container');
+            
+            if (!evolveButton || !iconsContainer) {
+                console.log('Evolution-UI-Elemente nicht gefunden');
+                return;
+            }
+            
+            // EvolutionService prüfen
+            if (!window.evolutionService) {
+                console.log('EvolutionService nicht verfügbar');
+                evolveButton.disabled = true;
+                evolveButton.classList.add('evolve-button-disabled');
+                return;
+            }
+            
+            try {
+                // Mögliche Entwicklungen laden
+                const evolutions = await window.evolutionService.getDirectEvolutions(this.appState.pokemonData);
+                
+                // Cache die Entwicklungen im Container für späteren Zugriff
+                iconsContainer.dataset.evolutions = JSON.stringify(evolutions.map(e => e.id));
+                this._cachedEvolutions = evolutions;
+                
+                if (evolutions.length === 0) {
+                    // Keine Entwicklungen möglich - Button deaktivieren
+                    evolveButton.disabled = true;
+                    evolveButton.classList.add('evolve-button-disabled');
+                    evolveButton.title = 'Dieses Pokémon kann sich nicht weiter entwickeln';
+                    return;
+                }
+                
+                // Icons für jede mögliche Entwicklung erstellen
+                iconsContainer.innerHTML = '';
+                
+                evolutions.forEach((evolution, index) => {
+                    const icon = this._createEvolutionIcon(evolution, index);
+                    iconsContainer.appendChild(icon);
+                });
+                
+                // Button aktivieren
+                evolveButton.disabled = false;
+                evolveButton.classList.remove('evolve-button-disabled');
+                evolveButton.classList.add('evolve-button-ready');
+                evolveButton.title = `Entwickle zu ${evolutions.length === 1 ? evolutions[0].germanName : 'einer neuen Form'}`;
+                
+                // Event-Listener für den Entwickeln-Button
+                evolveButton.addEventListener('click', () => {
+                    this._handleEvolveButtonClick(evolutions);
+                });
+                
+            } catch (error) {
+                console.error('Fehler beim Initialisieren des Evolution-Features:', error);
+                evolveButton.disabled = true;
+                evolveButton.classList.add('evolve-button-disabled');
+            }
+        }, 500);
+    }
+    
+    /**
+     * Erstellt ein Icon für eine mögliche Entwicklung
+     * @param {Object} evolution - Die Entwicklungsdaten
+     * @param {number} index - Index der Entwicklung
+     * @returns {HTMLElement} Das Icon-Element
+     * @private
+     */
+    _createEvolutionIcon(evolution, index) {
+        const typeColor = TYPE_COLORS[evolution.primaryType] || '#777777';
+        
+        const iconWrapper = createElement('div', { 
+            className: 'evolution-icon-wrapper',
+            title: `Entwickeln zu ${evolution.germanName}`,
+            dataset: { evolutionId: evolution.id.toString(), index: index.toString() }
+        });
+        
+        const iconElement = createElement('div', { 
+            className: 'evolution-icon',
+            style: `border-color: ${typeColor};`
+        }, [
+            createElement('img', {
+                src: evolution.sprite,
+                alt: evolution.germanName,
+                className: 'evolution-sprite'
+            })
+        ]);
+        
+        // Tooltip/Name unter dem Icon
+        const nameLabel = createElement('span', { 
+            className: 'evolution-name-label'
+        }, evolution.germanName);
+        
+        iconWrapper.appendChild(iconElement);
+        iconWrapper.appendChild(nameLabel);
+        
+        // Click-Event für dieses Icon
+        iconWrapper.addEventListener('click', async () => {
+            await this._handleEvolutionIconClick(evolution);
+        });
+        
+        return iconWrapper;
+    }
+    
+    /**
+     * Handler für Klick auf den Entwickeln-Button
+     * Zeigt die Icons an (falls versteckt) oder führt Entwicklung durch
+     * @param {Array} evolutions - Verfügbare Entwicklungen
+     * @private
+     */
+    _handleEvolveButtonClick(evolutions) {
+        const iconsContainer = document.getElementById('evolution-icons-container');
+        const evolveButton = document.getElementById('evolve-button');
+        
+        if (!iconsContainer) return;
+        
+        // Wenn Icons bereits sichtbar sind, nichts tun
+        if (iconsContainer.classList.contains('evolution-icons-visible')) {
+            return;
+        }
+        
+        // Icons sichtbar machen
+        iconsContainer.classList.add('evolution-icons-visible');
+        
+        // Button deaktivieren während Icons sichtbar sind
+        evolveButton.disabled = true;
+        evolveButton.classList.add('evolve-button-waiting');
+        evolveButton.textContent = '⬆ Wähle eine Form!';
+    }
+    
+    /**
+     * Handler für Klick auf ein Entwicklungs-Icon
+     * Führt die Entwicklung durch
+     * @param {Object} evolution - Die gewählte Entwicklung
+     * @private
+     */
+    async _handleEvolutionIconClick(evolution) {
+        const iconsContainer = document.getElementById('evolution-icons-container');
+        const evolveButton = document.getElementById('evolve-button');
+        
+        // Spitznamen VOR der Entwicklung sichern (UI wird danach neu gerendert!)
+        const savedNickname = document.getElementById('nickname-input')?.value?.trim() || '';
+        
+        // Entwicklung durchführen
+        evolveButton.textContent = '🔄 Entwickle...';
+        evolveButton.disabled = true;
+        
+        try {
+            const success = await window.evolutionService.evolve(evolution, this.appState);
+            
+            if (success) {
+                // Evolution-Boni vom EvolutionService holen
+                const evolutionBonuses = window.evolutionService._lastEvolutionBonuses || null;
+                
+                // Erfolgs-Toast anzeigen (mit gesichertem Spitznamen und Boni)
+                this._showEvolutionSuccessToast(evolution.germanName, savedNickname, evolutionBonuses);
+            } else {
+                alert('Die Entwicklung ist fehlgeschlagen. Bitte versuche es erneut.');
+                // Button wiederherstellen
+                evolveButton.textContent = '✨ Entwickeln!';
+                evolveButton.disabled = false;
+                iconsContainer.classList.remove('evolution-icons-visible');
+            }
+        } catch (error) {
+            console.error('Fehler bei der Entwicklung:', error);
+            alert('Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+            evolveButton.textContent = '✨ Entwickeln!';
+            evolveButton.disabled = false;
+            iconsContainer.classList.remove('evolution-icons-visible');
+        }
+    }
+    
+    /**
+     * Zeigt eine Erfolgs-Toast-Nachricht nach der Entwicklung
+     * @param {string} newPokemonName - Name des neuen Pokemon
+     * @param {string} nickname - Optionaler Spitzname des Pokemon
+     * @param {Object} evolutionBonuses - Optionale Evolution-Stat-Boni
+     * @private
+     */
+    _showEvolutionSuccessToast(newPokemonName, nickname = '', evolutionBonuses = null) {
+        // Bestehenden Toast entfernen
+        const existingToast = document.querySelector('.evolution-toast');
+        if (existingToast) {
+            existingToast.remove();
+        }
+        
+        // Spitznamen verwenden falls vorhanden, sonst Fallback
+        const pokemonIdentifier = nickname || 'Dein Pokémon';
+        
+        // Toast-Inhalt erstellen
+        const toastContent = [
+            createElement('span', { className: 'evolution-toast-icon' }, '🎉'),
+            createElement('span', { className: 'evolution-toast-message' }, 
+                `Glückwunsch! ${pokemonIdentifier} hat sich zu ${newPokemonName} entwickelt!`)
+        ];
+        
+        // Stat-Boni hinzufügen falls vorhanden
+        if (evolutionBonuses && evolutionBonuses.bonuses) {
+            const bonusContainer = this._createEvolutionBonusDisplay(evolutionBonuses);
+            toastContent.push(bonusContainer);
+        }
+        
+        // Neuen Toast erstellen
+        const toast = createElement('div', { className: 'evolution-toast evolution-toast-with-bonuses' }, toastContent);
+        
+        document.body.appendChild(toast);
+        
+        // Toast nach längerer Zeit entfernen wenn Boni angezeigt werden
+        const displayTime = evolutionBonuses ? 8000 : 5000;
+        
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                toast.classList.add('evolution-toast-fadeout');
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 500);
+            }
+        }, displayTime);
+    }
+    
+    /**
+     * Erstellt die Anzeige für Evolution-Stat-Boni
+     * @param {Object} evolutionBonuses - Die Bonus-Daten vom EvolutionService
+     * @returns {HTMLElement} Das Bonus-Anzeige-Element
+     * @private
+     */
+    _createEvolutionBonusDisplay(evolutionBonuses) {
+        const { bonuses, multiplier, diceClass } = evolutionBonuses;
+        
+        // Deutsche Stat-Namen
+        const statLabels = {
+            hp: 'KP',
+            attack: 'Angriff',
+            defense: 'Verteidigung',
+            spAttack: 'Sp.-Ang.',
+            spDefense: 'Sp.-Vert.',
+            speed: 'Initiative'
+        };
+        
+        // Container erstellen
+        const container = createElement('div', { className: 'evolution-bonus-container' });
+        
+        // Header mit Erklärung
+        const header = createElement('div', { className: 'evolution-bonus-header' }, 
+            `Entwicklungsbonus (${multiplier}× ${diceClass}):`
+        );
+        container.appendChild(header);
+        
+        // Grid für die Stat-Boni
+        const grid = createElement('div', { className: 'evolution-bonus-grid' });
+        
+        // Reihenfolge: KP zuerst (weil verdreifacht), dann Rest
+        const statOrder = ['hp', 'attack', 'defense', 'spAttack', 'spDefense', 'speed'];
+        
+        statOrder.forEach(statName => {
+            const bonus = bonuses[statName];
+            const label = statLabels[statName];
+            const isHp = statName === 'hp';
+            
+            const statItem = createElement('div', { 
+                className: `evolution-bonus-item ${isHp ? 'evolution-bonus-hp' : ''}`
+            }, [
+                createElement('span', { className: 'evolution-bonus-label' }, label),
+                createElement('span', { className: 'evolution-bonus-value' }, `+${bonus}${isHp ? ' (×3)' : ''}`)
+            ]);
+            
+            grid.appendChild(statItem);
+        });
+        
+        container.appendChild(grid);
+        
+        return container;
     }
 }

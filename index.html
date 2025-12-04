@@ -31,15 +31,103 @@
         .dark-mode .trainer-field-clickable:hover {
             background-color: #3a4a5a !important;
         }
+        
+        /* Button-Styling für die verschiedenen Aktionen */
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .action-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        
+        .save-button {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .save-button:hover {
+            background-color: #218838;
+        }
+        
+        .save-all-button {
+            background-color: #6f42c1;
+            color: white;
+        }
+        
+        .save-all-button:hover {
+            background-color: #5a32a3;
+        }
+        
+        .load-button {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .load-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .pdf-button {
+            background-color: #4285F4;
+            color: white;
+        }
+        
+        .pdf-button:hover {
+            background-color: #3367d6;
+        }
+        
+        .dark-mode-button {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .dark-mode-button:hover {
+            background-color: #545b62;
+        }
+        
+        /* Versteckte Buttons */
+        .action-button.hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="title">Pokémon Trainer & Team Manager</h1>
         <div class="action-buttons">
-            <button id="save-json-button" class="action-button save-button">Alles Speichern (JSON)</button>
-            <button id="save-pdf-button" class="action-button save-button" style="background-color: #4285F4;">PDF Speichern</button>
-            <button id="load-pokemon-button" class="action-button load-button">Daten Laden</button>
+            <!-- Alles Speichern - NUR im Trainer-View sichtbar -->
+            <button id="save-all-json-button" class="action-button save-all-button" title="Exportiert den Trainer und alle seine Pokémon als separate JSON-Dateien">
+                📦 Alles Speichern (JSON)
+            </button>
+            <!-- Einzeln Speichern - Immer sichtbar, speichert aktuelles Sheet -->
+            <button id="save-json-button" class="action-button save-button" title="Exportiert nur das aktuell angezeigte Sheet">
+                💾 Speichern (JSON)
+            </button>
+            <!-- PDF Speichern -->
+            <button id="save-pdf-button" class="action-button pdf-button">
+                📄 PDF Speichern
+            </button>
+            <!-- Laden -->
+            <button id="load-pokemon-button" class="action-button load-button" title="Importiert JSON-Dateien (Trainer oder Pokémon)">
+                📂 Daten Laden
+            </button>
+            <!-- Dark Mode -->
             <button id="dark-mode-button" class="action-button dark-mode-button">🌙 Dark Mode</button>
         </div>
         
@@ -92,6 +180,7 @@
     <script src="nachteilService.js"></script>
     <script src="perkService.js"></script>
     <script src="kommandoService.js"></script>
+    <script src="statusEffectsComponent.js"></script>
     
     <!-- Trainer-Module (MULTI-TRAINER VERSION - vor Pokemon-App laden) -->
     <script src="trainerSheetModels.js"></script>
@@ -107,6 +196,7 @@
     <script src="diceCalculator.js"></script>
     <script src="abilityService.js"></script>
     <script src="moveService.js"></script>
+    <script src="pokemonEvolutionService.js"></script>
     
     <!-- Pokemon-App Module -->
     <script src="pokemonSheetUIRenderer.js"></script>
@@ -117,16 +207,154 @@
     <!-- Zusätzliche Komponenten -->
     <script src="searchableSelect.js"></script>
     <script src="woundsComponent.js"></script>
+    
+    <!-- JSON Export/Import Services (NEU) -->
     <script src="jsonExportService.js"></script>
     <script src="jsonImportService.js"></script>
     
     <!-- Trainer-App (MULTI-TRAINER VERSION - nach Pokemon-App laden) -->
     <script src="trainerSheetApp.js"></script>
     
-    <!-- Dark Mode Initialization -->
+    <!-- Trainer PDF Service (übernimmt den PDF-Button kontextabhängig) -->
+    <script src="trainerSheetPdfService.js"></script>
+    
+    <!-- Button-Controller für kontextabhängige Sichtbarkeit -->
     <script>
-        // Dark Mode Toggle Functionality
+        /**
+         * ButtonController
+         * Steuert die Sichtbarkeit und Funktionalität der Action-Buttons
+         * basierend auf der aktuellen Ansicht (Trainer oder Pokemon)
+         */
+        class ButtonController {
+            constructor() {
+                this.saveAllButton = document.getElementById('save-all-json-button');
+                this.saveButton = document.getElementById('save-json-button');
+                this.loadButton = document.getElementById('load-pokemon-button');
+                
+                this._initEventListeners();
+                this._updateButtonVisibility();
+                
+                // Navigation-Events überwachen
+                this._setupNavigationObserver();
+                
+                console.log('ButtonController initialisiert');
+            }
+            
+            /**
+             * Initialisiert die Event-Listener für die Buttons
+             * @private
+             */
+            _initEventListeners() {
+                // Alles Speichern Button
+                if (this.saveAllButton) {
+                    this.saveAllButton.addEventListener('click', () => {
+                        if (window.jsonExportService) {
+                            window.jsonExportService.exportAllData();
+                        } else {
+                            console.error('JSONExportService nicht verfügbar');
+                        }
+                    });
+                }
+                
+                // Einzeln Speichern Button
+                if (this.saveButton) {
+                    this.saveButton.addEventListener('click', () => {
+                        if (window.jsonExportService) {
+                            window.jsonExportService.exportCurrentSheet();
+                        } else {
+                            console.error('JSONExportService nicht verfügbar');
+                        }
+                    });
+                }
+                
+                // Laden Button
+                if (this.loadButton) {
+                    this.loadButton.addEventListener('click', () => {
+                        if (window.jsonImportService) {
+                            window.jsonImportService.openImportDialog();
+                        } else {
+                            console.error('JSONImportService nicht verfügbar');
+                        }
+                    });
+                }
+            }
+            
+            /**
+             * Richtet einen Observer ein, um Ansichtswechsel zu erkennen
+             * @private
+             */
+            _setupNavigationObserver() {
+                // MutationObserver für Ansichtswechsel
+                const trainerView = document.getElementById('trainer-view');
+                const pokemonView = document.getElementById('pokemon-view');
+                
+                if (trainerView && pokemonView) {
+                    const observer = new MutationObserver(() => {
+                        this._updateButtonVisibility();
+                    });
+                    
+                    observer.observe(trainerView, { attributes: true, attributeFilter: ['style'] });
+                    observer.observe(pokemonView, { attributes: true, attributeFilter: ['style'] });
+                }
+                
+                // Auch auf Custom-Events hören (falls verwendet)
+                document.addEventListener('viewChanged', () => {
+                    this._updateButtonVisibility();
+                });
+            }
+            
+            /**
+             * Aktualisiert die Sichtbarkeit der Buttons basierend auf der aktuellen Ansicht
+             * @private
+             */
+            _updateButtonVisibility() {
+                const currentView = this._getCurrentView();
+                
+                if (this.saveAllButton) {
+                    if (currentView === 'trainer') {
+                        this.saveAllButton.classList.remove('hidden');
+                        this.saveAllButton.style.display = '';
+                    } else {
+                        this.saveAllButton.classList.add('hidden');
+                        this.saveAllButton.style.display = 'none';
+                    }
+                }
+                
+                // Button-Text aktualisieren basierend auf Ansicht
+                if (this.saveButton) {
+                    if (currentView === 'pokemon') {
+                        this.saveButton.innerHTML = '💾 Pokémon Speichern (JSON)';
+                        this.saveButton.title = 'Exportiert nur das aktuelle Pokémon als JSON';
+                    } else {
+                        this.saveButton.innerHTML = '💾 Trainer Speichern (JSON)';
+                        this.saveButton.title = 'Exportiert nur den Trainer (ohne Pokémon-Details) als JSON';
+                    }
+                }
+            }
+            
+            /**
+             * Ermittelt die aktuelle Ansicht
+             * @returns {string} 'trainer' oder 'pokemon'
+             * @private
+             */
+            _getCurrentView() {
+                // Zuerst NavigationService fragen
+                if (window.navigationService) {
+                    return window.navigationService.getCurrentView();
+                }
+                
+                // Fallback: DOM prüfen
+                const pokemonView = document.getElementById('pokemon-view');
+                if (pokemonView && pokemonView.style.display !== 'none') {
+                    return 'pokemon';
+                }
+                return 'trainer';
+            }
+        }
+        
+        // ButtonController initialisieren wenn DOM bereit ist
         document.addEventListener('DOMContentLoaded', function() {
+            // Dark Mode Toggle Functionality
             const darkModeButton = document.getElementById('dark-mode-button');
             
             // Check for saved preference
@@ -147,6 +375,12 @@
                 // Save preference
                 localStorage.setItem('darkMode', isDarkMode);
             });
+            
+            // ButtonController mit kurzer Verzögerung initialisieren
+            // (damit andere Services Zeit haben, sich zu initialisieren)
+            setTimeout(() => {
+                window.buttonController = new ButtonController();
+            }, 500);
         });
     </script>
 </body>

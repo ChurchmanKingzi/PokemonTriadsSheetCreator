@@ -1,22 +1,20 @@
 /**
  * JSON Import Service für den Pokemon Charakterbogen
- * Ermöglicht das Laden von gespeicherten Pokemon-Daten aus JSON-Dateien
+ * 
+ * Unterstützt:
+ * - Import von einzelnen Pokemon (pokemon_single)
+ * - Import von einzelnen Trainern (trainer_single)
+ * - Import von Legacy-Formaten (ältere Versionen)
  */
 class JSONImportService {
-    /**
-     * Konstruktor
-     * @param {AppState} appState - Die App-State-Instanz
-     * @param {UiRenderer} uiRenderer - Die UI-Renderer-Instanz
-     */
-    constructor(appState, uiRenderer) {
-        this.appState = appState || window.pokemonApp.appState;
-        this.uiRenderer = uiRenderer;
-        
+    constructor() {
         // File Input für JSON-Upload erstellen
         this._createFileInput();
         
         // Event-Listener initialisieren
         this._initEventListeners();
+        
+        console.log('JSON Import Service initialisiert');
     }
     
     /**
@@ -24,20 +22,18 @@ class JSONImportService {
      * @private
      */
     _createFileInput() {
-        // Prüfen, ob das Element bereits existiert
         const existingInput = document.getElementById('json-file-input');
         if (existingInput) {
             return;
         }
         
-        // Input-Element erstellen
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.id = 'json-file-input';
         fileInput.accept = '.json';
+        fileInput.multiple = true; // Mehrere Dateien erlauben
         fileInput.style.display = 'none';
         
-        // Zum Dokument hinzufügen
         document.body.appendChild(fileInput);
     }
     
@@ -46,43 +42,16 @@ class JSONImportService {
      * @private
      */
     _initEventListeners() {
-        console.log('Initialisiere Event-Listener für JSON-Import...');
-        
-        // Laden-Button für JSON-Import
-        const loadButton = document.getElementById('load-pokemon-button');
-        if (loadButton) {
-            // Sicherheitsabfrage, ob bereits ein Listener existiert
-            const newLoadButton = loadButton.cloneNode(true);
-            loadButton.parentNode.replaceChild(newLoadButton, loadButton);
-            
-            // Neuen Event-Listener hinzufügen für JSON-Import
-            newLoadButton.addEventListener('click', (event) => {
-                // JSON-File-Input direkt auslösen
-                const fileInput = document.getElementById('json-file-input');
-                if (fileInput) {
-                    fileInput.click();
-                } else {
-                    this._showToast('JSON-Import nicht verfügbar', 'error');
-                }
-            });
-            
-            console.log('Laden-Button wurde erfolgreich für JSON-Import konfiguriert');
-        } else {
-            console.warn('Laden-Button nicht gefunden');
-        }
-        
         // File-Input für JSON-Upload
         const fileInput = document.getElementById('json-file-input');
         if (fileInput) {
-            // Bestehende Listener entfernen
             const newFileInput = fileInput.cloneNode(true);
             fileInput.parentNode.replaceChild(newFileInput, fileInput);
             
-            // Neuen Listener hinzufügen
-            newFileInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    this.importJSON(file);
+            newFileInput.addEventListener('change', async (event) => {
+                const files = event.target.files;
+                if (files.length > 0) {
+                    await this._handleMultipleFiles(files);
                 }
                 newFileInput.value = '';
             });
@@ -90,177 +59,417 @@ class JSONImportService {
     }
     
     /**
-     * Lädt eine JSON-Datei als Charakterbogen
+     * Öffnet den Datei-Dialog zum Importieren
+     */
+    openImportDialog() {
+        const fileInput = document.getElementById('json-file-input');
+        if (fileInput) {
+            fileInput.click();
+        } else {
+            this._showToast('Import-Dialog nicht verfügbar', 'error');
+        }
+    }
+    
+    /**
+     * Verarbeitet mehrere Dateien
+     * @param {FileList} files - Die ausgewählten Dateien
+     * @private
+     */
+    async _handleMultipleFiles(files) {
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const file of files) {
+            try {
+                await this.importJSON(file);
+                successCount++;
+            } catch (error) {
+                console.error(`Fehler beim Importieren von ${file.name}:`, error);
+                errorCount++;
+            }
+        }
+        
+        if (files.length > 1) {
+            if (errorCount > 0) {
+                this._showToast(`${successCount} erfolgreich, ${errorCount} fehlgeschlagen`, errorCount > successCount ? 'error' : 'success');
+            } else {
+                this._showToast(`${successCount} Dateien erfolgreich importiert`, 'success');
+            }
+        }
+    }
+    
+    /**
+     * Importiert eine JSON-Datei
      * @param {File} file - Die JSON-Datei
      */
     async importJSON(file) {
+        // Prüfen, ob die Datei ein JSON ist
+        if (!file.name.toLowerCase().endsWith('.json')) {
+            throw new Error('Nur JSON-Dateien können importiert werden.');
+        }
+        
+        // JSON-Datei lesen
+        const jsonString = await file.text();
+        let data;
+        
         try {
-            // Prüfen, ob die Datei ein JSON ist
-            if (!file.name.toLowerCase().endsWith('.json')) {
-                throw new Error('Nur JSON-Dateien können importiert werden.');
-            }
-            
-            // JSON-Datei lesen
-            const jsonString = await file.text();
-            let characterData;
-            
-            try {
-                characterData = JSON.parse(jsonString);
-            } catch (parseError) {
-                throw new Error('Die ausgewählte Datei enthält kein gültiges JSON.');
-            }
-            
-            // Prüfen, ob die Datei valide ist
-            if (!this._validateCharacterData(characterData)) {
-                throw new Error('Die Datei enthält keinen gültigen Pokémon-Charakterbogen.');
-            }
-            
-            // Daten anwenden
-            console.log('Lade Charakterbogen aus JSON:', characterData);
-            await this._applyCharacterData(characterData);
-            
-            this._showToast('Pokémon-Sheet erfolgreich geladen', 'success');
-        } catch (error) {
-            console.error('Fehler beim Importieren des JSON:', error);
-            this._showToast('Fehler beim Importieren: ' + error.message, 'error');
+            data = JSON.parse(jsonString);
+        } catch (parseError) {
+            throw new Error('Die ausgewählte Datei enthält kein gültiges JSON.');
+        }
+        
+        // Typ der Datei erkennen und entsprechend verarbeiten
+        const importType = this._detectImportType(data);
+        console.log(`Import-Typ erkannt: ${importType}`);
+        
+        switch (importType) {
+            case 'trainer_single':
+                await this._importTrainerSingle(data);
+                break;
+            case 'pokemon_single':
+                await this._importPokemonSingle(data);
+                break;
+            case 'multi_trainer':
+                await this._importMultiTrainer(data);
+                break;
+            case 'legacy_pokemon':
+                await this._importLegacyPokemon(data);
+                break;
+            default:
+                throw new Error('Unbekanntes Dateiformat. Die Datei konnte nicht importiert werden.');
         }
     }
     
     /**
-     * Validiert die Charakterbogen-Daten
-     * @param {Object} data - Die zu validierenden Daten
-     * @returns {boolean} True, wenn die Daten valide sind
+     * Erkennt den Typ der Import-Datei
+     * @param {Object} data - Die zu analysierende Datei
+     * @returns {string} Der erkannte Typ
      * @private
      */
-    _validateCharacterData(data) {
-        // Mindestanforderungen prüfen
-        return data && 
-               (data.pokemonId || data.pokemonName) && // Entweder ID oder Name muss vorhanden sein
-               data.level !== undefined;
+    _detectImportType(data) {
+        // Neues Export-Format mit explizitem Typ
+        if (data.exportType === 'trainer_single') {
+            return 'trainer_single';
+        }
+        if (data.exportType === 'pokemon_single') {
+            return 'pokemon_single';
+        }
+        
+        // Multi-Trainer Format
+        if (data.trainers && Array.isArray(data.trainers)) {
+            return 'multi_trainer';
+        }
+        
+        // Trainer-Erkennung: Hat typische Trainer-Felder
+        if (data.klasse !== undefined || data.vorteil !== undefined || 
+            data.nachteil !== undefined || data.attacks !== undefined ||
+            data.perks !== undefined || data.kommandos !== undefined ||
+            data.inventory !== undefined || data.notes !== undefined) {
+            return 'trainer_single';
+        }
+        
+        // Pokemon-Erkennung: Hat typische Pokemon-Felder
+        if (data.pokemonId || data.pokemonName) {
+            if (data.moves !== undefined || data.abilities !== undefined || 
+                data.tallyMarks !== undefined) {
+                return 'pokemon_single';
+            }
+            return 'legacy_pokemon';
+        }
+        
+        return 'unknown';
+    }
+    
+    // ==================== TRAINER IMPORT ====================
+    
+    /**
+     * Importiert einen einzelnen Trainer
+     * @param {Object} data - Die Trainer-Daten
+     * @private
+     */
+    async _importTrainerSingle(data) {
+        const trainer = this._getActiveTrainer();
+        if (!trainer) {
+            throw new Error('Kein aktiver Trainer gefunden.');
+        }
+        
+        // Bestätigung vom Benutzer
+        const trainerName = data.name || 'Unbenannter Trainer';
+        const pokemonCount = data.pokemonSummary 
+            ? data.pokemonSummary.filter(p => !p.isEmpty).length 
+            : (data.pokemonSlots ? data.pokemonSlots.filter(s => s.pokemonId).length : 0);
+        
+        const confirmMessage = `Trainer "${trainerName}" mit ${pokemonCount} Pokemon importieren?\n\n` +
+            `Die aktuellen Trainer-Daten werden überschrieben.\n` +
+            `(Pokemon-Daten müssen separat importiert werden)`;
+        
+        if (!confirm(confirmMessage)) {
+            this._showToast('Import abgebrochen', 'info');
+            return;
+        }
+        
+        // Trainer-Daten importieren
+        trainer._importFromJSON(data);
+        
+        // Trainer-Manager benachrichtigen
+        if (window.trainerManager) {
+            window.trainerManager.notifyChange();
+        }
+        
+        // UI aktualisieren
+        this._refreshTrainerUI();
+        
+        this._showToast(`Trainer "${trainerName}" erfolgreich importiert`, 'success');
     }
     
     /**
-     * Wendet die importierten Charakterbogen-Daten an
-     * @param {Object} data - Die anzuwendenden Daten
+     * Importiert Multi-Trainer-Format (alle Trainer ersetzen oder hinzufügen)
+     * @param {Object} data - Die Multi-Trainer-Daten
      * @private
      */
-    async _applyCharacterData(data) {
-        // Pokemon im Dropdown auswählen
-        const selectElement = document.getElementById(DOM_IDS.POKEMON_SELECT);
-        if (selectElement) {
-            console.log('Wähle Pokemon aus mit ID:', data.pokemonId);
-            
-            // Zuerst nach ID suchen (priorisiert)
-            if (data.pokemonId) {
-                selectElement.value = data.pokemonId.toString();
-            } 
-            // Wenn keine ID oder nicht gefunden, nach Namen suchen
-            else if (data.pokemonName) {
-                // Alle Optionen durchsuchen
-                let found = false;
-                for (let i = 0; i < selectElement.options.length; i++) {
-                    const option = selectElement.options[i];
-                    const optionText = option.textContent.toLowerCase();
-                    const searchName = data.pokemonGermanName ? 
-                        data.pokemonGermanName.toLowerCase() : 
-                        data.pokemonName.toLowerCase();
-                    
-                    if (optionText.includes(searchName)) {
-                        selectElement.value = option.value;
-                        found = true;
-                        break;
-                    }
-                }
+    async _importMultiTrainer(data) {
+        if (!window.trainerManager) {
+            throw new Error('TrainerManager nicht verfügbar.');
+        }
+        
+        const trainerCount = data.trainers.length;
+        const confirmReplace = confirm(
+            `Diese Datei enthält ${trainerCount} Trainer.\n\n` +
+            `Möchtest du alle bestehenden Trainer ersetzen (OK)\n` +
+            `oder die Trainer hinzufügen (Abbrechen)?`
+        );
+        
+        if (confirmReplace) {
+            // Komplett ersetzen
+            window.trainerManager.importAll(data);
+        } else {
+            // Trainer einzeln hinzufügen
+            data.trainers.forEach(trainerData => {
+                const newIndex = window.trainerManager.addTrainer();
+                const newTrainer = window.trainerManager.trainers[newIndex];
+                newTrainer._importFromJSON(trainerData);
                 
-                if (!found) {
-                    throw new Error(`Pokémon "${data.pokemonGermanName || data.pokemonName}" nicht in der Liste gefunden.`);
+                // Pokemon-Daten kopieren
+                if (data.pokemonSheets) {
+                    const existingSheets = JSON.parse(localStorage.getItem('pokemon_character_sheets') || '{}');
+                    
+                    Object.entries(data.pokemonSheets).forEach(([key, pokemonData]) => {
+                        if (key.startsWith(trainerData.id + '_slot') || 
+                            key.startsWith(trainerData.id + '_pokemon_')) {
+                            const newKey = key.replace(trainerData.id, newTrainer.id);
+                            existingSheets[newKey] = {
+                                ...pokemonData,
+                                trainerId: newTrainer.id
+                            };
+                        }
+                    });
+                    
+                    localStorage.setItem('pokemon_character_sheets', JSON.stringify(existingSheets));
                 }
-            }
+            });
             
-            // Change-Event auslösen, um das Pokemon zu laden
+            window.trainerManager.notifyChange();
+        }
+        
+        // UI aktualisieren
+        this._refreshTrainerUI();
+        
+        // Zur Trainer-Ansicht wechseln
+        if (window.navigationService) {
+            window.navigationService.showTrainerView();
+        }
+        
+        this._showToast(`${trainerCount} Trainer importiert!`, 'success');
+    }
+    
+    // ==================== POKEMON IMPORT ====================
+    
+    /**
+     * Importiert ein einzelnes Pokemon
+     * @param {Object} data - Die Pokemon-Daten
+     * @private
+     */
+    async _importPokemonSingle(data) {
+        const currentView = window.navigationService?.getCurrentView() || 'trainer';
+        
+        if (currentView === 'pokemon') {
+            // Im Pokemon-View: Direkt das aktuelle Pokemon überschreiben
+            await this._importPokemonToCurrentSlot(data);
+        } else {
+            // Im Trainer-View: In einen leeren Slot oder neuen Slot laden
+            await this._importPokemonToEmptySlot(data);
+        }
+    }
+    
+    /**
+     * Importiert Pokemon in den aktuellen Slot (Pokemon-Ansicht)
+     * @param {Object} data - Die Pokemon-Daten
+     * @private
+     */
+    async _importPokemonToCurrentSlot(data) {
+        const pokemonName = data.pokemonGermanName || data.pokemonName || 'Pokemon';
+        
+        const confirmMessage = `"${pokemonName}" (Lv. ${data.level || '?'}) in den aktuellen Slot laden?\n\n` +
+            `Die aktuellen Pokemon-Daten werden überschrieben.`;
+        
+        if (!confirm(confirmMessage)) {
+            this._showToast('Import abgebrochen', 'info');
+            return;
+        }
+        
+        // Pokemon im Dropdown auswählen und laden
+        const selectElement = document.getElementById('pokemon-select');
+        if (selectElement && data.pokemonId) {
+            selectElement.value = data.pokemonId.toString();
+            
+            // Change-Event auslösen
             const event = new Event('change', { bubbles: true });
             selectElement.dispatchEvent(event);
             
-            // Warten, bis das Pokemon geladen ist
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Warten und dann restliche Daten anwenden
+            await this._waitForPokemonLoad(2000);
+            this._applyPokemonData(data);
             
-            // Nach ausreichender Verzögerung die restlichen Daten anwenden
-            setTimeout(() => {
-                console.log('Wende restliche Daten an...');
-                this._applyRemainingData(data);
-            }, 2000);
+            this._showToast(`"${pokemonName}" erfolgreich importiert`, 'success');
         } else {
-            throw new Error('Pokemon-Select-Element nicht gefunden.');
+            throw new Error('Pokemon-Select nicht gefunden oder keine Pokemon-ID vorhanden.');
         }
     }
     
     /**
-     * Wendet die restlichen Daten an, nachdem das Pokemon geladen wurde
+     * Importiert Pokemon in einen leeren Slot (Trainer-Ansicht)
+     * @param {Object} data - Die Pokemon-Daten
+     * @private
+     */
+    async _importPokemonToEmptySlot(data) {
+        const trainer = this._getActiveTrainer();
+        if (!trainer) {
+            throw new Error('Kein aktiver Trainer gefunden.');
+        }
+        
+        // Leeren Slot finden
+        let targetSlotIndex = trainer.pokemonSlots.findIndex(slot => slot.isEmpty());
+        
+        if (targetSlotIndex === -1) {
+            // Kein leerer Slot - neuen erstellen
+            targetSlotIndex = trainer.addPokemonSlot();
+        }
+        
+        const pokemonName = data.pokemonGermanName || data.pokemonName || 'Pokemon';
+        
+        // Slot mit Pokemon-Daten füllen
+        const slot = trainer.pokemonSlots[targetSlotIndex];
+        slot.pokemonId = data.pokemonId;
+        slot.pokemonName = data.pokemonName;
+        slot.germanName = data.pokemonGermanName || data.pokemonName;
+        slot.nickname = data.textFields?.nickname || data.nickname || '';
+        
+        // Typen extrahieren
+        if (data.types && Array.isArray(data.types)) {
+            slot.types = data.types.map(t => {
+                if (typeof t === 'string') return t.toLowerCase();
+                if (t.type && t.type.name) return t.type.name.toLowerCase();
+                return null;
+            }).filter(t => t !== null);
+        } else {
+            slot.types = [];
+        }
+        
+        // UUID generieren
+        slot.generateUuid();
+        
+        // Pokemon-Daten mit der neuen UUID speichern
+        const sheets = JSON.parse(localStorage.getItem('pokemon_character_sheets') || '{}');
+        const newKey = `${trainer.id}_pokemon_${slot.pokemonUuid}`;
+        sheets[newKey] = {
+            ...data,
+            trainerId: trainer.id,
+            pokemonUuid: slot.pokemonUuid
+        };
+        localStorage.setItem('pokemon_character_sheets', JSON.stringify(sheets));
+        
+        // Trainer-State speichern
+        if (window.trainerManager) {
+            window.trainerManager.notifyChange();
+        }
+        
+        // UI aktualisieren
+        if (window.trainerUIRenderer) {
+            window.trainerUIRenderer.updatePokemonSlots();
+        }
+        
+        // Trainer-Tabs aktualisieren
+        if (window.trainerApp) {
+            window.trainerApp._updateTrainerTabs();
+        }
+        
+        this._showToast(`"${pokemonName}" in Slot ${targetSlotIndex + 1} importiert`, 'success');
+    }
+    
+    /**
+     * Importiert Legacy-Pokemon (älteres Format ohne exportType)
+     * @param {Object} data - Die Pokemon-Daten
+     * @private
+     */
+    async _importLegacyPokemon(data) {
+        // Konvertieren zum neuen Format und dann normal importieren
+        console.log('Legacy-Pokemon-Format erkannt, konvertiere...');
+        data.exportType = 'pokemon_single';
+        await this._importPokemonSingle(data);
+    }
+    
+    // ==================== DATEN ANWENDEN ====================
+    
+    /**
+     * Wendet Pokemon-Daten auf die aktuelle UI an
      * @param {Object} data - Die anzuwendenden Daten
      * @private
      */
-    _applyRemainingData(data) {
-        console.log('Überschreibe Standardwerte mit gespeicherten Werten...');
+    _applyPokemonData(data) {
+        const appState = window.pokemonApp?.appState;
+        if (!appState) return;
         
-        // Level setzen (mit skipRecalculation = true, da wir die Stats selbst setzen)
+        console.log('Wende Pokemon-Daten an:', data);
+        
+        // Level setzen
         if (data.level !== undefined) {
-            this.appState.setLevel(data.level, true); // true = skipRecalculation
+            appState.setLevel(data.level, true);
             const levelInput = document.getElementById('level-value');
-            if (levelInput) {
-                levelInput.value = data.level.toString();
-            }
+            if (levelInput) levelInput.value = data.level.toString();
         }
         
-        // Aktuelle EXP setzen
-        if (data.currentExp !== undefined) {
-            this.appState.currentExp = data.currentExp;
-            const currentExpInput = document.getElementById('current-exp-input');
-            if (currentExpInput) {
-                currentExpInput.value = data.currentExp.toString();
-            }
-        }
-        
-        // WICHTIG: Stats erst NACH der Auswahl der Spezies setzen!
+        // Stats setzen
         if (data.stats) {
-            console.log('Setze Statuswerte:', data.stats);
-            Object.entries(data.stats).forEach(([statKey, statValue]) => {
-                this.appState.setStat(statKey, statValue);
-                const statInput = document.querySelector(`input[data-stat="${statKey}"]`);
-                if (statInput) {
-                    statInput.value = statValue.toString();
-                }
+            Object.entries(data.stats).forEach(([stat, value]) => {
+                appState.setStat(stat, value);
+                const statInput = document.getElementById(`${stat}-input`);
+                if (statInput) statInput.value = value.toString();
             });
         }
         
-        // Aktuelle HP setzen
+        // Aktuelle HP
         if (data.currentHp !== undefined) {
-            this.appState.setCurrentHp(data.currentHp);
+            appState.setCurrentHp(data.currentHp);
             const currentHpInput = document.getElementById('current-hp-input');
-            if (currentHpInput) {
-                currentHpInput.value = data.currentHp.toString();
-            }
+            if (currentHpInput) currentHpInput.value = data.currentHp.toString();
         }
         
-        // GENA, PA und BW setzen
+        // GENA, PA, BW
         if (data.gena !== undefined) {
-            this.appState.setGena(data.gena);
+            appState.setGena(data.gena);
             const genaInput = document.getElementById('gena-input');
-            if (genaInput) {
-                genaInput.value = data.gena.toString();
-            }
+            if (genaInput) genaInput.value = data.gena.toString();
         }
         
         if (data.pa !== undefined) {
-            this.appState.setPa(data.pa);
+            appState.setPa(data.pa);
             const paInput = document.getElementById('pa-input');
-            if (paInput) {
-                paInput.value = data.pa.toString();
-            }
+            if (paInput) paInput.value = data.pa.toString();
         }
         
-        // Wunden setzen, wenn vorhanden
-        if (data.wounds !== undefined && typeof this.appState.setWounds === 'function') {
-            this.appState.setWounds(data.wounds);
+        // Wunden
+        if (data.wounds !== undefined && typeof appState.setWounds === 'function') {
+            appState.setWounds(data.wounds);
             setTimeout(() => {
                 if (typeof displayWoundsState === 'function') {
                     displayWoundsState(data.wounds);
@@ -268,143 +477,161 @@ class JSONImportService {
             }, 100);
         }
         
-        // Fertigkeiten setzen
+        // Fertigkeiten
         if (data.skillValues) {
-            console.log('Setze Fertigkeiten:', data.skillValues);
             Object.entries(data.skillValues).forEach(([skill, value]) => {
-                this.appState.setSkillValue(skill, value);
+                appState.setSkillValue(skill, value);
                 const skillInput = document.querySelector(`input[data-skill="${skill}"]`);
-                if (skillInput) {
-                    skillInput.value = value.toString();
-                }
+                if (skillInput) skillInput.value = value.toString();
             });
         }
         
-        // BW neu berechnen basierend auf dem geladenen KÖ-Wert
-        // (BW hängt von Basis-Initiative, BST und KÖ ab)
-        if (this.appState.recalculateBw) {
-            this.appState.recalculateBw();
+        // BW neu berechnen
+        if (appState.recalculateBw) {
+            appState.recalculateBw();
             const bwInput = document.getElementById('bw-input');
             if (bwInput) {
-                bwInput.value = this.appState.bw.toString();
-                // Tooltip aktualisieren
-                if (this.appState.getBwTooltip) {
-                    bwInput.title = this.appState.getBwTooltip();
+                bwInput.value = appState.bw.toString();
+                if (appState.getBwTooltip) {
+                    bwInput.title = appState.getBwTooltip();
                 }
             }
         }
-    
-        // Strichliste für Freundschaft setzen
+        
+        // Freundschaft
         if (data.tallyMarks) {
-            console.log("Geladene Freundschaft: ", data.tallyMarks);
-            this.appState.tallyMarks = data.tallyMarks;
-            
-            // Render-Funktionen aufrufen
-            this._renderTallyMarks();
+            appState.tallyMarks = data.tallyMarks;
+            if (typeof window.renderTallyMarks === 'function') {
+                window.renderTallyMarks(data.tallyMarks);
+            }
         }
         
-        // Attacken setzen
+        // Attacken
         if (data.moves && Array.isArray(data.moves)) {
-            setTimeout(() => {
-                console.log('Setze Attacken:', data.moves);
-                data.moves.forEach((moveData, index) => {
-                    if (!moveData) return;
-                    
-                    // Bei neuem Format (mit Beschreibungen)
-                    const moveName = typeof moveData === 'object' ? moveData.name : moveData;
-                    
-                    const moveSelect = document.getElementById(`move-${index}`);
-                    if (moveSelect) {
-                        moveSelect.value = moveName;
-                        
-                        // Change-Event auslösen
-                        const event = new Event('change', { bubbles: true });
-                        moveSelect.dispatchEvent(event);
-                        
-                        // Wenn Beschreibung vorhanden, diese nach kurzer Verzögerung setzen
-                        if (typeof moveData === 'object' && moveData.customDescription) {
-                            setTimeout(() => {
-                                const descriptionField = document.getElementById(`move-description-${index}`);
-                                if (descriptionField) {
-                                    descriptionField.value = moveData.customDescription;
-                                    
-                                    // Auch im AppState speichern
-                                    if (this.appState.moves[index]) {
-                                        this.appState.moves[index].customDescription = moveData.customDescription;
-                                    }
-                                }
-                            }, 300);
-                        }
-                    }
-                });
-            }, 1000);
+            this._applyMoves(data.moves);
         }
         
-        // Textfelder setzen
+        // Textfelder
         if (data.textFields) {
-            console.log('Setze Textfelder:', data.textFields);
-            
-            // Trainer-Name setzen
-            const trainerInput = document.getElementById('trainer-input');
-            if (trainerInput && data.textFields.trainer) {
-                trainerInput.value = data.textFields.trainer;
-            }
-            
-            // Spitznamen setzen
-            const nicknameInput = document.getElementById('nickname-input');
-            if (nicknameInput && data.textFields.nickname) {
-                nicknameInput.value = data.textFields.nickname;
-            }
-            
-            // Item setzen
-            const itemInput = document.getElementById('item-input');
-            if (itemInput && data.textFields.item) {
-                itemInput.value = data.textFields.item;
-            }
+            this._applyTextFields(data.textFields);
         }
         
-        console.log('Charakterbogen-Daten erfolgreich angewendet.');
+        // Auto-Save triggern
+        if (window.pokemonStorageService) {
+            window.pokemonStorageService.triggerAutoSave();
+        }
+        
+        console.log('Pokemon-Daten erfolgreich angewendet.');
     }
     
     /**
-     * Rendert die Freundschafts-Strichliste, falls die entsprechenden Funktionen verfügbar sind
+     * Wendet Attacken an
+     * @param {Array} moves - Die Attacken
      * @private
      */
-    _renderTallyMarks() {
-        // UI Renderer-Funktion direkt aufrufen
-        if (window.pokemonApp && window.pokemonApp.uiRenderer && 
-            typeof window.pokemonApp.uiRenderer._renderTallyMarks === 'function') {
-            window.pokemonApp.uiRenderer._renderTallyMarks();
-        } else {
-            // Globale Hilfsfunktion verwenden
-            if (typeof window.renderTallyMarks === 'function') {
-                window.renderTallyMarks(this.appState.tallyMarks);
-            }
+    _applyMoves(moves) {
+        setTimeout(() => {
+            moves.forEach((moveData, index) => {
+                if (!moveData) return;
+                
+                const moveName = typeof moveData === 'object' ? moveData.name : moveData;
+                const moveSelect = document.getElementById(`move-${index}`);
+                
+                if (moveSelect) {
+                    moveSelect.value = moveName;
+                    const event = new Event('change', { bubbles: true });
+                    moveSelect.dispatchEvent(event);
+                    
+                    // Benutzerdefinierte Beschreibung
+                    if (typeof moveData === 'object' && moveData.customDescription) {
+                        setTimeout(() => {
+                            const descriptionField = document.getElementById(`move-description-${index}`);
+                            if (descriptionField) {
+                                descriptionField.value = moveData.customDescription;
+                                const appState = window.pokemonApp?.appState;
+                                if (appState?.moves?.[index]) {
+                                    appState.moves[index].customDescription = moveData.customDescription;
+                                }
+                            }
+                        }, 300);
+                    }
+                }
+            });
+        }, 1000);
+    }
+    
+    /**
+     * Wendet Textfelder an
+     * @param {Object} textFields - Die Textfelder
+     * @private
+     */
+    _applyTextFields(textFields) {
+        const nicknameInput = document.getElementById('nickname-input');
+        if (nicknameInput && textFields.nickname) {
+            nicknameInput.value = textFields.nickname;
+        }
+        
+        const itemInput = document.getElementById('item-input');
+        if (itemInput && textFields.item) {
+            itemInput.value = textFields.item;
+        }
+    }
+    
+    // ==================== HILFSMETHODEN ====================
+    
+    /**
+     * Gibt den aktiven Trainer zurück
+     * @returns {TrainerState|null}
+     * @private
+     */
+    _getActiveTrainer() {
+        return window.trainerManager 
+            ? window.trainerManager.getActiveTrainer() 
+            : window.trainerState;
+    }
+    
+    /**
+     * Wartet auf das Laden eines Pokemon
+     * @param {number} ms - Millisekunden zu warten
+     * @private
+     */
+    _waitForPokemonLoad(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    /**
+     * Aktualisiert die Trainer-UI
+     * @private
+     */
+    _refreshTrainerUI() {
+        if (window.trainerUIRenderer) {
+            window.trainerUIRenderer.trainerState = this._getActiveTrainer();
+            window.trainerUIRenderer.renderTrainerSheet();
+        }
+        
+        if (window.trainerApp) {
+            window.trainerApp._updateTrainerTabs();
         }
     }
     
     /**
      * Zeigt eine Toast-Benachrichtigung an
      * @param {string} message - Die anzuzeigende Nachricht
-     * @param {string} type - Der Typ der Nachricht ('success' oder 'error')
+     * @param {string} type - Der Typ der Nachricht
      * @private
      */
     _showToast(message, type = 'success') {
-        // Prüfen, ob bereits ein Toast angezeigt wird
         const existingToast = document.querySelector('.toast');
         if (existingToast) {
             existingToast.remove();
         }
         
-        // Toast-Element erstellen
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         toast.textContent = message;
         
-        // Zum Dokument hinzufügen
         document.body.appendChild(toast);
         
-        // Nach einigen Sekunden entfernen
         setTimeout(() => {
             if (document.body.contains(toast)) {
                 document.body.removeChild(toast);
@@ -413,28 +640,7 @@ class JSONImportService {
     }
 }
 
-// Initialisiert den JSONImportService mit den globalen Variablen
-function initJSONImportService() {
-    // Warten bis die App und AppState verfügbar sind
-    if (window.pokemonApp && window.pokemonApp.appState) {
-        // Service initialisieren, wenn nicht bereits vorhanden
-        if (!window.jsonImportService) {
-            window.jsonImportService = new JSONImportService(
-                window.pokemonApp.appState, 
-                window.pokemonApp.uiRenderer
-            );
-            console.log('JSON Import Service initialisiert');
-        }
-    } else {
-        // Erneut versuchen nach kurzer Verzögerung
-        setTimeout(initJSONImportService, 500);
-    }
-}
+// Globale Instanz erstellen
+window.jsonImportService = new JSONImportService();
 
-// Service beim Laden der Seite initialisieren
-document.addEventListener('DOMContentLoaded', initJSONImportService);
-
-// Oder, wenn das Dokument bereits geladen ist, direkt initialisieren
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    initJSONImportService();
-}
+console.log('JSONImportService wurde global als window.jsonImportService initialisiert.');

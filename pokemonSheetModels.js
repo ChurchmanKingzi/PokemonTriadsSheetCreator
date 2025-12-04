@@ -37,8 +37,29 @@ class AppState {
         
         // Freundschafts-Strichliste initialisieren
         this.tallyMarks = [];
+        
+        // Benutzerdefinierte Fertigkeiten (pro Kategorie)
+        // Format: { KÖ: [{name: 'Fertigkeit', value: 1}], WI: [], CH: [], GL: [] }
+        this.customSkills = {
+            'KÖ': [],
+            'WI': [],
+            'CH': [],
+            'GL': []
+        };
 
         this.wounds = 0; // Wunden-Status (Anzahl der markierten Wunden)
+        
+        // Statuseffekte (z.B. ['poisoned', 'burned'])
+        this.statusEffects = [];
+        
+        // Temporäre Stat-Modifikatoren für den Kampf
+        // Diese speichern die DIFFERENZ zum permanenten Wert
+        this.tempStatModifiers = {
+            attack: 0,
+            defense: 0,
+            spAttack: 0,
+            spDefense: 0
+        };
         
         // Haupt-Kategorien
         Object.keys(SKILL_GROUPS).forEach(category => {
@@ -133,6 +154,183 @@ class AppState {
         
         this.wounds = numValue;
         return true;
+    }
+    
+    /**
+     * Setzt die Statuseffekte
+     * @param {Array} effects - Array mit Status-IDs
+     * @returns {boolean} True bei Erfolg
+     */
+    setStatusEffects(effects) {
+        if (!Array.isArray(effects)) {
+            effects = [];
+        }
+        this.statusEffects = [...effects];
+        return true;
+    }
+    
+    /**
+     * Toggled einen einzelnen Statuseffekt
+     * @param {string} statusId - ID des Statuseffekts
+     * @returns {boolean} True wenn jetzt aktiv, False wenn jetzt inaktiv
+     */
+    toggleStatusEffect(statusId) {
+        if (!this.statusEffects) {
+            this.statusEffects = [];
+        }
+        
+        const index = this.statusEffects.indexOf(statusId);
+        if (index > -1) {
+            this.statusEffects.splice(index, 1);
+            return false;
+        } else {
+            this.statusEffects.push(statusId);
+            return true;
+        }
+    }
+    
+    /**
+     * Prüft ob ein Statuseffekt aktiv ist
+     * @param {string} statusId - ID des Statuseffekts
+     * @returns {boolean} True wenn aktiv
+     */
+    hasStatusEffect(statusId) {
+        return this.statusEffects && this.statusEffects.includes(statusId);
+    }
+    
+    /**
+     * Löscht alle Statuseffekte
+     */
+    clearStatusEffects() {
+        this.statusEffects = [];
+    }
+    
+    // ==================== TEMPORÄRE STAT-MODIFIKATOREN ====================
+    
+    /**
+     * Modifiziert einen temporären Stat-Wert
+     * @param {string} statKey - Key des Stats (attack, defense, spAttack, spDefense)
+     * @param {number} delta - Die Änderung (positiv oder negativ)
+     * @returns {boolean} True bei Erfolg
+     */
+    modifyTempStat(statKey, delta) {
+        if (!['attack', 'defense', 'spAttack', 'spDefense'].includes(statKey)) {
+            console.error('Ungültiger Stat-Key für temp modifier:', statKey);
+            return false;
+        }
+        
+        if (isNaN(delta)) return false;
+        
+        // Sicherstellen, dass tempStatModifiers initialisiert ist
+        if (!this.tempStatModifiers) {
+            this.tempStatModifiers = { attack: 0, defense: 0, spAttack: 0, spDefense: 0 };
+        }
+        
+        this.tempStatModifiers[statKey] += parseInt(delta, 10);
+        
+        // Event auslösen
+        const event = new CustomEvent('tempStatChanged', { 
+            detail: { statKey, newModifier: this.tempStatModifiers[statKey] } 
+        });
+        document.dispatchEvent(event);
+        
+        return true;
+    }
+    
+    /**
+     * Setzt einen temporären Stat-Modifikator auf einen bestimmten Wert
+     * @param {string} statKey - Key des Stats
+     * @param {number} value - Der neue Modifikator-Wert
+     * @returns {boolean} True bei Erfolg
+     */
+    setTempStatModifier(statKey, value) {
+        if (!['attack', 'defense', 'spAttack', 'spDefense'].includes(statKey)) {
+            return false;
+        }
+        
+        if (!this.tempStatModifiers) {
+            this.tempStatModifiers = { attack: 0, defense: 0, spAttack: 0, spDefense: 0 };
+        }
+        
+        this.tempStatModifiers[statKey] = parseInt(value, 10) || 0;
+        return true;
+    }
+    
+    /**
+     * Setzt einen einzelnen temporären Stat-Modifikator zurück
+     * @param {string} statKey - Key des Stats
+     * @returns {boolean} True bei Erfolg
+     */
+    resetTempStat(statKey) {
+        if (!['attack', 'defense', 'spAttack', 'spDefense'].includes(statKey)) {
+            return false;
+        }
+        
+        if (!this.tempStatModifiers) {
+            this.tempStatModifiers = { attack: 0, defense: 0, spAttack: 0, spDefense: 0 };
+        }
+        
+        this.tempStatModifiers[statKey] = 0;
+        
+        // Event auslösen
+        const event = new CustomEvent('tempStatChanged', { 
+            detail: { statKey, newModifier: 0 } 
+        });
+        document.dispatchEvent(event);
+        
+        return true;
+    }
+    
+    /**
+     * Setzt alle temporären Stat-Modifikatoren zurück
+     */
+    resetAllTempStats() {
+        this.tempStatModifiers = {
+            attack: 0,
+            defense: 0,
+            spAttack: 0,
+            spDefense: 0
+        };
+        
+        // Event auslösen
+        const event = new CustomEvent('allTempStatsReset');
+        document.dispatchEvent(event);
+    }
+    
+    /**
+     * Gibt den effektiven Stat-Wert zurück (Perma + Temp)
+     * @param {string} statKey - Key des Stats
+     * @returns {number} Der effektive Wert
+     */
+    getEffectiveStat(statKey) {
+        const baseValue = this.stats[statKey] || 0;
+        const tempModifier = (this.tempStatModifiers && this.tempStatModifiers[statKey]) || 0;
+        return baseValue + tempModifier;
+    }
+    
+    /**
+     * Gibt den temporären Modifikator für einen Stat zurück
+     * @param {string} statKey - Key des Stats
+     * @returns {number} Der Modifikator (kann negativ sein)
+     */
+    getTempStatModifier(statKey) {
+        if (!this.tempStatModifiers) return 0;
+        return this.tempStatModifiers[statKey] || 0;
+    }
+    
+    /**
+     * Heilt das Pokemon vollständig (setzt currentHp auf max)
+     */
+    fullHeal() {
+        if (this.stats && this.stats.hp) {
+            this.currentHp = this.stats.hp;
+            
+            // Event auslösen
+            const event = new CustomEvent('pokemonHealed', { 
+                detail: { currentHp: this.currentHp, maxHp: this.stats.hp } 
+            });
+            document.dispatchEvent(event);
+        }
     }
 
     /**
@@ -443,11 +641,16 @@ class AppState {
         };
         
         this.selectedPokemon = data.name;
+        
+        // Würfelklasse mit vollständigem Ergebnis (inkl. Tooltip) berechnen
+        const diceResult = this.calculateDiceClass(data, speciesData, bst, true);
+        
         this.pokemonData = {
             ...data,
             speciesData,
             bst,
-            diceClass: this.calculateDiceClass(data, speciesData, bst)
+            diceClass: diceResult.diceType,
+            diceClassTooltip: diceResult.tooltipText
         };
         
         // Attacken zurücksetzen
@@ -471,9 +674,10 @@ class AppState {
      * @param {Object} data - Pokemon-Daten
      * @param {Object} speciesData - Arten-Daten
      * @param {number} bst - Base Stat Total
-     * @returns {string} Würfelklasse
+     * @param {boolean} returnFullResult - Wenn true, wird das vollständige Ergebnis mit Tooltip zurückgegeben
+     * @returns {string|Object} Würfelklasse als String oder vollständiges Ergebnis-Objekt
      */
-    calculateDiceClass(data, speciesData, bst) {
+    calculateDiceClass(data, speciesData, bst, returnFullResult = false) {
         // Pokémon-Daten in das Format umwandeln, das DiceCalculator erwartet
         const pokemonData = {
             id: data.id,
@@ -491,7 +695,8 @@ class AppState {
         // DiceCalculator verwenden, um Würfelklasse zu bestimmen
         const diceResult = DiceCalculator.determineDiceType(pokemonData);
         
-        return diceResult.diceType;
+        // Vollständiges Ergebnis oder nur diceType zurückgeben
+        return returnFullResult ? diceResult : diceResult.diceType;
     }
     
 
@@ -710,6 +915,84 @@ class AppState {
         
         this.skillValues[skill] = numValue;
         return true;
+    }
+    
+    /**
+     * Fügt eine benutzerdefinierte Fertigkeit zu einer Kategorie hinzu
+     * @param {string} category - Kategorie (KÖ, WI, CH, GL)
+     * @param {string} name - Name der Fertigkeit
+     * @returns {boolean} True bei Erfolg
+     */
+    addCustomSkill(category, name = '') {
+        if (!this.customSkills) {
+            this.customSkills = { 'KÖ': [], 'WI': [], 'CH': [], 'GL': [] };
+        }
+        
+        if (!this.customSkills[category]) {
+            this.customSkills[category] = [];
+        }
+        
+        this.customSkills[category].push({
+            name: name,
+            value: 1
+        });
+        
+        return true;
+    }
+    
+    /**
+     * Entfernt eine benutzerdefinierte Fertigkeit
+     * @param {string} category - Kategorie (KÖ, WI, CH, GL)
+     * @param {number} index - Index der Fertigkeit
+     * @returns {boolean} True bei Erfolg
+     */
+    removeCustomSkill(category, index) {
+        if (!this.customSkills || !this.customSkills[category]) return false;
+        
+        if (index >= 0 && index < this.customSkills[category].length) {
+            this.customSkills[category].splice(index, 1);
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Aktualisiert eine benutzerdefinierte Fertigkeit
+     * @param {string} category - Kategorie (KÖ, WI, CH, GL)
+     * @param {number} index - Index der Fertigkeit
+     * @param {Object} updates - Objekt mit Updates ({name, value})
+     * @returns {boolean} True bei Erfolg
+     */
+    updateCustomSkill(category, index, updates) {
+        if (!this.customSkills || !this.customSkills[category]) return false;
+        
+        if (index >= 0 && index < this.customSkills[category].length) {
+            const skill = this.customSkills[category][index];
+            
+            if (updates.name !== undefined) {
+                skill.name = updates.name;
+            }
+            if (updates.value !== undefined) {
+                const numValue = parseInt(updates.value, 10);
+                if (!isNaN(numValue) && numValue >= -9 && numValue <= 9) {
+                    skill.value = numValue;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Gibt alle benutzerdefinierten Fertigkeiten einer Kategorie zurück
+     * @param {string} category - Kategorie (KÖ, WI, CH, GL)
+     * @returns {Array} Liste der benutzerdefinierten Fertigkeiten
+     */
+    getCustomSkills(category) {
+        if (!this.customSkills) {
+            this.customSkills = { 'KÖ': [], 'WI': [], 'CH': [], 'GL': [] };
+        }
+        return this.customSkills[category] || [];
     }
 }
 

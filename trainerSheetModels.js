@@ -98,16 +98,16 @@ class TrainerManager {
         if (index >= 0 && index < this.trainers.length) {
             const removedTrainer = this.trainers[index];
             
-            // Pokemon-Daten dieses Trainers aus Storage entfernen
-            removedTrainer.pokemonSlots.forEach((slot, slotIndex) => {
-                if (slot.pokemonId) {
-                    this._removePokemonFromStorage(removedTrainer.id, slotIndex);
+            // Pokemon-Daten dieses Trainers aus Storage entfernen (über UUID!)
+            removedTrainer.pokemonSlots.forEach((slot) => {
+                if (slot.pokemonUuid) {
+                    this._removePokemonFromStorage(removedTrainer.id, slot.pokemonUuid);
                 }
             });
             
             this.trainers.splice(index, 1);
             
-            // Trainer-IDs und Indizes aktualisieren
+            // Trainer-Indizes aktualisieren
             this.trainers.forEach((trainer, i) => {
                 trainer.index = i;
             });
@@ -135,6 +135,7 @@ class TrainerManager {
     
     /**
      * Dupliziert einen Trainer
+     * Kopiert Pokemon-Daten mit neuen UUIDs
      * @param {number} index - Index des zu duplizierenden Trainers
      * @returns {number} Index des neuen Trainers
      */
@@ -149,12 +150,21 @@ class TrainerManager {
             newTrainer._importFromJSON(exportData);
             newTrainer.name = (originalTrainer.name || 'Trainer') + ' (Kopie)';
             
-            // Pokemon-Daten kopieren
+            // Pokemon-Daten kopieren mit NEUEN UUIDs
             originalTrainer.pokemonSlots.forEach((slot, slotIndex) => {
-                if (slot.pokemonId) {
-                    const pokemonData = this._loadPokemonFromStorage(originalTrainer.id, slotIndex);
+                if (slot.pokemonId && slot.pokemonUuid) {
+                    // Neue UUID für das kopierte Pokemon generieren
+                    const newSlot = newTrainer.pokemonSlots[slotIndex];
+                    newSlot.generateUuid();
+                    
+                    // Daten laden und mit neuer UUID speichern
+                    const pokemonData = this._loadPokemonFromStorage(originalTrainer.id, slot.pokemonUuid);
                     if (pokemonData) {
-                        this._savePokemonToStorage(newTrainer.id, slotIndex, pokemonData);
+                        this._savePokemonToStorage(newTrainer.id, newSlot.pokemonUuid, {
+                            ...pokemonData,
+                            trainerId: newTrainer.id,
+                            pokemonUuid: newSlot.pokemonUuid
+                        });
                     }
                 }
             });
@@ -166,20 +176,19 @@ class TrainerManager {
     }
     
     /**
-     * Speichert Pokemon-Daten für einen bestimmten Trainer und Slot
-     * Verwendet den globalen PokemonStorageService
+     * Speichert Pokemon-Daten für einen bestimmten Trainer und Pokemon-UUID
      * @param {string} trainerId - ID des Trainers
-     * @param {number} slotIndex - Index des Pokemon-Slots
+     * @param {string} pokemonUuid - UUID des Pokemon
      * @param {Object} pokemonData - Die Pokemon-Daten
      */
-    _savePokemonToStorage(trainerId, slotIndex, pokemonData) {
+    _savePokemonToStorage(trainerId, pokemonUuid, pokemonData) {
         if (window.pokemonStorageService) {
-            window.pokemonStorageService.save(trainerId, slotIndex, pokemonData);
+            window.pokemonStorageService.save(trainerId, pokemonUuid, pokemonData);
         } else {
-            // Fallback für den Fall, dass der StorageService noch nicht geladen ist
+            // Fallback mit neuem Key-Format
             try {
                 const sheets = JSON.parse(localStorage.getItem('pokemon_character_sheets') || '{}');
-                const key = `${trainerId}_slot${slotIndex}`;
+                const key = `${trainerId}_pokemon_${pokemonUuid}`;
                 sheets[key] = pokemonData;
                 localStorage.setItem('pokemon_character_sheets', JSON.stringify(sheets));
             } catch (error) {
@@ -189,20 +198,19 @@ class TrainerManager {
     }
     
     /**
-     * Lädt Pokemon-Daten für einen bestimmten Trainer und Slot
-     * Verwendet den globalen PokemonStorageService
+     * Lädt Pokemon-Daten für einen bestimmten Trainer und Pokemon-UUID
      * @param {string} trainerId - ID des Trainers
-     * @param {number} slotIndex - Index des Pokemon-Slots
+     * @param {string} pokemonUuid - UUID des Pokemon
      * @returns {Object|null} Die Pokemon-Daten oder null
      */
-    _loadPokemonFromStorage(trainerId, slotIndex) {
+    _loadPokemonFromStorage(trainerId, pokemonUuid) {
         if (window.pokemonStorageService) {
-            return window.pokemonStorageService.load(trainerId, slotIndex);
+            return window.pokemonStorageService.load(trainerId, pokemonUuid);
         } else {
-            // Fallback
+            // Fallback mit neuem Key-Format
             try {
                 const sheets = JSON.parse(localStorage.getItem('pokemon_character_sheets') || '{}');
-                const key = `${trainerId}_slot${slotIndex}`;
+                const key = `${trainerId}_pokemon_${pokemonUuid}`;
                 return sheets[key] || null;
             } catch (error) {
                 console.error('Fehler beim Laden der Pokemon-Daten:', error);
@@ -212,19 +220,18 @@ class TrainerManager {
     }
     
     /**
-     * Entfernt Pokemon-Daten für einen bestimmten Trainer und Slot
-     * Verwendet den globalen PokemonStorageService
+     * Entfernt Pokemon-Daten für einen bestimmten Trainer und Pokemon-UUID
      * @param {string} trainerId - ID des Trainers
-     * @param {number} slotIndex - Index des Pokemon-Slots
+     * @param {string} pokemonUuid - UUID des Pokemon
      */
-    _removePokemonFromStorage(trainerId, slotIndex) {
+    _removePokemonFromStorage(trainerId, pokemonUuid) {
         if (window.pokemonStorageService) {
-            window.pokemonStorageService.delete(trainerId, slotIndex);
+            window.pokemonStorageService.delete(trainerId, pokemonUuid);
         } else {
-            // Fallback
+            // Fallback mit neuem Key-Format
             try {
                 const sheets = JSON.parse(localStorage.getItem('pokemon_character_sheets') || '{}');
-                const key = `${trainerId}_slot${slotIndex}`;
+                const key = `${trainerId}_pokemon_${pokemonUuid}`;
                 if (sheets[key]) {
                     delete sheets[key];
                     localStorage.setItem('pokemon_character_sheets', JSON.stringify(sheets));
@@ -275,6 +282,10 @@ class TrainerManager {
                     }
                     
                     console.log(`${this.trainers.length} Trainer aus neuem Format geladen.`);
+                    
+                    // UUID-Migration für alle Trainer durchführen
+                    this.migrateAllToUuidFormat();
+                    
                     return true;
                 }
             }
@@ -308,43 +319,91 @@ class TrainerManager {
     }
     
     /**
-     * Migriert Pokemon-Daten vom alten Format (pokemonId als Key) zum neuen Format (trainerId_slotX als Key)
+     * Migriert Pokemon-Daten vom alten Format zum neuen UUID-Format
+     * Wird automatisch beim Laden aufgerufen
      * @param {TrainerState} trainer - Der Trainer dessen Pokemon migriert werden
      * @private
      */
     _migratePokemonData(trainer) {
         try {
-            const oldSheets = JSON.parse(localStorage.getItem('pokemon_character_sheets') || '{}');
-            const newSheets = {};
+            const sheets = JSON.parse(localStorage.getItem('pokemon_character_sheets') || '{}');
             let migratedCount = 0;
+            let needsSave = false;
             
             // Für jeden Pokemon-Slot des Trainers
             trainer.pokemonSlots.forEach((slot, slotIndex) => {
                 if (slot.pokemonId) {
-                    // Alte Daten mit Pokemon-ID als Key suchen
-                    const oldKey = slot.pokemonId.toString();
-                    const pokemonData = oldSheets[oldKey];
+                    // UUID generieren falls nicht vorhanden
+                    if (!slot.pokemonUuid) {
+                        slot.generateUuid();
+                        needsSave = true;
+                        console.log(`UUID generiert für Slot ${slotIndex}: ${slot.pokemonUuid}`);
+                    }
                     
-                    if (pokemonData) {
-                        // Neuen Key erstellen: trainerId_slotIndex
-                        const newKey = `${trainer.id}_slot${slotIndex}`;
-                        newSheets[newKey] = pokemonData;
+                    const newKey = `${trainer.id}_pokemon_${slot.pokemonUuid}`;
+                    const slotKey = `${trainer.id}_slot${slotIndex}`;
+                    
+                    // Prüfen ob Daten unter neuem Key bereits existieren
+                    if (sheets[newKey]) {
+                        // Daten existieren bereits unter neuem Key - alles gut
+                        // Aber trotzdem alten Key löschen falls vorhanden
+                        if (sheets[slotKey]) {
+                            delete sheets[slotKey];
+                            needsSave = true;
+                            console.log(`Alter Key gelöscht: ${slotKey}`);
+                        }
+                    }
+                    // Daten unter altem Slot-Key vorhanden? -> Migrieren!
+                    else if (sheets[slotKey]) {
+                        sheets[newKey] = sheets[slotKey];
+                        sheets[newKey].pokemonUuid = slot.pokemonUuid;
+                        delete sheets[slotKey];
                         migratedCount++;
-                        console.log(`Pokemon ${slot.germanName || slot.pokemonName} migriert: ${oldKey} -> ${newKey}`);
+                        needsSave = true;
+                        console.log(`Pokemon migriert: ${slotKey} -> ${newKey}`);
+                    }
+                    // Ganz altes Format: nur Pokemon-ID als Key
+                    else {
+                        const oldKey = slot.pokemonId.toString();
+                        if (sheets[oldKey]) {
+                            sheets[newKey] = sheets[oldKey];
+                            sheets[newKey].pokemonUuid = slot.pokemonUuid;
+                            // Alten Key behalten für andere Trainer die ihn nutzen könnten
+                            migratedCount++;
+                            needsSave = true;
+                            console.log(`Pokemon migriert (legacy): ${oldKey} -> ${newKey}`);
+                        }
                     }
                 }
             });
             
-            // Neue Daten speichern (alte bleiben erhalten für Rückwärtskompatibilität)
-            if (migratedCount > 0) {
-                // Alte und neue Daten zusammenführen
-                const mergedSheets = { ...oldSheets, ...newSheets };
-                localStorage.setItem('pokemon_character_sheets', JSON.stringify(mergedSheets));
-                console.log(`${migratedCount} Pokemon-Datensätze migriert.`);
+            if (needsSave) {
+                localStorage.setItem('pokemon_character_sheets', JSON.stringify(sheets));
+                if (migratedCount > 0) {
+                    console.log(`${migratedCount} Pokemon-Datensätze migriert.`);
+                }
             }
         } catch (error) {
             console.error('Fehler bei der Pokemon-Daten-Migration:', error);
         }
+    }
+    
+    /**
+     * Migriert alle Pokemon aller Trainer zum UUID-Format
+     * Wird nach dem Laden aller Trainer aufgerufen
+     * Prüft auch ob Daten unter dem neuen Key existieren
+     */
+    migrateAllToUuidFormat() {
+        console.log('Prüfe auf Pokemon-Migration zum UUID-Format...');
+        
+        // Migration für jeden Trainer durchführen
+        this.trainers.forEach(trainer => {
+            this._migratePokemonData(trainer);
+        });
+        
+        // Trainer-State speichern (mit eventuell neu generierten UUIDs)
+        this._saveToLocalStorage();
+        console.log('UUID-Migration abgeschlossen.');
     }
     
     /**
@@ -385,6 +444,9 @@ class TrainerManager {
             if (data.pokemonSheets) {
                 localStorage.setItem('pokemon_character_sheets', JSON.stringify(data.pokemonSheets));
             }
+            
+            // Migration durchführen für alle Trainer
+            this.migrateAllToUuidFormat();
         }
         // Altes Single-Trainer-Format
         else if (data.trainer) {
@@ -393,17 +455,35 @@ class TrainerManager {
             const newTrainer = this.trainers[newIndex];
             newTrainer._importFromJSON(data.trainer);
             
-            // Pokemon-Sheets importieren und migrieren
+            // Pokemon-Sheets importieren
             if (data.pokemonSheets) {
                 const existingSheets = JSON.parse(localStorage.getItem('pokemon_character_sheets') || '{}');
                 
-                // Für jeden Pokemon-Slot
+                // Für jeden Pokemon-Slot - mit UUID-Format!
                 newTrainer.pokemonSlots.forEach((slot, slotIndex) => {
                     if (slot.pokemonId) {
+                        // UUID generieren falls nicht vorhanden
+                        if (!slot.pokemonUuid) {
+                            slot.generateUuid();
+                        }
+                        
+                        // Alte Daten unter verschiedenen Keys suchen
                         const oldKey = slot.pokemonId.toString();
+                        const slotKey = `${newTrainer.id}_slot${slotIndex}`;
+                        
+                        // Neue UUID-basierte Key verwenden
+                        const newKey = `${newTrainer.id}_pokemon_${slot.pokemonUuid}`;
+                        
                         if (data.pokemonSheets[oldKey]) {
-                            const newKey = `${newTrainer.id}_slot${slotIndex}`;
-                            existingSheets[newKey] = data.pokemonSheets[oldKey];
+                            existingSheets[newKey] = {
+                                ...data.pokemonSheets[oldKey],
+                                pokemonUuid: slot.pokemonUuid
+                            };
+                        } else if (data.pokemonSheets[slotKey]) {
+                            existingSheets[newKey] = {
+                                ...data.pokemonSheets[slotKey],
+                                pokemonUuid: slot.pokemonUuid
+                            };
                         }
                     }
                 });
@@ -477,6 +557,9 @@ class TrainerState {
         // Wunden (0-10)
         this.wounds = 0;
         
+        // Statuseffekte (z.B. ['poisoned', 'burned'])
+        this.statusEffects = [];
+        
         // Glücks-Tokens (aktuelle und maximale, standardmäßig gleich GL)
         this.luckTokens = 1;       // Aktuelle Glücks-Tokens
         this.maxLuckTokens = 1;    // Maximale Glücks-Tokens (= GL)
@@ -494,18 +577,29 @@ class TrainerState {
             luckTokens: false
         };
         
-        // Fertigkeitswerte (gleiche Struktur wie Pokemon)
+        // Fertigkeitswerte (Trainer verwendet erweiterte Skill-Liste)
         this.skillValues = {};
         
         // Haupt-Kategorien (Grundwerte) initialisieren mit 1
-        Object.keys(SKILL_GROUPS).forEach(category => {
+        // Verwende TRAINER_SKILL_GROUPS für Trainer-spezifische Skills
+        const skillGroups = typeof TRAINER_SKILL_GROUPS !== 'undefined' ? TRAINER_SKILL_GROUPS : SKILL_GROUPS;
+        Object.keys(skillGroups).forEach(category => {
             this.skillValues[category] = 1;
         });
         
         // Einzelne Skills initialisieren mit 0
-        Object.values(SKILL_GROUPS).flat().forEach(skill => {
+        Object.values(skillGroups).flat().forEach(skill => {
             this.skillValues[skill] = 0;
         });
+        
+        // Benutzerdefinierte Fertigkeiten (pro Kategorie)
+        // Format: { KÖ: [{name: 'Fertigkeit', value: 1}], WI: [], CH: [], GL: [] }
+        this.customSkills = {
+            'KÖ': [],
+            'WI': [],
+            'CH': [],
+            'GL': []
+        };
         
         // Pokemon-Slots (standardmäßig 6)
         this.pokemonSlots = [];
@@ -521,6 +615,13 @@ class TrainerState {
         for (let i = 0; i < 1; i++) {
             this.inventory.push(new InventoryItem());
         }
+        
+        // Notizen (drei Kategorien mit je einem leeren Eintrag)
+        this.notes = {
+            personen: [new NoteEntry('personen')],
+            orte: [new NoteEntry('orte')],
+            sonstiges: [new NoteEntry('sonstiges')]
+        };
         
         // Trainer-Attacken (mit Standard-Attacken)
         this.attacks = [
@@ -812,6 +913,87 @@ class TrainerState {
     }
     
     /**
+     * Fügt eine benutzerdefinierte Fertigkeit zu einer Kategorie hinzu
+     * @param {string} category - Kategorie (KÖ, WI, CH, GL)
+     * @param {string} name - Name der Fertigkeit
+     * @returns {boolean} True bei Erfolg
+     */
+    addCustomSkill(category, name = '') {
+        if (!this.customSkills) {
+            this.customSkills = { 'KÖ': [], 'WI': [], 'CH': [], 'GL': [] };
+        }
+        
+        if (!this.customSkills[category]) {
+            this.customSkills[category] = [];
+        }
+        
+        this.customSkills[category].push({
+            name: name,
+            value: 1
+        });
+        
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Entfernt eine benutzerdefinierte Fertigkeit
+     * @param {string} category - Kategorie (KÖ, WI, CH, GL)
+     * @param {number} index - Index der Fertigkeit
+     * @returns {boolean} True bei Erfolg
+     */
+    removeCustomSkill(category, index) {
+        if (!this.customSkills || !this.customSkills[category]) return false;
+        
+        if (index >= 0 && index < this.customSkills[category].length) {
+            this.customSkills[category].splice(index, 1);
+            this._notifyChange();
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Aktualisiert eine benutzerdefinierte Fertigkeit
+     * @param {string} category - Kategorie (KÖ, WI, CH, GL)
+     * @param {number} index - Index der Fertigkeit
+     * @param {Object} updates - Objekt mit Updates ({name, value})
+     * @returns {boolean} True bei Erfolg
+     */
+    updateCustomSkill(category, index, updates) {
+        if (!this.customSkills || !this.customSkills[category]) return false;
+        
+        if (index >= 0 && index < this.customSkills[category].length) {
+            const skill = this.customSkills[category][index];
+            
+            if (updates.name !== undefined) {
+                skill.name = updates.name;
+            }
+            if (updates.value !== undefined) {
+                const numValue = parseInt(updates.value, 10);
+                if (!isNaN(numValue) && numValue >= -9 && numValue <= 9) {
+                    skill.value = numValue;
+                }
+            }
+            this._notifyChange();
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Gibt alle benutzerdefinierten Fertigkeiten einer Kategorie zurück
+     * @param {string} category - Kategorie (KÖ, WI, CH, GL)
+     * @returns {Array} Liste der benutzerdefinierten Fertigkeiten
+     */
+    getCustomSkills(category) {
+        if (!this.customSkills) {
+            this.customSkills = { 'KÖ': [], 'WI': [], 'CH': [], 'GL': [] };
+        }
+        return this.customSkills[category] || [];
+    }
+    
+    /**
      * Setzt eine manuelle Überschreibung
      * @param {string} statName - Name des Stats (hp, initiative, gena, pa, bw)
      * @param {boolean} isOverridden - True wenn manuell überschrieben
@@ -951,6 +1133,7 @@ class TrainerState {
     
     /**
      * Entfernt einen Pokemon-Slot
+     * Löscht die Storage-Daten über die UUID des Pokemon
      * @param {number} index - Index des zu entfernenden Slots
      * @returns {boolean} True bei Erfolg
      */
@@ -959,16 +1142,18 @@ class TrainerState {
             return false;
         }
         
-        // Pokemon-Daten aus localStorage löschen
-        if (this.manager) {
-            this.manager._removePokemonFromStorage(this.id, index);
+        const slot = this.pokemonSlots[index];
+        
+        // Pokemon-Daten über UUID aus localStorage löschen
+        if (slot.pokemonUuid && this.manager) {
+            this.manager._removePokemonFromStorage(this.id, slot.pokemonUuid);
         }
         
         this.pokemonSlots.splice(index, 1);
         
-        // Indizes aktualisieren
-        this.pokemonSlots.forEach((slot, i) => {
-            slot.index = i;
+        // Nur die Slot-Indizes aktualisieren (UUIDs bleiben stabil!)
+        this.pokemonSlots.forEach((s, i) => {
+            s.index = i;
         });
         
         this._notifyChange();
@@ -976,10 +1161,64 @@ class TrainerState {
     }
     
     /**
+     * Tauscht zwei Pokemon-Slots
+     * Die UUIDs und Storage-Keys bleiben unverändert - nur die Positionen werden getauscht
+     * @param {number} fromIndex - Index des ersten Slots
+     * @param {number} toIndex - Index des zweiten Slots
+     * @returns {boolean} True bei Erfolg
+     */
+    swapPokemonSlots(fromIndex, toIndex) {
+        if (fromIndex < 0 || fromIndex >= this.pokemonSlots.length ||
+            toIndex < 0 || toIndex >= this.pokemonSlots.length ||
+            fromIndex === toIndex) {
+            return false;
+        }
+        
+        const fromSlot = this.pokemonSlots[fromIndex];
+        const toSlot = this.pokemonSlots[toIndex];
+        
+        // Alle Slot-Daten tauschen (außer dem Index)
+        const tempData = {
+            pokemonId: fromSlot.pokemonId,
+            pokemonUuid: fromSlot.pokemonUuid,
+            pokemonName: fromSlot.pokemonName,
+            germanName: fromSlot.germanName,
+            nickname: fromSlot.nickname,
+            spriteUrl: fromSlot.spriteUrl,
+            types: fromSlot.types ? [...fromSlot.types] : []
+        };
+        
+        // fromSlot bekommt toSlot-Daten
+        fromSlot.pokemonId = toSlot.pokemonId;
+        fromSlot.pokemonUuid = toSlot.pokemonUuid;
+        fromSlot.pokemonName = toSlot.pokemonName;
+        fromSlot.germanName = toSlot.germanName;
+        fromSlot.nickname = toSlot.nickname;
+        fromSlot.spriteUrl = toSlot.spriteUrl;
+        fromSlot.types = toSlot.types ? [...toSlot.types] : [];
+        
+        // toSlot bekommt tempData
+        toSlot.pokemonId = tempData.pokemonId;
+        toSlot.pokemonUuid = tempData.pokemonUuid;
+        toSlot.pokemonName = tempData.pokemonName;
+        toSlot.germanName = tempData.germanName;
+        toSlot.nickname = tempData.nickname;
+        toSlot.spriteUrl = tempData.spriteUrl;
+        toSlot.types = tempData.types;
+        
+        console.log(`Pokemon-Slots getauscht: ${fromIndex} <-> ${toIndex}`);
+        
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
      * Weist einem Slot ein Pokemon zu
+     * Generiert automatisch eine UUID für das Pokemon
      * @param {number} slotIndex - Index des Slots
      * @param {number} pokemonId - ID des Pokemon
      * @param {Object} pokemonData - Pokemon-Daten
+     * @returns {string|false} Die UUID des Pokemon oder false bei Fehler
      */
     assignPokemonToSlot(slotIndex, pokemonId, pokemonData) {
         if (slotIndex < 0 || slotIndex >= this.pokemonSlots.length) {
@@ -987,14 +1226,29 @@ class TrainerState {
         }
         
         const slot = this.pokemonSlots[slotIndex];
+        
+        // UUID generieren wenn nicht vorhanden oder wenn es ein neues Pokemon ist
+        if (!slot.pokemonUuid || slot.pokemonId !== pokemonId) {
+            slot.generateUuid();
+        }
+        
         slot.pokemonId = pokemonId;
         slot.pokemonName = pokemonData.name;
         slot.germanName = pokemonData.germanName || pokemonData.name;
         slot.spriteUrl = pokemonData.sprites?.front_default || '';
         slot.nickname = '';
         
+        // Typen extrahieren
+        if (pokemonData.types && Array.isArray(pokemonData.types)) {
+            slot.types = pokemonData.types.map(t => {
+                if (typeof t === 'string') return t.toLowerCase();
+                if (t.type && t.type.name) return t.type.name.toLowerCase();
+                return null;
+            }).filter(t => t !== null);
+        }
+        
         this._notifyChange();
-        return true;
+        return slot.pokemonUuid;
     }
     
     /**
@@ -1013,16 +1267,20 @@ class TrainerState {
     
     /**
      * Leert einen Pokemon-Slot
+     * Löscht auch die Storage-Daten über die UUID
      * @param {number} slotIndex - Index des Slots
+     * @returns {boolean} True bei Erfolg
      */
     clearPokemonSlot(slotIndex) {
         if (slotIndex >= 0 && slotIndex < this.pokemonSlots.length) {
-            // Pokemon-Daten löschen
-            if (this.manager) {
-                this.manager._removePokemonFromStorage(this.id, slotIndex);
+            const slot = this.pokemonSlots[slotIndex];
+            
+            // Pokemon-Daten über UUID löschen
+            if (slot.pokemonUuid && this.manager) {
+                this.manager._removePokemonFromStorage(this.id, slot.pokemonUuid);
             }
             
-            this.pokemonSlots[slotIndex].clear();
+            slot.clear();
             this._notifyChange();
             return true;
         }
@@ -1032,10 +1290,14 @@ class TrainerState {
     /**
      * Gibt den Storage-Key für ein Pokemon zurück
      * @param {number} slotIndex - Index des Pokemon-Slots
-     * @returns {string} Der Storage-Key
+     * @returns {string|null} Der Storage-Key oder null wenn keine UUID vorhanden
      */
     getPokemonStorageKey(slotIndex) {
-        return `${this.id}_slot${slotIndex}`;
+        const slot = this.pokemonSlots[slotIndex];
+        if (slot && slot.pokemonUuid) {
+            return `${this.id}_pokemon_${slot.pokemonUuid}`;
+        }
+        return null;
     }
     
     // ==================== Inventar Management ====================
@@ -1076,6 +1338,58 @@ class TrainerState {
             if (data.name !== undefined) item.name = data.name;
             if (data.quantity !== undefined) item.quantity = data.quantity;
             if (data.description !== undefined) item.description = data.description;
+            this._notifyChange();
+            return true;
+        }
+        return false;
+    }
+    
+    // ==================== Notizen Management ====================
+    
+    /**
+     * Fügt einen neuen Notiz-Eintrag hinzu
+     * @param {string} category - 'personen', 'orte' oder 'sonstiges'
+     * @returns {number} Index des neuen Eintrags
+     */
+    addNote(category) {
+        if (!this.notes[category]) return -1;
+        const newEntry = new NoteEntry(category);
+        this.notes[category].push(newEntry);
+        this._notifyChange();
+        return this.notes[category].length - 1;
+    }
+    
+    /**
+     * Entfernt einen Notiz-Eintrag
+     * @param {string} category - 'personen', 'orte' oder 'sonstiges'
+     * @param {number} index - Index des zu entfernenden Eintrags
+     * @returns {boolean} True bei Erfolg
+     */
+    removeNote(category, index) {
+        if (!this.notes[category]) return false;
+        if (index >= 0 && index < this.notes[category].length && this.notes[category].length > 1) {
+            this.notes[category].splice(index, 1);
+            this._notifyChange();
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Aktualisiert einen Notiz-Eintrag
+     * @param {string} category - 'personen', 'orte' oder 'sonstiges'
+     * @param {number} index - Index des Eintrags
+     * @param {Object} data - Neue Daten
+     */
+    updateNote(category, index, data) {
+        if (!this.notes[category]) return false;
+        if (index >= 0 && index < this.notes[category].length) {
+            const entry = this.notes[category][index];
+            Object.keys(data).forEach(key => {
+                if (entry.hasOwnProperty(key) && key !== 'type') {
+                    entry[key] = data[key];
+                }
+            });
             this._notifyChange();
             return true;
         }
@@ -1368,13 +1682,20 @@ class TrainerState {
             pa: this.pa,
             bw: this.bw,
             wounds: this.wounds,
+            statusEffects: this.statusEffects || [],
             luckTokens: this.luckTokens,
             maxLuckTokens: this.maxLuckTokens,
             money: this.money,
             manualOverrides: this.manualOverrides,
             skillValues: this.skillValues,
+            customSkills: this.customSkills || { 'KÖ': [], 'WI': [], 'CH': [], 'GL': [] },
             pokemonSlots: this.pokemonSlots.map(slot => slot.toJSON()),
             inventory: this.inventory.map(item => item.toJSON()),
+            notes: {
+                personen: this.notes.personen.map(entry => entry.toJSON()),
+                orte: this.notes.orte.map(entry => entry.toJSON()),
+                sonstiges: this.notes.sonstiges.map(entry => entry.toJSON())
+            },
             attacks: this.attacks,
             perks: this.perks,
             kommandos: this.kommandos,
@@ -1418,6 +1739,7 @@ class TrainerState {
         this.pa = data.pa || 2;
         this.bw = data.bw || 30;
         this.wounds = data.wounds || 0;
+        this.statusEffects = data.statusEffects || [];
         
         // Glücks-Tokens
         const gl = data.skillValues?.['GL'] || 1;
@@ -1444,6 +1766,16 @@ class TrainerState {
             }
         });
         
+        // Benutzerdefinierte Fertigkeiten
+        if (data.customSkills && typeof data.customSkills === 'object') {
+            this.customSkills = {
+                'KÖ': data.customSkills['KÖ'] || [],
+                'WI': data.customSkills['WI'] || [],
+                'CH': data.customSkills['CH'] || [],
+                'GL': data.customSkills['GL'] || []
+            };
+        }
+        
         // Pokemon-Slots
         if (data.pokemonSlots && Array.isArray(data.pokemonSlots)) {
             this.pokemonSlots = data.pokemonSlots.map((slotData, index) => {
@@ -1459,6 +1791,23 @@ class TrainerState {
                 const item = new InventoryItem();
                 item.fromJSON(itemData);
                 return item;
+            });
+        }
+        
+        // Notizen
+        if (data.notes && typeof data.notes === 'object') {
+            ['personen', 'orte', 'sonstiges'].forEach(category => {
+                if (data.notes[category] && Array.isArray(data.notes[category])) {
+                    this.notes[category] = data.notes[category].map(entryData => {
+                        const entry = new NoteEntry(category);
+                        entry.fromJSON(entryData);
+                        return entry;
+                    });
+                    // Mindestens ein Eintrag pro Kategorie
+                    if (this.notes[category].length === 0) {
+                        this.notes[category].push(new NoteEntry(category));
+                    }
+                }
             });
         }
         
@@ -1575,17 +1924,88 @@ class InventoryItem {
 
 
 /**
+ * Klasse für einen Notiz-Eintrag
+ */
+class NoteEntry {
+    constructor(type = 'personen') {
+        this.type = type; // 'personen', 'orte', 'sonstiges'
+        
+        // Felder basierend auf Typ initialisieren
+        if (type === 'personen') {
+            this.name = '';
+            this.rolle = '';
+            this.notizen = '';
+        } else if (type === 'orte') {
+            this.name = '';
+            this.notizen = '';
+        } else if (type === 'sonstiges') {
+            this.ueberschrift = '';
+            this.notizen = '';
+        }
+    }
+    
+    /**
+     * Serialisiert den Eintrag zu JSON
+     * @returns {Object} JSON-Repräsentation
+     */
+    toJSON() {
+        const base = { type: this.type };
+        
+        if (this.type === 'personen') {
+            return { ...base, name: this.name, rolle: this.rolle, notizen: this.notizen };
+        } else if (this.type === 'orte') {
+            return { ...base, name: this.name, notizen: this.notizen };
+        } else if (this.type === 'sonstiges') {
+            return { ...base, ueberschrift: this.ueberschrift, notizen: this.notizen };
+        }
+        return base;
+    }
+    
+    /**
+     * Lädt Daten aus JSON
+     * @param {Object} data - Die zu ladenden Daten
+     */
+    fromJSON(data) {
+        this.type = data.type || 'personen';
+        
+        if (this.type === 'personen') {
+            this.name = data.name || '';
+            this.rolle = data.rolle || '';
+            this.notizen = data.notizen || '';
+        } else if (this.type === 'orte') {
+            this.name = data.name || '';
+            this.notizen = data.notizen || '';
+        } else if (this.type === 'sonstiges') {
+            this.ueberschrift = data.ueberschrift || '';
+            this.notizen = data.notizen || '';
+        }
+    }
+}
+
+
+/**
  * Klasse für einen Pokemon-Slot im Trainer-Team
+ * Mit UUID für stabile Speicherung unabhängig von Slot-Position
  */
 class PokemonSlot {
     constructor(index) {
         this.index = index;
         this.pokemonId = null;
+        this.pokemonUuid = null;  // Stabile UUID für Storage
         this.pokemonName = null;
         this.germanName = null;
         this.nickname = '';
         this.spriteUrl = '';
         this.types = [];
+    }
+    
+    /**
+     * Generiert eine eindeutige UUID für das Pokemon
+     * @returns {string} Die generierte UUID
+     */
+    generateUuid() {
+        this.pokemonUuid = 'pkmn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        return this.pokemonUuid;
     }
     
     /**
@@ -1609,14 +2029,18 @@ class PokemonSlot {
     
     /**
      * Leert den Slot
+     * @returns {string|null} Die alte UUID (für Storage-Löschung)
      */
     clear() {
+        const oldUuid = this.pokemonUuid;
         this.pokemonId = null;
+        this.pokemonUuid = null;
         this.pokemonName = null;
         this.germanName = null;
         this.nickname = '';
         this.spriteUrl = '';
         this.types = [];
+        return oldUuid;
     }
     
     /**
@@ -1627,6 +2051,7 @@ class PokemonSlot {
         return {
             index: this.index,
             pokemonId: this.pokemonId,
+            pokemonUuid: this.pokemonUuid,
             pokemonName: this.pokemonName,
             germanName: this.germanName,
             nickname: this.nickname,
@@ -1642,6 +2067,7 @@ class PokemonSlot {
     fromJSON(data) {
         this.index = data.index !== undefined ? data.index : this.index;
         this.pokemonId = data.pokemonId || null;
+        this.pokemonUuid = data.pokemonUuid || null;
         this.pokemonName = data.pokemonName || null;
         this.germanName = data.germanName || null;
         this.nickname = data.nickname || '';

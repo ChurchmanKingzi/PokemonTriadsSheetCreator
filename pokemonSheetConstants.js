@@ -172,3 +172,32 @@ const DICE_CLASS_ORDER = {
     '2W12': 8,
     '2W100': 9
 };
+
+// Trainer-spezifische Fertigkeiten (erweitert SKILL_GROUPS um Trainer-exklusive Skills)
+const TRAINER_SKILL_GROUPS = {
+    KÖ: [...SKILL_GROUPS.KÖ],
+    WI: [
+        'Computernutzung',
+        'Erste Hilfe',
+        'Fahrzeuge lenken',
+        'Fallen legen/entschärfen',
+        'Gefahreninstinkt',
+        'Geschichte',
+        'Kryptographie',
+        'Medizin',
+        'Naturwissenschaften',
+        'Okkultismus',
+        'Orientierung',
+        'Reparieren',
+        'Umgang mit Pokemon',
+        'Wildnisleben/Survival',
+        'Wissen über Pokemon allgemein'
+    ],
+    CH: [...SKILL_GROUPS.CH],
+    GL: [
+        'Fangen',
+        'Recherche',
+        'Spielen',
+        'Suchen'
+    ]
+};

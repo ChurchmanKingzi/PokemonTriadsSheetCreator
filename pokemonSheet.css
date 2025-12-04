@@ -346,6 +346,12 @@ body {
     border-radius: 5px;
     font-size: 1rem;
     display: inline-block;
+    cursor: help;
+    transition: background-color 0.2s ease;
+}
+
+.dice-class:hover {
+    background-color: #2d3748;
 }
 
 /* Typen */
@@ -698,8 +704,9 @@ body {
     grid-template-areas: 
         "hp speed"
         "attack defense"
-        "spAttack spDefense";
-    column-gap: 0.3rem;
+        "spAttack spDefense"
+        "utility utility";
+    column-gap: 0.2rem;
     row-gap: 0.125rem;
     margin-top: 0.25rem;
     width: 100%;
@@ -717,7 +724,7 @@ body {
 
 .stat-name {
     font-weight: 600;
-    min-width: 80px;
+    min-width: 70px;
     display: inline-block;
     font-size: 0.9rem;
 }
@@ -729,6 +736,7 @@ body {
 .defense-item { grid-area: defense; background-color: rgba(160, 174, 192, 0.2); }
 .sp-attack-item { grid-area: spAttack; background-color: rgba(237, 137, 54, 0.2); }
 .sp-defense-item { grid-area: spDefense; background-color: rgba(159, 122, 234, 0.2); }
+.stat-utility-buttons { grid-area: utility; }
 
 /* HP Anzeige */
 .hp-inputs {
@@ -1420,6 +1428,10 @@ body.dark-mode .exp-input {
 body.dark-mode .dice-class {
     background-color: #374151;
     color: #fbbf24;
+}
+
+body.dark-mode .dice-class:hover {
+    background-color: #4b5563;
 }
 
 /* GENA PA BW Container - FIXED */
@@ -2395,6 +2407,56 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
     height: 80px;
     image-rendering: pixelated;
     margin-bottom: 0.25rem;
+    /* Squash & Stretch Animation */
+    animation: pokemonBreathe 3s ease-in-out infinite;
+    transform-origin: bottom center;
+}
+
+/* ==================== POKEMON SPRITE SQUASH & STRETCH ANIMATION ==================== */
+/* Sanfte "Atem"-Animation für lebendige Sprites */
+@keyframes pokemonBreathe {
+    0%, 100% {
+        transform: scaleX(1) scaleY(1) translateY(0);
+    }
+    /* Squash - Pokemon drückt sich zusammen */
+    25% {
+        transform: scaleX(1.04) scaleY(0.96) translateY(2px);
+    }
+    /* Zurück zur Mitte */
+    50% {
+        transform: scaleX(1) scaleY(1) translateY(0);
+    }
+    /* Stretch - Pokemon streckt sich */
+    75% {
+        transform: scaleX(0.96) scaleY(1.04) translateY(-2px);
+    }
+}
+
+/* Unterschiedliche Animationsverzögerungen für jeden Slot */
+/* Damit die Pokemon nicht alle synchron "atmen" */
+.pokemon-slot:nth-child(1) .pokemon-sprite { animation-delay: 0s; }
+.pokemon-slot:nth-child(2) .pokemon-sprite { animation-delay: -0.5s; }
+.pokemon-slot:nth-child(3) .pokemon-sprite { animation-delay: -1s; }
+.pokemon-slot:nth-child(4) .pokemon-sprite { animation-delay: -1.5s; }
+.pokemon-slot:nth-child(5) .pokemon-sprite { animation-delay: -2s; }
+.pokemon-slot:nth-child(6) .pokemon-sprite { animation-delay: -2.5s; }
+.pokemon-slot:nth-child(7) .pokemon-sprite { animation-delay: -0.75s; }
+.pokemon-slot:nth-child(8) .pokemon-sprite { animation-delay: -1.25s; }
+.pokemon-slot:nth-child(9) .pokemon-sprite { animation-delay: -1.75s; }
+.pokemon-slot:nth-child(10) .pokemon-sprite { animation-delay: -2.25s; }
+
+/* Animation pausieren wenn reduzierte Bewegung bevorzugt wird */
+@media (prefers-reduced-motion: reduce) {
+    .pokemon-sprite {
+        animation: none;
+    }
+}
+
+/* Animation pausieren beim Drucken */
+@media print {
+    .pokemon-sprite {
+        animation: none !important;
+    }
 }
 
 .pokemon-nickname {
@@ -2442,28 +2504,9 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 /* ==================== DRAG AND DROP STYLES ==================== */
 
 /* Drag Handle */
+/* Drag-Handle wird nicht mehr verwendet - gesamter Slot ist draggable */
 .drag-handle {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #a0aec0;
-    font-size: 0.9rem;
-    font-weight: bold;
-    cursor: grab;
-    opacity: 0;
-    transition: all 0.2s;
-    letter-spacing: -2px;
-    user-select: none;
-    border-radius: 4px;
-}
-
-.pokemon-slot:hover .drag-handle {
-    opacity: 1;
+    display: none;
 }
 
 .drag-handle:hover {
@@ -2475,26 +2518,51 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
     cursor: grabbing;
 }
 
-/* Dragging State */
+/* Dragging State - das Original wird ausgegraut */
 .pokemon-slot.dragging {
-    opacity: 0.5;
-    transform: scale(0.98);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
+    opacity: 0.4;
+    transform: scale(0.95);
+    border-style: dashed;
+    border-color: #a0aec0;
 }
 
-.pokemon-slot[draggable="true"] {
+/* Drag Clone (das Element das dem Cursor folgt) - behält Original-Styling */
+.drag-clone {
+    transition: none !important;
+    cursor: grabbing !important;
+}
+
+.drag-clone * {
+    transition: none !important;
+}
+
+.drag-clone .pokemon-sprite {
+    animation: none !important;
+}
+
+.drag-clone .remove-slot-button {
+    display: none !important;
+}
+
+/* Slots sind immer "greifbar" */
+.pokemon-slot {
     cursor: grab;
 }
 
-.pokemon-slot[draggable="true"]:active {
+.pokemon-slot:active {
     cursor: grabbing;
+}
+
+.pokemon-slot .slot-content {
+    cursor: grab;
 }
 
 /* Drag Over State */
 .pokemon-slot.drag-over {
     border-color: #4a90d9;
-    background-color: rgba(74, 144, 217, 0.05);
+    border-width: 3px;
+    background-color: rgba(74, 144, 217, 0.15);
+    transform: scale(1.02);
 }
 
 /* Position indicators */
@@ -4640,6 +4708,339 @@ body.dark-mode .inventory-remove-button:hover {
     display: none !important;
 }
 
+/* ==================== TRAINER NOTIZEN SYSTEM ==================== */
+
+.trainer-notes-section {
+    margin-top: 1rem;
+}
+
+/* Tabs */
+.notes-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 0;
+}
+
+.notes-tab {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: #f7fafc;
+    color: #4a5568;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.875rem;
+    border-radius: 0.375rem 0.375rem 0 0;
+    transition: all 0.2s ease;
+    border: 1px solid #e2e8f0;
+    border-bottom: none;
+    margin-bottom: -2px;
+}
+
+.notes-tab:hover {
+    background: #edf2f7;
+    color: #2d3748;
+}
+
+.notes-tab.active {
+    background: white;
+    color: #2d3748;
+    border-color: #e2e8f0;
+    border-bottom: 2px solid white;
+    font-weight: 600;
+}
+
+/* Tab Content */
+.notes-content {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0 0.375rem 0.375rem 0.375rem;
+    padding: 0.75rem;
+}
+
+.notes-tab-content {
+    display: none;
+}
+
+.notes-tab-content.active {
+    display: block;
+}
+
+/* Header Row mit Add-Button */
+.notes-header-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
+}
+
+.notes-add-button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background-color: #48bb78;
+    color: white;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.notes-add-button:hover {
+    background-color: #38a169;
+    transform: scale(1.1);
+}
+
+/* Notes List */
+.notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+/* Table Headers */
+.notes-table-header {
+    display: grid;
+    background-color: #f7fafc;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.notes-personen-header {
+    grid-template-columns: 1fr 1fr 2fr 32px;
+    gap: 0.5rem;
+}
+
+.notes-orte-header {
+    grid-template-columns: 1fr 2fr 32px;
+    gap: 0.5rem;
+}
+
+.notes-sonstiges-header {
+    grid-template-columns: 1fr 2fr 32px;
+    gap: 0.5rem;
+}
+
+/* Notes Items */
+.notes-item {
+    display: grid;
+    padding: 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    align-items: start;
+    gap: 0.5rem;
+    transition: background-color 0.15s ease;
+}
+
+.notes-item:last-child {
+    border-bottom: none;
+}
+
+.notes-item:hover {
+    background-color: #f7fafc;
+}
+
+.notes-personen-item {
+    grid-template-columns: 1fr 1fr 2fr 32px;
+}
+
+.notes-orte-item {
+    grid-template-columns: 1fr 2fr 32px;
+}
+
+.notes-sonstiges-item {
+    grid-template-columns: 1fr 2fr 32px;
+}
+
+/* Input Fields */
+.notes-input {
+    width: 100%;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.notes-input:focus {
+    outline: none;
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.1);
+}
+
+/* Textarea Wrapper */
+.notes-notizen-wrapper {
+    min-height: 60px;
+}
+
+.notes-textarea {
+    width: 100%;
+    min-height: 60px;
+    max-height: 200px;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.notes-textarea:focus {
+    outline: none;
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.1);
+}
+
+.notes-textarea::placeholder {
+    color: #a0aec0;
+}
+
+/* Remove Button */
+.notes-remove-button {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background-color: #fc8181;
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    align-self: center;
+}
+
+.notes-remove-button:hover {
+    background-color: #f56565;
+    transform: scale(1.1);
+}
+
+/* Hide remove button when only one entry */
+.notes-list:has(.notes-item:only-of-type) .notes-remove-button {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Dark Mode */
+body.dark-mode .notes-tabs {
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .notes-tab {
+    background: #2d3748;
+    color: #a0aec0;
+    border-color: #4a5568;
+}
+
+body.dark-mode .notes-tab:hover {
+    background: #3a4a5a;
+    color: #e2e8f0;
+}
+
+body.dark-mode .notes-tab.active {
+    background: #1a202c;
+    color: #e2e8f0;
+    border-bottom-color: #1a202c;
+}
+
+body.dark-mode .notes-content {
+    background: #1a202c;
+    border-color: #4a5568;
+}
+
+body.dark-mode .notes-list {
+    border-color: #4a5568;
+}
+
+body.dark-mode .notes-table-header {
+    background-color: #2d3748;
+    color: #a0aec0;
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .notes-item {
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .notes-item:hover {
+    background-color: #2d3748;
+}
+
+body.dark-mode .notes-input,
+body.dark-mode .notes-textarea {
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .notes-input:focus,
+body.dark-mode .notes-textarea:focus {
+    border-color: #4a90d9;
+}
+
+body.dark-mode .notes-textarea::placeholder {
+    color: #718096;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .notes-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .notes-tab {
+        flex: 1;
+        min-width: auto;
+        padding: 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .notes-table-header {
+        display: none;
+    }
+    
+    .notes-personen-item,
+    .notes-orte-item,
+    .notes-sonstiges-item {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .notes-remove-button {
+        justify-self: end;
+    }
+}
+
+/* PDF Mode */
+.pdf-mode .notes-add-button,
+.pdf-mode .notes-remove-button {
+    display: none !important;
+}
+
+.pdf-mode .notes-textarea {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+}
+
 /* ==================== TRAINER ATTACKEN SYSTEM ==================== */
 
 .trainer-attacks-section {
@@ -6676,5 +7077,1332 @@ body.dark-mode .type-mastery-item.is-favorite .type-mastery-input {
     .type-mastery-favorite-selector {
         flex-wrap: wrap;
         justify-content: center;
+    }
+}
+/* ==================== ENTWICKLUNGS-FEATURE ==================== */
+
+/* Container für Entwicklungs-UI */
+.evolution-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1rem;
+    position: relative;
+}
+
+/* Container für die Entwicklungs-Icons */
+.evolution-icons-container {
+    display: flex;
+    flex-direction: row;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-height: 0;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+}
+
+.evolution-icons-container.evolution-icons-visible {
+    min-height: 80px;
+    max-height: 400px; /* Erhöht für Pokemon mit vielen Entwicklungen (z.B. Evoli mit 8) */
+    opacity: 1;
+    padding: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 2px solid #48bb78;
+}
+
+/* Wrapper für einzelnes Entwicklungs-Icon */
+.evolution-icon-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    padding: 0.25rem;
+    border-radius: 0.5rem;
+}
+
+.evolution-icon-wrapper:hover {
+    transform: scale(1.1);
+}
+
+.evolution-icon-wrapper:hover .evolution-icon {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Das Entwicklungs-Icon selbst */
+.evolution-icon {
+    width: 60px;
+    height: 60px;
+    background-color: white;
+    border-radius: 0.5rem;
+    border: 3px solid;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Das Sprite-Bild im Icon */
+.evolution-sprite {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+/* Name-Label unter dem Icon */
+.evolution-name-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Entwickeln-Button Basis-Stil */
+.evolve-button {
+    padding: 0.5rem 1rem;
+    font-weight: bold;
+    font-size: 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    white-space: nowrap;
+    min-width: 130px;
+}
+
+/* Entwickeln-Button deaktiviert (keine Entwicklung möglich) */
+.evolve-button:disabled,
+.evolve-button.evolve-button-disabled {
+    background-color: #a0aec0;
+    color: #718096;
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+}
+
+/* Entwickeln-Button bereit (Entwicklung möglich) */
+.evolve-button.evolve-button-ready {
+    background-color: #48bb78;
+    color: white;
+    box-shadow: 0 4px 6px rgba(72, 187, 120, 0.3);
+    animation: evolvePulse 2s ease-in-out infinite;
+}
+
+.evolve-button.evolve-button-ready:hover {
+    background-color: #38a169;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(72, 187, 120, 0.4);
+    animation: none;
+}
+
+.evolve-button.evolve-button-ready:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);
+}
+
+/* Entwickeln-Button wartend (Icons werden angezeigt) */
+.evolve-button.evolve-button-waiting {
+    background-color: #ecc94b;
+    color: #744210;
+    box-shadow: 0 4px 6px rgba(236, 201, 75, 0.3);
+    animation: none;
+}
+
+/* Puls-Animation für den Entwickeln-Button */
+@keyframes evolvePulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(72, 187, 120, 0.4);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(72, 187, 120, 0.6);
+        transform: scale(1.03);
+    }
+}
+
+/* Erfolgs-Toast für Entwicklung */
+.evolution-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 10000;
+    animation: toastSlideIn 0.5s ease-out;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.evolution-toast-icon {
+    font-size: 1.5rem;
+}
+
+.evolution-toast-message {
+    flex: 1;
+}
+
+.evolution-toast-fadeout {
+    animation: toastFadeOut 0.5s ease-out forwards;
+}
+
+@keyframes toastSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-100%);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@keyframes toastFadeOut {
+    0% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-100%);
+    }
+}
+
+/* Evolution Toast mit Bonus-Anzeige */
+.evolution-toast-with-bonuses {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.25rem 2rem;
+    max-width: 400px;
+}
+
+.evolution-toast-with-bonuses .evolution-toast-message {
+    margin-bottom: 0.75rem;
+}
+
+/* Evolution Bonus Container */
+.evolution-bonus-container {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.evolution-bonus-header {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.evolution-bonus-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem 0.75rem;
+}
+
+.evolution-bonus-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+}
+
+.evolution-bonus-item.evolution-bonus-hp {
+    background-color: rgba(255, 215, 0, 0.25);
+    grid-column: span 3;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.evolution-bonus-label {
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.evolution-bonus-value {
+    font-weight: 700;
+    color: #fffde7;
+}
+
+.evolution-bonus-hp .evolution-bonus-value {
+    color: #ffd700;
+}
+
+/* Dark Mode für Entwicklungs-Feature */
+body.dark-mode .evolution-icons-container.evolution-icons-visible {
+    background-color: rgba(45, 55, 72, 0.95);
+    border-color: #68d391;
+}
+
+body.dark-mode .evolution-icon {
+    background-color: #2d3748;
+}
+
+body.dark-mode .evolution-name-label {
+    color: #e0e0e0;
+}
+
+body.dark-mode .evolve-button.evolve-button-disabled {
+    background-color: #4a5568;
+    color: #a0aec0;
+}
+
+body.dark-mode .evolve-button.evolve-button-waiting {
+    background-color: #d69e2e;
+    color: #1a202c;
+}
+
+body.dark-mode .evolution-toast {
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+}
+
+/* Responsive Design für Entwicklungs-Feature */
+@media (max-width: 768px) {
+    .evolution-container {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+    
+    .evolution-icons-container.evolution-icons-visible {
+        max-width: 100%;
+    }
+    
+    .evolution-icon {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .evolution-sprite {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .evolve-button {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.8rem;
+        min-width: 110px;
+    }
+    
+    .evolution-toast {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+        max-width: 90%;
+    }
+    
+    .evolution-toast-icon {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 500px) {
+    .level-controls-row {
+        flex-wrap: wrap;
+    }
+    
+    .evolution-container {
+        order: 5;
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .evolution-icons-container.evolution-icons-visible {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-bottom: 0.5rem;
+    }
+}
+
+/**
+ * CSS-Ergänzungen für Trainer PDF Export
+ * =======================================
+ * Diese Styles können zu pokemonSheet.css hinzugefügt werden
+ */
+
+/* Trainer PDF Export Button */
+.trainer-pdf-button {
+    background-color: #6366f1;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.trainer-pdf-button:hover {
+    background-color: #4f46e5;
+    box-shadow: 0 2px 5px rgba(99, 102, 241, 0.4);
+}
+
+/* Animation für den PDF-Button während des Exports */
+.trainer-pdf-button.exporting {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.trainer-pdf-button.exporting::after {
+    content: '';
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 0.5rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Floating PDF Button Styles (Fallback) */
+#floating-trainer-pdf-button {
+    font-family: inherit;
+}
+
+/* PDF Export spezifische Anpassungen */
+/* Diese Klasse wird temporär während des Exports angewendet */
+.pdf-export-mode .collapsible-section.collapsed {
+    display: none !important;
+}
+
+/* Sicherstellen, dass PDF-Vorschau korrekt aussieht */
+.pdf-export-mode .collapsible-header .collapse-toggle,
+.pdf-export-mode .drag-handle-section {
+    opacity: 0.3;
+}
+
+/* Textarea-Ersatz für PDF */
+.textarea-pdf-replacement {
+    display: block !important;
+    background-color: white;
+}
+
+/**
+ * Status Effects Styles
+ * =====================
+ * CSS für die Statuseffekt-Icons (Pokemon & Trainer)
+ */
+
+/* Container für alle Statuseffekte */
+.status-effects-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+/* Einklappbarer Header */
+.status-effects-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.status-effects-header:hover .status-effects-title {
+    color: #1a202c;
+}
+
+/* Toggle-Button */
+.status-effects-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: #4a5568;
+    transition: transform 0.2s ease;
+    line-height: 1;
+}
+
+.status-effects-toggle:hover {
+    color: #2d3748;
+}
+
+.status-effects-container.collapsed .status-effects-toggle {
+    transform: rotate(-90deg);
+}
+
+/* Titel "Status:" */
+.status-effects-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #2d3748;
+    white-space: nowrap;
+    transition: color 0.15s ease;
+}
+
+/* Container für die Icons */
+.status-effects-icons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    transition: all 0.25s ease;
+}
+
+/* Eingeklappter Zustand */
+.status-effects-container.collapsed .status-effects-icons {
+    display: none;
+}
+
+/* Aktive Status-Vorschau im eingeklappten Zustand */
+.status-effects-preview {
+    display: none;
+    font-size: 0.9rem;
+    margin-left: 4px;
+}
+
+.status-effects-container.collapsed .status-effects-preview {
+    display: inline;
+}
+
+.status-effects-preview-empty {
+    color: #718096;
+    font-style: italic;
+    font-size: 0.8rem;
+}
+
+/* Container für die Icons */
+.status-effects-icons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Wrapper für einzelnes Icon */
+.status-icon-wrapper {
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.status-icon-wrapper:hover {
+    transform: scale(1.15);
+}
+
+.status-icon-wrapper:active {
+    transform: scale(0.95);
+}
+
+/* Einzelnes Status-Icon */
+.status-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+    border: 3px solid;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Inaktiver Zustand (ausgegraut) */
+.status-icon.inactive {
+    background-color: #d1d5db;
+    border-color: #9ca3af;
+    filter: grayscale(100%);
+    opacity: 0.5;
+}
+
+.status-icon.inactive .status-emoji {
+    filter: grayscale(100%);
+    opacity: 0.6;
+}
+
+/* Aktiver Zustand (farbig) */
+.status-icon.active {
+    background-color: var(--status-color);
+    border-color: var(--status-border-color);
+    filter: none;
+    opacity: 1;
+    box-shadow: 0 0 8px var(--status-color),
+                0 2px 6px rgba(0, 0, 0, 0.2);
+    animation: statusPulse 2s infinite;
+}
+
+.status-icon.active .status-emoji {
+    filter: none;
+    opacity: 1;
+}
+
+/* Emoji im Icon */
+.status-emoji {
+    font-size: 18px;
+    line-height: 1;
+    user-select: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Puls-Animation für aktive Status */
+@keyframes statusPulse {
+    0%, 100% {
+        box-shadow: 0 0 8px var(--status-color),
+                    0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 16px var(--status-color),
+                    0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* Hover-Effekt */
+.status-icon-wrapper:hover .status-icon.inactive {
+    opacity: 0.7;
+    filter: grayscale(50%);
+}
+
+.status-icon-wrapper:hover .status-icon.active {
+    box-shadow: 0 0 20px var(--status-color),
+                0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* === TRAINER-SPEZIFISCHE STYLES === */
+
+/* Trainer-Sheet: Statuseffekte in Kampfwerte-Sektion */
+.trainer-stats-section .status-effects-container {
+    margin-top: 12px;
+}
+
+/* === POKEMON-SPEZIFISCHE STYLES === */
+
+/* Pokemon-Sheet: Statuseffekte unter den Stats */
+.stats-area .status-effects-container,
+.level-container .status-effects-container,
+#pokemon-status-effects {
+    margin-top: 10px;
+}
+
+/* === RESPONSIVE ANPASSUNGEN === */
+
+@media (max-width: 600px) {
+    .status-effects-container {
+        padding: 6px 10px;
+        gap: 6px;
+    }
+    
+    .status-icon {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .status-emoji {
+        font-size: 16px;
+    }
+    
+    .status-effects-title {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .status-effects-container {
+        justify-content: center;
+    }
+    
+    .status-effects-title {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 4px;
+    }
+    
+    .status-effects-icons {
+        justify-content: center;
+    }
+}
+
+/* === DARK MODE SUPPORT === */
+/* Verwendet nur body.dark-mode Klasse für App-gesteuerten Dark Mode */
+body.dark-mode .status-effects-container {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    border-color: #4a5568;
+}
+
+body.dark-mode .status-effects-header:hover .status-effects-title {
+    color: #fff;
+}
+
+body.dark-mode .status-effects-title {
+    color: #e2e8f0;
+}
+
+body.dark-mode .status-effects-toggle {
+    color: #a0aec0;
+}
+
+body.dark-mode .status-effects-toggle:hover {
+    color: #e2e8f0;
+}
+
+body.dark-mode .status-effects-preview-empty {
+    color: #718096;
+}
+
+body.dark-mode .status-icon.inactive {
+    background-color: #4a5568;
+    border-color: #2d3748;
+}
+
+/* === PRINT STYLES === */
+
+@media print {
+    .status-effects-container {
+        background: white !important;
+        border: 1px solid #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .status-icon {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .status-icon.inactive {
+        opacity: 0.3;
+    }
+    
+    .status-icon.active {
+        animation: none;
+        box-shadow: none;
+    }
+    
+    @keyframes statusPulse {
+        0%, 100% { box-shadow: none; }
+    }
+}
+
+/**
+ * Kampfwert-Modifikatoren Styles
+ * ==============================
+ * CSS für temporäre Stat-Modifikationen im Kampf
+ * Kompaktes einzeiliges Layout
+ */
+
+/* Container für modifizierbare Stats - alles in einer Zeile */
+.modifiable-stat-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px;
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.modifiable-stat-item:hover {
+    background-color: #f0f4f8;
+    border-color: #cbd5e0;
+}
+
+/* Stat-Name - FESTE BREITE für perfekte Ausrichtung (basiert auf "Verteidigung:") */
+.modifiable-stat-item .stat-name {
+    width: 75px;
+    min-width: 75px;
+    max-width: 75px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Effektiver Stat-Wert (angezeigter Wert) - feste Breite, breiter */
+.stat-effective-value {
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+/* Verstärkter Wert (grün) */
+.stat-boosted {
+    color: #22c55e !important;
+    background-color: #f0fdf4 !important;
+    border-color: #86efac !important;
+    text-shadow: 0 0 1px rgba(34, 197, 94, 0.3);
+}
+
+/* Verringerter Wert (rot) */
+.stat-reduced {
+    color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+    border-color: #fca5a5 !important;
+    text-shadow: 0 0 1px rgba(239, 68, 68, 0.3);
+}
+
+/* Reset-Button für einzelnen Stat - feste Breite */
+.stat-reset-btn {
+    width: 20px;
+    min-width: 20px;
+    max-width: 20px;
+    height: 20px;
+    padding: 0;
+    margin-left: 1px;
+    background-color: #64748b;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.stat-reset-btn:hover {
+    background-color: #475569;
+    transform: scale(1.1);
+}
+
+.stat-reset-btn:active {
+    transform: scale(0.95);
+}
+
+/* Plus/Minus Buttons - feste Breite */
+.stat-mod-btn {
+    width: 22px;
+    min-width: 22px;
+    max-width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+/* Minus-Button (rot) */
+.stat-mod-minus {
+    background-color: #ef4444;
+    color: white;
+    margin-left: 2px;
+}
+
+.stat-mod-minus:hover {
+    background-color: #dc2626;
+    transform: scale(1.1);
+}
+
+.stat-mod-minus:active {
+    background-color: #b91c1c;
+    transform: scale(0.95);
+}
+
+/* Plus-Button (grün) */
+.stat-mod-plus {
+    background-color: #22c55e;
+    color: white;
+}
+
+.stat-mod-plus:hover {
+    background-color: #16a34a;
+    transform: scale(1.1);
+}
+
+.stat-mod-plus:active {
+    background-color: #15803d;
+    transform: scale(0.95);
+}
+
+/* Eingabefeld für Modifikator-Betrag - feste Breite */
+.stat-mod-input {
+    width: 42px;
+    min-width: 42px;
+    max-width: 42px;
+    height: 22px;
+    padding: 1px 4px;
+    border: 1px solid #cbd5e0;
+    border-radius: 3px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    background-color: white;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.stat-mod-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.stat-mod-input::placeholder {
+    color: #9ca3af;
+    font-weight: normal;
+}
+
+/* Utility-Buttons Container */
+.stat-utility-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Utility-Buttons (Vollheilung, Reset alle) */
+.stat-utility-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+/* Vollheilungs-Button */
+.full-heal-btn {
+    background-color: #ec4899;
+    color: white;
+}
+
+.full-heal-btn:hover {
+    background-color: #db2777;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(236, 72, 153, 0.3);
+}
+
+.full-heal-btn:active {
+    transform: translateY(0);
+}
+
+/* Reset-Alle-Button */
+.reset-all-temps-btn {
+    background-color: #6366f1;
+    color: white;
+}
+
+.reset-all-temps-btn:hover {
+    background-color: #4f46e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(99, 102, 241, 0.3);
+}
+
+.reset-all-temps-btn:active {
+    transform: translateY(0);
+}
+
+/* Dark Mode Anpassungen für Kampfwert-Modifikatoren */
+body.dark-mode .modifiable-stat-item {
+    background-color: #1e293b;
+    border-color: #334155;
+}
+
+body.dark-mode .modifiable-stat-item:hover {
+    background-color: #334155;
+    border-color: #475569;
+}
+
+body.dark-mode .stat-boosted {
+    color: #4ade80 !important;
+    background-color: #14532d !important;
+    border-color: #22c55e !important;
+}
+
+body.dark-mode .stat-reduced {
+    color: #f87171 !important;
+    background-color: #450a0a !important;
+    border-color: #ef4444 !important;
+}
+
+body.dark-mode .stat-mod-input {
+    background-color: #1e293b;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
+body.dark-mode .stat-mod-input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3);
+}
+
+body.dark-mode .stat-reset-btn {
+    background-color: #475569;
+}
+
+body.dark-mode .stat-reset-btn:hover {
+    background-color: #64748b;
+}
+
+body.dark-mode .stat-utility-buttons {
+    border-top-color: #334155;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 500px) {
+    .modifiable-stat-item {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .modifiable-stat-item .stat-name {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 2px;
+    }
+    
+    .stat-utility-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .stat-utility-btn {
+        justify-content: center;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .stat-mod-btn,
+    .stat-mod-input,
+    .stat-utility-buttons,
+    .stat-reset-btn {
+        display: none !important;
+    }
+    
+    .stat-boosted {
+        color: #16a34a !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .stat-reduced {
+        color: #dc2626 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/**
+ * Benutzerdefinierte Fertigkeiten Styles
+ * =====================================
+ * CSS für benutzerdefinierte Fertigkeiten mit Plus-Buttons
+ */
+
+/* Container für Plus-Button */
+.add-skill-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+}
+
+/* Plus-Button für neue Fertigkeit */
+.add-custom-skill-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid;
+    background-color: #718096;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    padding: 0;
+}
+
+.add-custom-skill-btn:hover {
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.add-custom-skill-btn:active {
+    transform: scale(1.05);
+}
+
+/* Benutzerdefinierte Fertigkeits-Zeile */
+.custom-skill-item,
+.custom-skill-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    border-left: 3px solid;
+    padding-left: 8px;
+    margin-left: -8px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 0 4px 4px 0;
+}
+
+/* Farbcodierung für benutzerdefinierte Skills */
+.skill-category[data-category="KÖ"] .custom-skill-item,
+.skill-category[data-category="KÖ"] .custom-skill-row {
+    border-left-color: #e53e3e;
+    background-color: rgba(229, 62, 62, 0.08);
+}
+
+.skill-category[data-category="WI"] .custom-skill-item,
+.skill-category[data-category="WI"] .custom-skill-row {
+    border-left-color: #3182ce;
+    background-color: rgba(49, 130, 206, 0.08);
+}
+
+.skill-category[data-category="CH"] .custom-skill-item,
+.skill-category[data-category="CH"] .custom-skill-row {
+    border-left-color: #d69e2e;
+    background-color: rgba(214, 158, 46, 0.08);
+}
+
+.skill-category[data-category="GL"] .custom-skill-item,
+.skill-category[data-category="GL"] .custom-skill-row {
+    border-left-color: #38a169;
+    background-color: rgba(56, 161, 105, 0.08);
+}
+
+/* Editierbarer Name für benutzerdefinierte Fertigkeit */
+.custom-skill-name,
+.trainer-custom-skill-name {
+    flex: 1;
+    min-width: 80px;
+    padding: 4px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    background-color: white;
+    transition: all 0.2s ease;
+}
+
+.custom-skill-name:focus,
+.trainer-custom-skill-name:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
+}
+
+/* Entfernen-Button für benutzerdefinierte Fertigkeit */
+.custom-skill-remove-btn,
+.trainer-custom-skill-remove-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background-color: #e53e3e;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.custom-skill-remove-btn:hover,
+.trainer-custom-skill-remove-btn:hover {
+    background-color: #c53030;
+    transform: scale(1.1);
+}
+
+.custom-skill-remove-btn:active,
+.trainer-custom-skill-remove-btn:active {
+    transform: scale(0.95);
+}
+
+/* Pokemon Skills Farbcodierung (data-category Attribut) */
+.pokemon-sheet .skill-category[data-category="KÖ"] {
+    border-top: 3px solid #e53e3e;
+}
+
+.pokemon-sheet .skill-category[data-category="KÖ"] .category-name {
+    color: #c53030;
+}
+
+.pokemon-sheet .skill-category[data-category="KÖ"] .skill-header {
+    border-bottom-color: #e53e3e;
+}
+
+.pokemon-sheet .skill-category[data-category="WI"] {
+    border-top: 3px solid #3182ce;
+}
+
+.pokemon-sheet .skill-category[data-category="WI"] .category-name {
+    color: #2b6cb0;
+}
+
+.pokemon-sheet .skill-category[data-category="WI"] .skill-header {
+    border-bottom-color: #3182ce;
+}
+
+.pokemon-sheet .skill-category[data-category="CH"] {
+    border-top: 3px solid #d69e2e;
+}
+
+.pokemon-sheet .skill-category[data-category="CH"] .category-name {
+    color: #b7791f;
+}
+
+.pokemon-sheet .skill-category[data-category="CH"] .skill-header {
+    border-bottom-color: #d69e2e;
+}
+
+.pokemon-sheet .skill-category[data-category="GL"] {
+    border-top: 3px solid #38a169;
+}
+
+.pokemon-sheet .skill-category[data-category="GL"] .category-name {
+    color: #276749;
+}
+
+.pokemon-sheet .skill-category[data-category="GL"] .skill-header {
+    border-bottom-color: #38a169;
+}
+
+/* Dark Mode Anpassungen für benutzerdefinierte Fertigkeiten */
+body.dark-mode .add-skill-container {
+    border-top-color: #4a5568;
+}
+
+body.dark-mode .custom-skill-name,
+body.dark-mode .trainer-custom-skill-name {
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .custom-skill-name:focus,
+body.dark-mode .trainer-custom-skill-name:focus {
+    border-color: #63b3ed;
+    box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.3);
+}
+
+body.dark-mode .custom-skill-item,
+body.dark-mode .custom-skill-row {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode .skill-category[data-category="KÖ"] .custom-skill-item,
+body.dark-mode .skill-category[data-category="KÖ"] .custom-skill-row {
+    background-color: rgba(229, 62, 62, 0.15);
+}
+
+body.dark-mode .skill-category[data-category="WI"] .custom-skill-item,
+body.dark-mode .skill-category[data-category="WI"] .custom-skill-row {
+    background-color: rgba(49, 130, 206, 0.15);
+}
+
+body.dark-mode .skill-category[data-category="CH"] .custom-skill-item,
+body.dark-mode .skill-category[data-category="CH"] .custom-skill-row {
+    background-color: rgba(214, 158, 46, 0.15);
+}
+
+body.dark-mode .skill-category[data-category="GL"] .custom-skill-item,
+body.dark-mode .skill-category[data-category="GL"] .custom-skill-row {
+    background-color: rgba(56, 161, 105, 0.15);
+}
+
+/* Pokemon Sheet Dark Mode Farbcodierung */
+body.dark-mode .pokemon-sheet .skill-category[data-category="KÖ"] {
+    border-top-color: #fc8181;
+}
+
+body.dark-mode .pokemon-sheet .skill-category[data-category="KÖ"] .category-name {
+    color: #fc8181;
+}
+
+body.dark-mode .pokemon-sheet .skill-category[data-category="WI"] {
+    border-top-color: #63b3ed;
+}
+
+body.dark-mode .pokemon-sheet .skill-category[data-category="WI"] .category-name {
+    color: #63b3ed;
+}
+
+body.dark-mode .pokemon-sheet .skill-category[data-category="CH"] {
+    border-top-color: #f6e05e;
+}
+
+body.dark-mode .pokemon-sheet .skill-category[data-category="CH"] .category-name {
+    color: #f6e05e;
+}
+
+body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] {
+    border-top-color: #68d391;
+}
+
+body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name {
+    color: #68d391;
+}
+
+/* Print Styles für Custom Skills */
+@media print {
+    .add-custom-skill-btn,
+    .custom-skill-remove-btn,
+    .trainer-custom-skill-remove-btn,
+    .add-skill-container {
+        display: none !important;
+    }
+    
+    .custom-skill-name,
+    .trainer-custom-skill-name {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
     }
 }

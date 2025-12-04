@@ -5,8 +5,9 @@
  * 
  * DESIGN-PRINZIPIEN:
  * 1. Verwendet PokemonStorageService für alle Storage-Operationen
- * 2. Klare Trennung: API → AppState → UI
- * 3. Auto-Save bei jeder Änderung
+ * 2. UUID-basierte Persistenz - Pokemon werden durch UUID identifiziert, NICHT durch Position
+ * 3. Klare Trennung: API → AppState → UI
+ * 4. Auto-Save bei jeder Änderung
  */
 class PokemonSheetApp {
     /**
@@ -124,7 +125,104 @@ class PokemonSheetApp {
     // ==================== POKEMON-AUSWAHL & LADEN ====================
     
     /**
-     * Handler für Pokemon-Auswahl
+     * Lädt ein Pokemon für einen bestimmten Slot.
+     * Verwendet die UUID des Pokemon für stabilen Storage-Zugriff.
+     * 
+     * WICHTIG: Diese Methode wird vom NavigationService aufgerufen.
+     * Der Storage-Kontext (Trainer-ID + Pokemon-UUID) muss bereits gesetzt sein!
+     * 
+     * @param {string} trainerId - ID des Trainers
+     * @param {number} slotIndex - Index des Pokemon-Slots (nur für UI)
+     * @returns {Promise<boolean>} Erfolg
+     */
+    async loadPokemonForSlot(trainerId, slotIndex) {
+        if (this.isLoading) {
+            console.log('PokemonSheetApp: Bereits beim Laden, überspringe');
+            return false;
+        }
+        
+        console.log(`PokemonSheetApp: Lade Pokemon für Trainer ${trainerId}, Slot ${slotIndex}`);
+        
+        // Trainer und Slot holen
+        const trainer = window.trainerManager 
+            ? window.trainerManager.getActiveTrainer() 
+            : window.trainerState;
+        
+        if (!trainer || !trainer.pokemonSlots || slotIndex >= trainer.pokemonSlots.length) {
+            console.error('PokemonSheetApp: Ungültiger Trainer oder Slot-Index');
+            return false;
+        }
+        
+        const slot = trainer.pokemonSlots[slotIndex];
+        
+        // UUID muss vorhanden sein (wird vom NavigationService generiert)
+        if (slot.pokemonId && !slot.pokemonUuid) {
+            console.error('PokemonSheetApp: Pokemon hat keine UUID! NavigationService hätte diese generieren sollen.');
+            // Fallback: UUID jetzt generieren
+            slot.generateUuid();
+            if (trainer.manager) {
+                trainer.manager.notifyChange();
+            }
+        }
+        
+        // Kontext für StorageService setzen (MIT UUID!)
+        if (this.storageService && slot.pokemonUuid) {
+            this.storageService.setContext(trainerId, slot.pokemonUuid);
+        }
+        
+        // Gespeicherte Daten laden (über UUID)
+        let savedSheet = null;
+        if (this.storageService && slot.pokemonUuid) {
+            savedSheet = this.storageService.load(trainerId, slot.pokemonUuid);
+        }
+        
+        if (savedSheet && savedSheet.pokemonId) {
+            // Gespeicherte Daten existieren
+            console.log(`PokemonSheetApp: Gespeicherte Daten gefunden - Pokemon ID ${savedSheet.pokemonId} (${savedSheet.pokemonGermanName || savedSheet.pokemonName})`);
+            
+            const selectElement = document.getElementById(DOM_IDS.POKEMON_SELECT);
+            if (selectElement) {
+                selectElement.value = savedSheet.pokemonId.toString();
+            }
+            
+            return await this._loadPokemonById(savedSheet.pokemonId, savedSheet);
+        } else if (slot.pokemonId) {
+            // Slot hat Pokemon aber keine gespeicherten Daten
+            console.log(`PokemonSheetApp: Slot hat Pokemon ID ${slot.pokemonId}, aber keine gespeicherten Daten`);
+            
+            const selectElement = document.getElementById(DOM_IDS.POKEMON_SELECT);
+            if (selectElement) {
+                selectElement.value = slot.pokemonId.toString();
+            }
+            
+            return await this._loadPokemonById(slot.pokemonId, null);
+        } else {
+            // Leerer Slot
+            console.log('PokemonSheetApp: Leerer Slot, keine Daten');
+            this._resetForEmptySlot();
+            return false;
+        }
+    }
+    
+    /**
+     * Setzt die UI für einen leeren Slot zurück
+     * @private
+     */
+    _resetForEmptySlot() {
+        const selectElement = document.getElementById(DOM_IDS.POKEMON_SELECT);
+        if (selectElement) {
+            selectElement.value = '';
+        }
+        
+        // Sheet-Container leeren
+        const sheetContainer = document.getElementById(DOM_IDS.SHEET_CONTAINER);
+        if (sheetContainer) {
+            sheetContainer.innerHTML = '<p class="no-pokemon-message">Wähle ein Pokémon aus der Liste oben.</p>';
+        }
+    }
+    
+    /**
+     * Handler für Pokemon-Auswahl (wenn User manuell im Dropdown wählt)
      * @param {Event} e - Event-Objekt
      * @private
      */
@@ -134,32 +232,53 @@ class PokemonSheetApp {
         if (!pokemonId || this.isLoading) return;
         
         e.target.disabled = true;
-        this._setLoadingState(true, 'Pokémon-Daten werden geladen');
         
         try {
-            // 1. Kontext aus NavigationService holen
+            // Kontext vom NavigationService holen (enthält UUID)
             const context = this._getContext();
             
-            // 2. Prüfen ob gespeicherte Daten existieren
+            // Prüfen ob es gespeicherte Daten für DIESES Pokemon gibt
             let savedSheet = null;
-            if (context && this.storageService) {
-                savedSheet = this.storageService.load(context.trainerId, context.slotIndex);
+            if (context && context.pokemonUuid && this.storageService) {
+                const existingData = this.storageService.load(context.trainerId, context.pokemonUuid);
                 
                 // Nur verwenden wenn die Pokemon-ID übereinstimmt
-                if (savedSheet && savedSheet.pokemonId !== pokemonId) {
-                    console.log(`Neue Pokemon-Spezies gewählt (ID ${pokemonId}), ignoriere alte Daten (ID ${savedSheet.pokemonId})`);
+                if (existingData && existingData.pokemonId === pokemonId) {
+                    savedSheet = existingData;
+                    console.log(`PokemonSheetApp: Gespeicherte Daten für ID ${pokemonId} gefunden`);
+                } else if (existingData && existingData.pokemonId !== pokemonId) {
+                    // User hat eine ANDERE Spezies gewählt - das ist eine bewusste Änderung
+                    console.log(`PokemonSheetApp: User wählt neue Spezies (ID ${pokemonId}), ersetze alte (ID ${existingData.pokemonId})`);
                     savedSheet = null;
                 }
             }
             
+            await this._loadPokemonById(pokemonId, savedSheet);
+            
+        } finally {
+            e.target.disabled = false;
+        }
+    }
+    
+    /**
+     * Lädt ein Pokemon anhand seiner ID
+     * @param {number} pokemonId - Die Pokemon-ID
+     * @param {Object|null} savedSheet - Optionale gespeicherte Daten
+     * @returns {Promise<boolean>} Erfolg
+     * @private
+     */
+    async _loadPokemonById(pokemonId, savedSheet = null) {
+        this._setLoadingState(true, 'Pokémon-Daten werden geladen');
+        
+        try {
             const hasExistingSheet = savedSheet !== null;
             
-            // 3. AppState zurücksetzen, wenn keine gespeicherten Daten
+            // AppState zurücksetzen, wenn keine gespeicherten Daten
             if (!hasExistingSheet) {
                 this._resetAppStateForNewPokemon();
             }
             
-            // 4. Pokemon-Details von API laden
+            // Pokemon-Details von API laden
             this.loadingOperations.pokemonDetails = true;
             const pokemonData = await this.apiService.fetchPokemonDetails(pokemonId, hasExistingSheet);
             this.loadingOperations.pokemonDetails = false;
@@ -168,21 +287,21 @@ class PokemonSheetApp {
                 throw new Error(`Pokémon mit ID ${pokemonId} konnte nicht geladen werden.`);
             }
             
-            // 5. Gespeicherte Daten auf AppState anwenden (VOR UI-Rendering)
+            // Gespeicherte Daten auf AppState anwenden (VOR UI-Rendering)
             if (hasExistingSheet) {
                 this._applyLoadedSheetToAppState(savedSheet);
             }
             
-            // 6. UI rendern
+            // UI rendern
             this.uiRenderer.renderPokemonSheet();
             
-            // 7. Attacken laden
+            // Attacken laden
             this.loadingOperations.moves = true;
             await this.apiService.fetchPokemonMoves(pokemonData);
             this.loadingOperations.moves = false;
             this.uiRenderer.updateMoveSelects();
             
-            // 8. Gespeicherte Daten auf UI anwenden (NACH UI-Rendering)
+            // Gespeicherte Daten auf UI anwenden (NACH UI-Rendering)
             if (hasExistingSheet) {
                 this._applyLoadedSheetToUI(savedSheet);
             } else {
@@ -190,30 +309,35 @@ class PokemonSheetApp {
                 this._initializeNewPokemonUI();
             }
             
-            // 9. NavigationService benachrichtigen
+            // NavigationService benachrichtigen
             if (window.navigationService && window.navigationService.getCurrentView() === 'pokemon') {
                 window.navigationService.onPokemonSelected(pokemonId, pokemonData);
             }
             
-            // 10. Auto-Save einrichten
+            // Auto-Save einrichten
             this._setupAutoSave();
             
             // Event auslösen
             document.dispatchEvent(this.pokemonLoadedEvent);
             
             console.log(`Pokémon mit ID ${pokemonId} erfolgreich geladen`);
+            return true;
+            
         } catch (error) {
             console.error('Fehler beim Laden der Pokémon-Details:', error);
             this._showError(`Fehler beim Laden des Pokémon: ${error.message}`);
+            return false;
         } finally {
-            e.target.disabled = false;
             this._setLoadingState(false);
         }
     }
     
     /**
-     * Holt den aktuellen Kontext (Trainer + Slot)
-     * @returns {{trainerId: string, slotIndex: number}|null}
+     * Holt den aktuellen Kontext (Trainer + Pokemon-UUID)
+     * 
+     * WICHTIG: Der Kontext enthält die UUID, NICHT den Slot-Index!
+     * 
+     * @returns {{trainerId: string, slotIndex: number, pokemonUuid: string|null}|null}
      * @private
      */
     _getContext() {
@@ -226,9 +350,24 @@ class PokemonSheetApp {
                 : window.trainerState;
             
             if (trainer && trainer.id) {
+                const slotIndex = window.navigationService.getCurrentSlotIndex();
+                const slot = trainer.pokemonSlots[slotIndex];
+                
+                // UUID aus dem Slot holen (sollte bereits existieren)
+                const pokemonUuid = slot ? slot.pokemonUuid : null;
+                
+                // Falls keine UUID vorhanden, eine generieren
+                if (slot && slot.pokemonId && !slot.pokemonUuid) {
+                    slot.generateUuid();
+                    if (trainer.manager) {
+                        trainer.manager.notifyChange();
+                    }
+                }
+                
                 return {
                     trainerId: trainer.id,
-                    slotIndex: window.navigationService.getCurrentSlotIndex()
+                    slotIndex: slotIndex,
+                    pokemonUuid: slot ? slot.pokemonUuid : null
                 };
             }
         }
@@ -264,144 +403,142 @@ class PokemonSheetApp {
      * @private
      */
     _initializeNewPokemonUI() {
-        // Strichliste aktualisieren
-        this._updateFriendshipDisplay();
-        
         // Trainer-Feld einrichten
         setTimeout(() => {
             this._setupTrainerField();
         }, this.timing.short);
     }
     
-    // ==================== DATEN ANWENDEN ====================
-    
     /**
      * Wendet geladene Daten auf den AppState an
-     * @param {Object} sheet - Der geladene Charakterbogen
+     * @param {Object} sheet - Die geladenen Daten
      * @private
      */
     _applyLoadedSheetToAppState(sheet) {
-        if (!sheet || !this.appState) return;
+        if (!sheet) return;
         
-        console.log('Wende gespeicherten Charakterbogen auf AppState an:', sheet.pokemonGermanName || sheet.pokemonName);
+        console.log('Wende geladene Daten auf AppState an...');
         
-        try {
-            // Level setzen (mit skipRecalculation = true)
-            if (sheet.level !== undefined) {
-                this.appState.setLevel(sheet.level, true);
-            }
-            
-            // Freundschaft setzen
-            if (sheet.tallyMarks) {
-                this.appState.tallyMarks = [...sheet.tallyMarks];
-            }
-            
-            // EXP setzen
-            if (sheet.currentExp !== undefined) {
-                this.appState.currentExp = sheet.currentExp;
-            }
-            
-            // Stats setzen
-            if (sheet.stats) {
-                Object.entries(sheet.stats).forEach(([statKey, statValue]) => {
-                    this.appState.setStat(statKey, statValue);
-                });
-            }
-            
-            // Aktuelle HP setzen
-            if (sheet.currentHp !== undefined) {
-                this.appState.setCurrentHp(sheet.currentHp);
-            }
-            
-            // GENA setzen
-            if (sheet.gena !== undefined) {
-                this.appState.setGena(sheet.gena);
-            }
-            
-            // PA setzen
-            if (sheet.pa !== undefined) {
-                this.appState.setPa(sheet.pa);
-            }
-            
-            // Wunden setzen
-            if (sheet.wounds !== undefined && typeof this.appState.setWounds === 'function') {
+        // Level & Erfahrung
+        if (sheet.level !== undefined) {
+            this.appState.level = sheet.level;
+        }
+        if (sheet.currentExp !== undefined) {
+            this.appState.currentExp = sheet.currentExp;
+        }
+        
+        // ============================================
+        // FIX: Stats DIREKT setzen, nicht hasOwnProperty prüfen!
+        // Wenn skipLevelCalculation=true ist, ist appState.stats ein leeres Objekt {},
+        // und hasOwnProperty('hp') wäre immer false!
+        // ============================================
+        if (sheet.stats) {
+            // Stats-Objekt komplett übernehmen oder einzeln setzen
+            this.appState.stats = {
+                hp: sheet.stats.hp ?? 0,
+                attack: sheet.stats.attack ?? 0,
+                defense: sheet.stats.defense ?? 0,
+                spAttack: sheet.stats.spAttack ?? 0,
+                spDefense: sheet.stats.spDefense ?? 0,
+                speed: sheet.stats.speed ?? 0
+            };
+        }
+        
+        // Weitere Werte
+        if (sheet.currentHp !== undefined) this.appState.currentHp = sheet.currentHp;
+        if (sheet.gena !== undefined) this.appState.gena = sheet.gena;
+        if (sheet.pa !== undefined) this.appState.pa = sheet.pa;
+        if (sheet.bw !== undefined) this.appState.bw = sheet.bw;
+        
+        // Stat-Auswahl für Level-Up
+        if (sheet.primaryStatChoice !== undefined) {
+            this.appState.primaryStatChoice = sheet.primaryStatChoice;
+        }
+        if (sheet.secondaryStatChoice !== undefined) {
+            this.appState.secondaryStatChoice = sheet.secondaryStatChoice;
+        }
+        
+        // Fertigkeiten
+        if (sheet.skillValues) {
+            Object.entries(sheet.skillValues).forEach(([skill, value]) => {
+                this.appState.skillValues[skill] = value;
+            });
+        }
+        
+        // Wunden
+        if (sheet.wounds !== undefined) {
+            if (typeof this.appState.setWounds === 'function') {
                 this.appState.setWounds(sheet.wounds);
+            } else {
+                this.appState.wounds = sheet.wounds;
             }
-            
-            // Fertigkeiten setzen
-            if (sheet.skillValues) {
-                Object.entries(sheet.skillValues).forEach(([skill, value]) => {
-                    this.appState.setSkillValue(skill, value);
-                });
-            }
-            
-            // BW neu berechnen
-            if (typeof this.appState.recalculateBw === 'function') {
-                this.appState.recalculateBw();
-            }
-            
-            console.log('AppState erfolgreich aktualisiert');
-        } catch (error) {
-            console.error('Fehler beim Anwenden der geladenen Daten auf AppState:', error);
+        }
+        
+        // Statuseffekte
+        if (sheet.statusEffects) {
+            this.appState.statusEffects = [...sheet.statusEffects];
+        }
+        
+        // Temp Stat Modifiers
+        if (sheet.tempStatModifiers) {
+            this.appState.tempStatModifiers = { ...sheet.tempStatModifiers };
+        }
+        
+        // Freundschaft (Tally Marks)
+        if (sheet.tallyMarks) {
+            this.appState.tallyMarks = [...sheet.tallyMarks];
+        }
+        
+        // Custom Skills
+        if (sheet.customSkills) {
+            this.appState.customSkills = JSON.parse(JSON.stringify(sheet.customSkills));
         }
     }
     
     /**
      * Wendet geladene Daten auf die UI an
-     * @param {Object} sheet - Der geladene Charakterbogen
+     * @param {Object} sheet - Die geladenen Daten
      * @private
      */
     _applyLoadedSheetToUI(sheet) {
         if (!sheet) return;
         
-        console.log('Wende gespeicherten Charakterbogen auf UI an');
+        console.log('Wende geladene Daten auf UI an...');
         
         try {
-            // Level-Input
-            if (sheet.level !== undefined) {
-                const levelInput = document.getElementById('level-value');
-                if (levelInput) levelInput.value = sheet.level.toString();
+            // Level
+            const levelInput = document.getElementById('level-input');
+            if (levelInput && sheet.level) {
+                levelInput.value = sheet.level.toString();
             }
             
-            // Freundschafts-Anzeige
-            this._updateFriendshipDisplay();
-            
-            // EXP-Input
-            if (sheet.currentExp !== undefined) {
-                const currentExpInput = document.getElementById('current-exp-input');
-                if (currentExpInput) currentExpInput.value = sheet.currentExp.toString();
+            // Erfahrung
+            const expInput = document.getElementById('exp-input');
+            if (expInput && sheet.currentExp !== undefined) {
+                expInput.value = sheet.currentExp.toString();
             }
             
-            // Stats-Inputs
-            if (sheet.stats) {
-                Object.entries(sheet.stats).forEach(([statKey, statValue]) => {
-                    const statInput = document.querySelector(`input[data-stat="${statKey}"]`);
-                    if (statInput) statInput.value = statValue.toString();
-                });
-            }
-            
-            // Aktuelle HP
+            // HP
             if (sheet.currentHp !== undefined) {
-                const currentHpInput = document.getElementById('current-hp-input');
-                if (currentHpInput) currentHpInput.value = sheet.currentHp.toString();
+                const hpInput = document.getElementById('current-hp-input');
+                if (hpInput) hpInput.value = sheet.currentHp.toString();
             }
             
-            // GENA
-            if (sheet.gena !== undefined) {
-                const genaInput = document.getElementById('gena-input');
-                if (genaInput) genaInput.value = sheet.gena.toString();
+            // GENA & PA
+            const genaInput = document.getElementById('gena-input');
+            if (genaInput && sheet.gena !== undefined) {
+                genaInput.value = sheet.gena.toString();
             }
             
-            // PA
-            if (sheet.pa !== undefined) {
-                const paInput = document.getElementById('pa-input');
-                if (paInput) paInput.value = sheet.pa.toString();
+            const paInput = document.getElementById('pa-input');
+            if (paInput && sheet.pa !== undefined) {
+                paInput.value = sheet.pa.toString();
             }
             
             // BW
             const bwInput = document.getElementById('bw-input');
-            if (bwInput) {
-                bwInput.value = this.appState.bw.toString();
+            if (bwInput && sheet.bw !== undefined) {
+                bwInput.value = sheet.bw.toString();
                 if (this.appState.getBwTooltip) {
                     bwInput.title = this.appState.getBwTooltip();
                 }
@@ -429,6 +566,9 @@ class PokemonSheetApp {
             
             // Textfelder
             this._applyTextFields(sheet.textFields);
+            
+            // Freundschaft
+            this._updateFriendshipDisplay();
             
             console.log('UI-Anwendung abgeschlossen');
         } catch (error) {

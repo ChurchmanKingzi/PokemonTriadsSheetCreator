@@ -2,6 +2,9 @@
  * TrainerApp
  * Hauptklasse für die kombinierte Trainer/Pokemon-Anwendung
  * MULTI-TRAINER VERSION
+ * 
+ * WICHTIG: Diese Version verwendet UUID-basierte Persistenz.
+ * Pokemon werden durch ihre UUID identifiziert, NICHT durch ihre Position im Team!
  */
 class TrainerApp {
     constructor() {
@@ -39,8 +42,8 @@ class TrainerApp {
         // Pokemon-App Integration einrichten
         this._setupPokemonAppIntegration();
         
-        // Export/Import Buttons einrichten
-        this._setupExportImportButtons();
+        // HINWEIS: Export/Import Buttons werden jetzt vom ButtonController gesteuert
+        // Die alte _setupExportImportButtons() Methode wird nicht mehr benötigt
         
         console.log('TrainerApp erfolgreich initialisiert');
     }
@@ -277,13 +280,22 @@ class TrainerApp {
                                 const slotIndex = this.navigationService.getCurrentSlotIndex();
                                 
                                 if (slotIndex !== null && trainer.pokemonSlots[slotIndex]) {
-                                    trainer.pokemonSlots[slotIndex].types = types;
+                                    const slot = trainer.pokemonSlots[slotIndex];
+                                    slot.types = types;
+                                    
+                                    // UUID generieren falls nicht vorhanden
+                                    if (!slot.pokemonUuid) {
+                                        slot.generateUuid();
+                                    }
+                                    
                                     this.trainerManager.notifyChange();
-                                }
-                                
-                                // Storage-Kontext setzen
-                                if (window.pokemonApp.storageService) {
-                                    window.pokemonApp.storageService.setContext(trainer.id, slotIndex);
+                                    
+                                    // ============================================
+                                    // FIX: Storage-Kontext mit UUID setzen, NICHT mit slotIndex!
+                                    // ============================================
+                                    if (window.pokemonStorageService && slot.pokemonUuid) {
+                                        window.pokemonStorageService.setContext(trainer.id, slot.pokemonUuid);
+                                    }
                                 }
                                 
                                 this.navigationService.onPokemonSelected(
@@ -331,232 +343,6 @@ class TrainerApp {
             }
             return null;
         }).filter(t => t !== null);
-    }
-    
-    /**
-     * Richtet die Export/Import-Buttons ein
-     * @private
-     */
-    _setupExportImportButtons() {
-        // JSON Speichern Button (exportiert alles)
-        const saveJsonButton = document.getElementById('save-json-button');
-        if (saveJsonButton) {
-            const newSaveButton = saveJsonButton.cloneNode(true);
-            saveJsonButton.parentNode.replaceChild(newSaveButton, saveJsonButton);
-            
-            newSaveButton.addEventListener('click', () => {
-                this._exportAllData();
-            });
-        }
-        
-        // Pokemon Laden Button (importiert alles)
-        const loadButton = document.getElementById('load-pokemon-button');
-        if (loadButton) {
-            const newLoadButton = loadButton.cloneNode(true);
-            loadButton.parentNode.replaceChild(newLoadButton, loadButton);
-            
-            newLoadButton.textContent = 'Daten Laden';
-            newLoadButton.addEventListener('click', () => {
-                this._importAllData();
-            });
-        }
-    }
-    
-    /**
-     * Exportiert alle Trainer- und Pokemon-Daten
-     * @private
-     */
-    _exportAllData() {
-        try {
-            // Aktuellen Stand speichern, falls im Pokemon-View
-            if (this.navigationService.getCurrentView() === 'pokemon' && 
-                window.pokemonApp && window.pokemonApp.storageService) {
-                const trainer = this.trainerManager.getActiveTrainer();
-                const slotIndex = this.navigationService.getCurrentSlotIndex();
-                window.pokemonApp.storageService.setContext(trainer.id, slotIndex);
-                window.pokemonApp.storageService.saveCurrentSheet();
-            }
-            
-            const data = this.trainerManager.exportAll();
-            const jsonString = JSON.stringify(data, null, 2);
-            
-            // Download auslösen
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            
-            // Dateiname basierend auf Anzahl der Trainer
-            const trainerCount = this.trainerManager.getTrainerCount();
-            const activeTrainer = this.trainerManager.getActiveTrainer();
-            const fileName = trainerCount === 1 
-                ? `Trainer_${activeTrainer.name || 'Unbekannt'}_${new Date().toISOString().split('T')[0]}.json`
-                : `Alle_Trainer_${trainerCount}_${new Date().toISOString().split('T')[0]}.json`;
-            
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            this._showToast(`${trainerCount} Trainer erfolgreich exportiert!`, 'success');
-        } catch (error) {
-            console.error('Export-Fehler:', error);
-            this._showToast('Fehler beim Exportieren der Daten', 'error');
-        }
-    }
-    
-    /**
-     * Importiert alle Trainer- und Pokemon-Daten
-     * @private
-     */
-    _importAllData() {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.json';
-        
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    
-                    // Neues Multi-Trainer-Format (Version 3.0)
-                    if (data.trainers && Array.isArray(data.trainers)) {
-                        // Bestätigungsdialog
-                        const confirmReplace = confirm(
-                            `Diese Datei enthält ${data.trainers.length} Trainer.\n\n` +
-                            `Möchtest du alle bestehenden Trainer ersetzen (OK)\n` +
-                            `oder die Trainer hinzufügen (Abbrechen)?`
-                        );
-                        
-                        if (confirmReplace) {
-                            // Komplett ersetzen
-                            this.trainerManager.importAll(data);
-                        } else {
-                            // Trainer einzeln hinzufügen
-                            data.trainers.forEach(trainerData => {
-                                const newIndex = this.trainerManager.addTrainer();
-                                const newTrainer = this.trainerManager.trainers[newIndex];
-                                newTrainer._importFromJSON(trainerData);
-                                
-                                // Pokemon-Daten kopieren
-                                if (data.pokemonSheets) {
-                                    const existingSheets = JSON.parse(localStorage.getItem('pokemon_character_sheets') || '{}');
-                                    
-                                    Object.entries(data.pokemonSheets).forEach(([key, pokemonData]) => {
-                                        // Nur Pokemon dieses Trainers
-                                        if (key.startsWith(trainerData.id + '_slot')) {
-                                            const newKey = key.replace(trainerData.id, newTrainer.id);
-                                            existingSheets[newKey] = {
-                                                ...pokemonData,
-                                                trainerId: newTrainer.id
-                                            };
-                                        }
-                                    });
-                                    
-                                    localStorage.setItem('pokemon_character_sheets', JSON.stringify(existingSheets));
-                                }
-                            });
-                            
-                            this.trainerManager.notifyChange();
-                        }
-                        
-                        // UI aktualisieren
-                        this._updateTrainerTabs();
-                        this.trainerUIRenderer.trainerState = this.trainerManager.getActiveTrainer();
-                        this.trainerUIRenderer.renderTrainerSheet();
-                        
-                        this._showToast(`${data.trainers.length} Trainer importiert!`, 'success');
-                    }
-                    // Altes Format (einzelner Trainer, Version 2.x)
-                    else if (data.trainer) {
-                        this.trainerManager.importAll(data);
-                        
-                        this._updateTrainerTabs();
-                        this.trainerUIRenderer.trainerState = this.trainerManager.getActiveTrainer();
-                        this.trainerUIRenderer.renderTrainerSheet();
-                        
-                        this._showToast('Trainer erfolgreich importiert!', 'success');
-                    }
-                    // Sehr altes Format (einzelnes Pokemon)
-                    else if (data.pokemonId) {
-                        this._importLegacyPokemon(data);
-                    }
-                    else {
-                        throw new Error('Unbekanntes Dateiformat');
-                    }
-                    
-                    // Zur Trainer-Ansicht wechseln
-                    this.navigationService.showTrainerView();
-                    
-                } catch (error) {
-                    console.error('Import-Fehler:', error);
-                    this._showToast('Fehler beim Importieren: ' + error.message, 'error');
-                }
-            };
-            
-            reader.readAsText(file);
-        });
-        
-        fileInput.click();
-    }
-    
-    /**
-     * Importiert ein einzelnes Pokemon im alten Format
-     * @param {Object} data - Die Pokemon-Daten
-     * @private
-     */
-    _importLegacyPokemon(data) {
-        const trainer = this.trainerManager.getActiveTrainer();
-        
-        // Finde einen leeren Slot oder erstelle einen neuen
-        let targetSlotIndex = trainer.pokemonSlots.findIndex(slot => slot.isEmpty());
-        
-        if (targetSlotIndex === -1) {
-            targetSlotIndex = trainer.addPokemonSlot();
-        }
-        
-        // Pokemon dem Slot zuweisen
-        const slot = trainer.pokemonSlots[targetSlotIndex];
-        slot.pokemonId = data.pokemonId;
-        slot.pokemonName = data.pokemonName;
-        slot.germanName = data.pokemonGermanName || data.pokemonName;
-        slot.nickname = data.textFields?.nickname || '';
-        
-        // Typen extrahieren
-        if (data.types && Array.isArray(data.types)) {
-            slot.types = data.types.map(t => {
-                if (typeof t === 'string') return t.toLowerCase();
-                if (t.type && t.type.name) return t.type.name.toLowerCase();
-                return null;
-            }).filter(t => t !== null);
-        } else {
-            slot.types = [];
-        }
-        
-        // Pokemon-Daten mit neuem Key speichern
-        const sheets = JSON.parse(localStorage.getItem('pokemon_character_sheets') || '{}');
-        const newKey = `${trainer.id}_slot${targetSlotIndex}`;
-        sheets[newKey] = {
-            ...data,
-            trainerId: trainer.id,
-            slotIndex: targetSlotIndex
-        };
-        localStorage.setItem('pokemon_character_sheets', JSON.stringify(sheets));
-        
-        // Trainer-State speichern
-        this.trainerManager.notifyChange();
-        
-        // UI aktualisieren
-        this._updateTrainerTabs();
-        this.trainerUIRenderer.updatePokemonSlots();
-        
-        this._showToast(`${data.pokemonGermanName || data.pokemonName} wurde importiert!`, 'success');
     }
     
     /**
