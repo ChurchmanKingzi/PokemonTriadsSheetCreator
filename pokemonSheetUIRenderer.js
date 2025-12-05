@@ -1072,14 +1072,9 @@ class UiRenderer {
             }
         });
         
-        // PDF-Export-Button
-        addEventListenerSafe('#save-pdf-button', 'click', () => {
-            if (window.pokemonApp && window.pokemonApp.pdfService) {
-                window.pokemonApp.pdfService.exportPdf();
-            } else {
-                this._showToast('PDF-Export-Service nicht verfügbar', 'error');
-            }
-        });
+        // PDF-Export-Button wird vom TrainerPdfService gesteuert (trainerSheetPdfService.js)
+        // um kontextabhängig zwischen Trainer- und Pokemon-PDF zu wechseln.
+        // KEIN zusätzlicher Event-Listener hier, da sonst Mehrfach-Downloads entstehen!
         
         // Laden-Button
         addEventListenerSafe('#load-pokemon-button', 'click', () => {
