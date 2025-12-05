@@ -99,6 +99,7 @@ const SKILL_GROUPS = {
         'Betören',
         'Einschüchtern',
         'Etikette',
+        'Feilschen',
         'Gerüchte aufschnappen',
         'Lügen',
         'Psychologie',
