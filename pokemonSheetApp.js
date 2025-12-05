@@ -138,22 +138,6 @@ class PokemonSheetApp {
             selectElement.addEventListener('change', this._handlePokemonSelect.bind(this));
         }
         
-        // PDF-Export-Button
-        const savePdfButton = document.getElementById('save-pdf-button');
-        if (savePdfButton) {
-            savePdfButton.addEventListener('click', () => {
-                const pdfService = this.getPdfService();
-                if (pdfService) {
-                    pdfService.exportPdf();
-                } else {
-                    this._showError('PDF-Export-Service wird geladen, bitte warte einen Moment und versuche es erneut.');
-                    // Nochmal versuchen zu initialisieren
-                    setTimeout(() => {
-                        this._tryInitPdfService();
-                    }, 500);
-                }
-            });
-        }
         
         // Event für erfolgreiche Pokémon-Ladung
         this.pokemonLoadedEvent = new CustomEvent('pokemonLoaded', {
