@@ -82,14 +82,49 @@ class PokemonSheetApp {
      * @private
      */
     _initPdfService() {
+        // Sofort versuchen zu initialisieren
+        this._tryInitPdfService();
+        
+        // Zusätzlich nach kurzer Verzögerung erneut versuchen (falls Bibliotheken noch laden)
         setTimeout(() => {
-            try {
-                this.pdfService = new PdfService(this.appState, this.uiRenderer);
-                console.log('PDF-Service erfolgreich initialisiert');
-            } catch (pdfError) {
-                console.warn('PDF-Service konnte nicht initialisiert werden:', pdfError);
+            if (!this.pdfService) {
+                this._tryInitPdfService();
             }
         }, this.timing.extraLong);
+    }
+    
+    /**
+     * Versucht den PDF-Service zu initialisieren
+     * @private
+     * @returns {boolean} True wenn erfolgreich
+     */
+    _tryInitPdfService() {
+        if (this.pdfService) return true;
+        
+        try {
+            if (typeof PdfService !== 'undefined') {
+                this.pdfService = new PdfService(this.appState, this.uiRenderer);
+                console.log('PDF-Service erfolgreich initialisiert');
+                return true;
+            } else {
+                console.log('PdfService-Klasse noch nicht verfügbar, warte...');
+                return false;
+            }
+        } catch (pdfError) {
+            console.warn('PDF-Service konnte nicht initialisiert werden:', pdfError);
+            return false;
+        }
+    }
+    
+    /**
+     * Gibt den PDF-Service zurück, initialisiert ihn bei Bedarf
+     * @returns {PdfService|null}
+     */
+    getPdfService() {
+        if (!this.pdfService) {
+            this._tryInitPdfService();
+        }
+        return this.pdfService;
     }
     
     /**
@@ -107,10 +142,15 @@ class PokemonSheetApp {
         const savePdfButton = document.getElementById('save-pdf-button');
         if (savePdfButton) {
             savePdfButton.addEventListener('click', () => {
-                if (this.pdfService) {
-                    this.pdfService.exportPdf();
+                const pdfService = this.getPdfService();
+                if (pdfService) {
+                    pdfService.exportPdf();
                 } else {
-                    this._showError('PDF-Export-Service nicht verfügbar');
+                    this._showError('PDF-Export-Service wird geladen, bitte warte einen Moment und versuche es erneut.');
+                    // Nochmal versuchen zu initialisieren
+                    setTimeout(() => {
+                        this._tryInitPdfService();
+                    }, 500);
                 }
             });
         }
@@ -382,6 +422,9 @@ class PokemonSheetApp {
         // Strichliste zurücksetzen
         this.appState.tallyMarks = [];
         
+        // Würfelklasse zurücksetzen
+        this.appState.customDiceClass = null;
+        
         // Fertigkeitswerte auf Standard zurücksetzen
         Object.keys(SKILL_GROUPS).forEach(category => {
             this.appState.skillValues[category] = DEFAULT_VALUES.SKILL_VALUE;
@@ -492,6 +535,11 @@ class PokemonSheetApp {
         // Custom Skills
         if (sheet.customSkills) {
             this.appState.customSkills = JSON.parse(JSON.stringify(sheet.customSkills));
+        }
+        
+        // Benutzerdefinierte Würfelklasse
+        if (sheet.customDiceClass !== undefined) {
+            this.appState.customDiceClass = sheet.customDiceClass;
         }
     }
     
@@ -777,7 +825,16 @@ class PokemonSheetApp {
 // App beim Laden der Seite initialisieren
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM vollständig geladen, initialisiere Pokemon Sheet App...');
+    // Bestehende appState-Referenz bewahren
+    const existingAppState = window.pokemonApp?.appState;
+    
     const app = new PokemonSheetApp();
-    window.pokemonApp = Object.assign(window.pokemonApp || {}, app);
+    
+    // App direkt als Referenz setzen, appState wiederherstellen falls nötig
+    if (existingAppState) {
+        app.appState = existingAppState;
+    }
+    window.pokemonApp = app;
+    
     app.init();
 });

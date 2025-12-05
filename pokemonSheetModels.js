@@ -52,6 +52,9 @@ class AppState {
         // Statuseffekte (z.B. ['poisoned', 'burned'])
         this.statusEffects = [];
         
+        // Benutzerdefinierte Würfelklasse (null = automatisch berechnet)
+        this.customDiceClass = null;
+        
         // Temporäre Stat-Modifikatoren für den Kampf
         // Diese speichern die DIFFERENZ zum permanenten Wert
         this.tempStatModifiers = {
@@ -196,6 +199,77 @@ class AppState {
      */
     hasStatusEffect(statusId) {
         return this.statusEffects && this.statusEffects.includes(statusId);
+    }
+    
+    // ==================== WÜRFELKLASSEN-MANAGEMENT ====================
+    
+    /**
+     * Erhöht die Würfelklasse um eine Stufe
+     * @returns {string|null} Die neue Würfelklasse oder null wenn Maximum erreicht
+     */
+    increaseDiceClass() {
+        // Würfelklassen in aufsteigender Reihenfolge (ohne 2W100 für manuelle Erhöhung)
+        const diceClasses = ["1W4", "1W6", "1W8", "1W10", "1W12", "2W6", "2W8", "2W10", "2W12"];
+        
+        // Aktuelle Würfelklasse ermitteln
+        const currentDice = this.customDiceClass || 
+            (this.pokemonData ? this.pokemonData.diceClass : null);
+        
+        if (!currentDice) return null;
+        
+        // 2W100 kann nicht erhöht werden
+        if (currentDice === "2W100") return null;
+        
+        const currentIndex = diceClasses.indexOf(currentDice);
+        if (currentIndex === -1 || currentIndex >= diceClasses.length - 1) {
+            return null; // Bereits am Maximum oder ungültig
+        }
+        
+        // Eine Stufe erhöhen
+        this.customDiceClass = diceClasses[currentIndex + 1];
+        
+        // Event auslösen
+        const event = new CustomEvent('diceClassChanged', { 
+            detail: { diceClass: this.customDiceClass } 
+        });
+        document.dispatchEvent(event);
+        
+        return this.customDiceClass;
+    }
+    
+    /**
+     * Setzt die Würfelklasse auf den ursprünglichen Wert zurück
+     * @returns {string|null} Die ursprüngliche Würfelklasse
+     */
+    resetDiceClass() {
+        this.customDiceClass = null;
+        
+        const originalDice = this.pokemonData ? this.pokemonData.diceClass : null;
+        
+        // Event auslösen
+        const event = new CustomEvent('diceClassChanged', { 
+            detail: { diceClass: originalDice, isReset: true } 
+        });
+        document.dispatchEvent(event);
+        
+        return originalDice;
+    }
+    
+    /**
+     * Gibt die aktuelle (ggf. überschriebene) Würfelklasse zurück
+     * @returns {string|null} Die aktuelle Würfelklasse
+     */
+    getCurrentDiceClass() {
+        return this.customDiceClass || 
+            (this.pokemonData ? this.pokemonData.diceClass : null);
+    }
+    
+    /**
+     * Prüft ob die Würfelklasse manuell überschrieben wurde
+     * @returns {boolean} True wenn überschrieben
+     */
+    isDiceClassCustomized() {
+        return this.customDiceClass !== null;
     }
     
     /**

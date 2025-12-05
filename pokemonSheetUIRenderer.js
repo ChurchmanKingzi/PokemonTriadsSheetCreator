@@ -716,6 +716,9 @@ class UiRenderer {
         
         this._addLevelUpEventListeners(autoSave);
         
+        // Würfelklassen-Events initialisieren
+        this._initDiceClassEvents(autoSave);
+        
         // Freundschafts-Strichliste initialisieren
         this._initFriendshipTally();
         
@@ -1264,15 +1267,29 @@ class UiRenderer {
      * @returns {HTMLElement} Der Level-Up-Bereich
      */
     _createLevelUpSection() {
+        // Aktuelle Würfelklasse ermitteln (custom oder original)
+        const currentDiceClass = this.appState.getCurrentDiceClass() || 
+            this.appState.pokemonData.diceClass;
+        const isCustomized = this.appState.isDiceClassCustomized();
+        
         const levelUpSection = createElement('div', { className: 'level-up-section' }, [
             // Obere Zeile mit Level-Anzeige und Würfelklasse
             createElement('div', { className: 'level-display-row' }, [
                 // Würfelklasse (hier neu positioniert) - mit Tooltip für Erklärung
                 createElement('div', { className: 'dice-class-container' }, [
                     createElement('span', { 
-                        className: 'dice-class',
-                        title: this.appState.pokemonData.diceClassTooltip || 'Würfelklasse'
-                    }, this.appState.pokemonData.diceClass)
+                        id: 'dice-class-display',
+                        className: `dice-class dice-class-clickable${isCustomized ? ' dice-class-customized' : ''}`,
+                        title: (this.appState.pokemonData.diceClassTooltip || 'Würfelklasse') + 
+                            '\n\nKlicken zum Erhöhen'
+                    }, currentDiceClass),
+                    // Reset-Button (nur sichtbar wenn customized)
+                    createElement('button', {
+                        id: 'dice-class-reset-btn',
+                        className: `dice-class-reset-btn${isCustomized ? '' : ' hidden'}`,
+                        type: 'button',
+                        title: 'Würfelklasse zurücksetzen'
+                    }, '↺')
                 ])
             ]),
         
@@ -1818,6 +1835,77 @@ class UiRenderer {
         
         return compactFriendshipTracker;
     }
+    /**
+     * Initialisiert die Event-Listener für die Würfelklasse
+     * @param {Function} autoSave - Funktion zum automatischen Speichern
+     * @private
+     */
+    _initDiceClassEvents(autoSave) {
+        // Warten, bis das DOM geladen ist
+        setTimeout(() => {
+            const diceClassDisplay = document.getElementById('dice-class-display');
+            const resetBtn = document.getElementById('dice-class-reset-btn');
+            
+            if (!diceClassDisplay) return;
+            
+            // Klick auf Würfelklasse erhöht sie
+            diceClassDisplay.addEventListener('click', () => {
+                const newDice = this.appState.increaseDiceClass();
+                
+                if (newDice) {
+                    // UI aktualisieren
+                    diceClassDisplay.textContent = newDice;
+                    diceClassDisplay.classList.add('dice-class-customized');
+                    
+                    // Reset-Button sichtbar machen
+                    if (resetBtn) {
+                        resetBtn.classList.remove('hidden');
+                    }
+                    
+                    // Animation
+                    diceClassDisplay.classList.add('dice-class-pulse');
+                    setTimeout(() => {
+                        diceClassDisplay.classList.remove('dice-class-pulse');
+                    }, 300);
+                    
+                    autoSave();
+                } else {
+                    // Maximum erreicht - visuelles Feedback
+                    diceClassDisplay.classList.add('dice-class-shake');
+                    setTimeout(() => {
+                        diceClassDisplay.classList.remove('dice-class-shake');
+                    }, 300);
+                }
+            });
+            
+            // Reset-Button
+            if (resetBtn) {
+                resetBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Verhindert, dass der Klick die Würfelklasse erhöht
+                    
+                    const originalDice = this.appState.resetDiceClass();
+                    
+                    if (originalDice) {
+                        // UI aktualisieren
+                        diceClassDisplay.textContent = originalDice;
+                        diceClassDisplay.classList.remove('dice-class-customized');
+                        
+                        // Reset-Button verstecken
+                        resetBtn.classList.add('hidden');
+                        
+                        // Animation
+                        diceClassDisplay.classList.add('dice-class-reset-pulse');
+                        setTimeout(() => {
+                            diceClassDisplay.classList.remove('dice-class-reset-pulse');
+                        }, 500);
+                        
+                        autoSave();
+                    }
+                });
+            }
+        }, 100);
+    }
+
     /**
      * Initialisiert die Freundschafts-Strichliste
      * @private

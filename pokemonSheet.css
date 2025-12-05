@@ -336,6 +336,7 @@ body {
 .dice-class-container {
     display: flex;
     align-items: center;
+    gap: 4px;
 }
 
 .dice-class {
@@ -350,8 +351,92 @@ body {
     transition: background-color 0.2s ease;
 }
 
-.dice-class:hover {
+/* Klickbare Würfelklasse */
+.dice-class.dice-class-clickable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.dice-class.dice-class-clickable:hover {
     background-color: #2d3748;
+    transform: scale(1.05);
+}
+
+.dice-class.dice-class-clickable:active {
+    transform: scale(0.98);
+}
+
+/* Customized State (manuell erhöht) */
+.dice-class.dice-class-customized {
+    background-color: #805ad5;
+    box-shadow: 0 0 8px rgba(128, 90, 213, 0.5);
+}
+
+.dice-class.dice-class-customized:hover {
+    background-color: #6b46c1;
+}
+
+/* Reset-Button für Würfelklasse */
+.dice-class-reset-btn {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    margin-left: 2px;
+    border: 1px solid #805ad5;
+    border-radius: 4px;
+    background-color: white;
+    color: #805ad5;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.dice-class-reset-btn:hover {
+    background-color: #805ad5;
+    color: white;
+}
+
+.dice-class-reset-btn:active {
+    transform: scale(0.95);
+}
+
+.dice-class-reset-btn.hidden {
+    display: none;
+}
+
+/* Animationen */
+@keyframes diceClassPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+@keyframes diceClassShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+}
+
+@keyframes diceClassResetPulse {
+    0% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(72, 187, 120, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0); }
+}
+
+.dice-class.dice-class-pulse {
+    animation: diceClassPulse 0.3s ease-out;
+}
+
+.dice-class.dice-class-shake {
+    animation: diceClassShake 0.3s ease-out;
+}
+
+.dice-class.dice-class-reset-pulse {
+    animation: diceClassResetPulse 0.5s ease-out;
 }
 
 /* Typen */
@@ -1432,6 +1517,26 @@ body.dark-mode .dice-class {
 
 body.dark-mode .dice-class:hover {
     background-color: #4b5563;
+}
+
+body.dark-mode .dice-class.dice-class-customized {
+    background-color: #7c3aed;
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.5);
+}
+
+body.dark-mode .dice-class.dice-class-customized:hover {
+    background-color: #8b5cf6;
+}
+
+body.dark-mode .dice-class-reset-btn {
+    background-color: #1f2937;
+    border-color: #7c3aed;
+    color: #a78bfa;
+}
+
+body.dark-mode .dice-class-reset-btn:hover {
+    background-color: #7c3aed;
+    color: white;
 }
 
 /* GENA PA BW Container - FIXED */

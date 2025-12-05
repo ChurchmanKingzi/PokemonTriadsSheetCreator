@@ -61,12 +61,18 @@ class SearchableSelect {
     
     // Optionen extrahieren und in das neue Format umwandeln
     Array.from(this.originalSelect.options).forEach(option => {
+      // Extrahiere die Dex-Nummer (falls vorhanden) für separate Nummernsuche
+      const dexMatch = option.textContent.match(/^#(\d+)\s+/);
+      const dexNumber = dexMatch ? dexMatch[1] : '';
+      
       // Original-Option speichern
       this.options.push({
         value: option.value,
         text: option.textContent,
-        // Extrahiere den Namen ohne die Nummer für die Suche
-        searchText: option.textContent.replace(/^#\d+\s+/, '').toLowerCase()
+        // Extrahiere den Namen ohne die Nummer für die Namenssuche
+        searchText: option.textContent.replace(/^#\d+\s+/, '').toLowerCase(),
+        // Speichere die Dex-Nummer separat für Nummernsuche
+        dexNumber: dexNumber
       });
     });
     
@@ -181,8 +187,11 @@ class SearchableSelect {
         return;
       }
       
-      // Filtern nach dem Namen (ohne die Nummer)
-      if (searchTerm === '' || option.searchText.includes(searchTerm)) {
+      // Filtern nach dem Namen (ohne die Nummer) ODER nach der Dex-Nummer
+      const matchesName = option.searchText.includes(searchTerm);
+      const matchesDexNumber = option.dexNumber && option.dexNumber.startsWith(searchTerm);
+      
+      if (searchTerm === '' || matchesName || matchesDexNumber) {
         hasResults = true;
         
         const optionElement = document.createElement('div');
@@ -273,11 +282,17 @@ class SearchableSelect {
     
     // Optionen extrahieren und in das neue Format umwandeln
     Array.from(this.originalSelect.options).forEach(option => {
+      // Extrahiere die Dex-Nummer (falls vorhanden) für separate Nummernsuche
+      const dexMatch = option.textContent.match(/^#(\d+)\s+/);
+      const dexNumber = dexMatch ? dexMatch[1] : '';
+      
       this.options.push({
         value: option.value,
         text: option.textContent,
         // Extrahiere den Namen ohne die Nummer für die Suche
-        searchText: option.textContent.replace(/^#\d+\s+/, '').toLowerCase()
+        searchText: option.textContent.replace(/^#\d+\s+/, '').toLowerCase(),
+        // Speichere die Dex-Nummer separat für Nummernsuche
+        dexNumber: dexNumber
       });
     });
     

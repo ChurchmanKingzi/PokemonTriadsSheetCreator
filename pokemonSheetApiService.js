@@ -12,12 +12,336 @@ class ApiService {
         this.translationService = new TranslationService();
         
         // Cache Keys für LocalStorage
-        this.CACHE_KEY_POKEMON_LIST = 'pokemon_list_cache_v3';
+        this.CACHE_KEY_POKEMON_LIST = 'pokemon_list_cache_v5'; // Version erhöht wegen neuer Daten!
         this.CACHE_EXPIRY_DAYS = 7;
         
         // Normale Pokemon IDs (1-1025) und spezielle IDs (10001-10277)
         this.standardPokemonRange = { min: 1, max: 1025 };
         this.specialPokemonRange = { min: 10001, max: 10277 };
+        
+        // Mapping-Tabelle: Spezielle Pokemon-ID -> API-Name
+        // Diese Tabelle ermöglicht die korrekte Übersetzung ohne API-Calls
+        this.specialPokemonIdToName = {
+            // ===== DEOXYS-FORMEN (10001-10003) =====
+            10001: 'deoxys-attack',
+            10002: 'deoxys-defense',
+            10003: 'deoxys-speed',
+            
+            // ===== WORMADAM-FORMEN (10004-10005) =====
+            10004: 'wormadam-sandy',
+            10005: 'wormadam-trash',
+            
+            // ===== SHAYMIN (10006) =====
+            10006: 'shaymin-sky',
+            
+            // ===== GIRATINA (10007) =====
+            10007: 'giratina-origin',
+            
+            // ===== ROTOM-FORMEN (10008-10012) =====
+            10008: 'rotom-heat',
+            10009: 'rotom-wash',
+            10010: 'rotom-frost',
+            10011: 'rotom-fan',
+            10012: 'rotom-mow',
+            
+            // ===== CASTFORM-FORMEN (10013-10015) =====
+            10013: 'castform-sunny',
+            10014: 'castform-rainy',
+            10015: 'castform-snowy',
+            
+            // ===== BASCULIN (10016) =====
+            10016: 'basculin-blue-striped',
+            
+            // ===== DARMANITAN (10017) =====
+            10017: 'darmanitan-zen',
+            
+            // ===== MELOETTA (10018) =====
+            10018: 'meloetta-pirouette',
+            
+            // ===== KAMI-TRIO TIERGEISTFORM (10019-10021) =====
+            10019: 'tornadus-therian',
+            10020: 'thundurus-therian',
+            10021: 'landorus-therian',
+            
+            // ===== KYUREM-FORMEN (10022-10023) =====
+            10022: 'kyurem-black',
+            10023: 'kyurem-white',
+            
+            // ===== KELDEO (10024) =====
+            10024: 'keldeo-resolute',
+            
+            // ===== MEOWSTIC (10025) =====
+            10025: 'meowstic-female',
+            
+            // ===== AEGISLASH (10026) =====
+            10026: 'aegislash-blade',
+            
+            // ===== PUMPKABOO & GOURGEIST GRÖßEN (10027-10032) =====
+            10027: 'pumpkaboo-small',
+            10028: 'pumpkaboo-large',
+            10029: 'pumpkaboo-super',
+            10030: 'gourgeist-small',
+            10031: 'gourgeist-large',
+            10032: 'gourgeist-super',
+            
+            // ===== MEGA-EVOLUTIONEN GEN 1 (10033-10044) =====
+            10033: 'venusaur-mega',
+            10034: 'charizard-mega-x',
+            10035: 'charizard-mega-y',
+            10036: 'blastoise-mega',
+            10037: 'alakazam-mega',
+            10038: 'gengar-mega',
+            10039: 'kangaskhan-mega',
+            10040: 'pinsir-mega',
+            10041: 'gyarados-mega',
+            10042: 'aerodactyl-mega',
+            10043: 'mewtwo-mega-x',
+            10044: 'mewtwo-mega-y',
+            
+            // ===== MEGA-EVOLUTIONEN GEN 2 (10045-10049) =====
+            10045: 'ampharos-mega',
+            10046: 'scizor-mega',
+            10047: 'heracross-mega',
+            10048: 'houndoom-mega',
+            10049: 'tyranitar-mega',
+            
+            // ===== MEGA-EVOLUTIONEN GEN 3+ (10050-10079) =====
+            10050: 'blaziken-mega',
+            10051: 'gardevoir-mega',
+            10052: 'mawile-mega',
+            10053: 'aggron-mega',
+            10054: 'medicham-mega',
+            10055: 'manectric-mega',
+            10056: 'banette-mega',
+            10057: 'absol-mega',
+            10058: 'garchomp-mega',
+            10059: 'lucario-mega',
+            10060: 'abomasnow-mega',
+            10061: 'floette-eternal',
+            10062: 'latias-mega',
+            10063: 'latios-mega',
+            10064: 'swampert-mega',
+            10065: 'sceptile-mega',
+            10066: 'sableye-mega',
+            10067: 'altaria-mega',
+            10068: 'gallade-mega',
+            10069: 'audino-mega',
+            10070: 'sharpedo-mega',
+            10071: 'slowbro-mega',
+            10072: 'steelix-mega',
+            10073: 'pidgeot-mega',
+            10074: 'glalie-mega',
+            10075: 'diancie-mega',
+            10076: 'metagross-mega',
+            10077: 'kyogre-primal',
+            10078: 'groudon-primal',
+            10079: 'rayquaza-mega',
+            
+            // ===== PIKACHU COSPLAY-FORMEN (10080-10085) =====
+            10080: 'pikachu-rock-star',
+            10081: 'pikachu-belle',
+            10082: 'pikachu-pop-star',
+            10083: 'pikachu-phd',
+            10084: 'pikachu-libre',
+            10085: 'pikachu-cosplay',
+            
+            // ===== Hoopa Unbound =====
+            10086: 'hoopa-unbound',
+            
+            // ===== MEHR MEGA-EVOLUTIONEN (10096-10099) =====
+            10087: 'camerupt-mega',
+            10088: 'lopunny-mega',
+            10089: 'salamence-mega',
+            10090: 'beedrill-mega',
+            
+            // ===== ALOLA-FORMEN (10100-10118) =====
+            10091: 'rattata-alola',
+            10092: 'raticate-alola',
+            10100: 'raichu-alola',
+            10101: 'sandshrew-alola',
+            10102: 'sandslash-alola',
+            10103: 'vulpix-alola',
+            10104: 'ninetales-alola',
+            10105: 'diglett-alola',
+            10106: 'dugtrio-alola',
+            10107: 'meowth-alola',
+            10108: 'persian-alola',
+            10109: 'geodude-alola',
+            10110: 'graveler-alola',
+            10111: 'golem-alola',
+            10112: 'grimer-alola',
+            10113: 'muk-alola',
+            10114: 'exeggutor-alola',
+            10115: 'marowak-alola',
+            
+            // ===== GRENINJA (10119-10120) =====
+            10116: 'greninja-battle-bond',
+            10117: 'greninja-ash',
+            
+            // ===== ZYGARDE-FORMEN (10121-10124) =====
+            10118: 'zygarde-10-power-construct',
+            10119: 'zygarde-50-power-construct',
+            10120: 'zygarde-complete',
+            
+            
+            // ===== ORICORIO-FORMEN (10126-10128) =====
+            10123: 'oricorio-pom-pom',
+            10124: 'oricorio-pau',
+            10125: 'oricorio-sensu',
+            
+            // ===== LYCANROC-FORMEN (10129-10130) =====
+            10126: 'lycanroc-midnight',
+            10152: 'lycanroc-dusk',
+            
+            // ===== WISHIWASHI (10127) =====
+            10127: 'wishiwashi-school',
+            
+            // ===== NECROZMA-FORMEN (10155-10157) =====
+            10155: 'necrozma-dusk',
+            10156: 'necrozma-dawn',
+            10157: 'necrozma-ultra',
+            
+            // ===== MIMIKYU & TOTEM-POKEMON (10162-10174) =====
+            10184: 'toxtricity-low-key',
+            10186: 'indeedee-female',
+            10187: 'morpeko-hangry',
+            10188: 'zacian-crowned',
+            10189: 'zamazenta-crowned',
+            
+            // ===== GALAR-FORMEN (10178-10197) =====
+            10161: 'meowth-galar',
+            10162: 'ponyta-galar',
+            10163: 'rapidash-galar',
+            10164: 'slowpoke-galar',
+            10165: 'slowbro-galar',
+            10166: 'farfetchd-galar',
+            10167: 'weezing-galar',
+            10168: 'mr-mime-galar',
+            10169: 'articuno-galar',
+            10170: 'zapdos-galar',
+            10171: 'moltres-galar',
+            10172: 'slowking-galar',
+            10173: 'corsola-galar',
+            10174: 'zigzagoon-galar',
+            10175: 'linoone-galar',
+            10176: 'darumaka-galar',
+            10177: 'darmanitan-galar-standard',
+            10178: 'darmanitan-galar-zen',
+            10179: 'yamask-galar',
+            10180: 'stunfisk-galar',
+
+            10193: 'calyrex-ice',
+            10194: 'calyrex-shadow',
+            
+            // ===== URSHIFU (10201-10202) =====
+            10191: 'urshifu-rapid-strike',
+            10192: 'zarude-dada',
+            
+            // ===== GMAX FORMS =====
+            10190: 'eternatus-eternamax',
+            10195: 'venusaur-gmax',
+            10196: 'charizard-gmax',
+            10197: 'blastoise-gmax',
+            10198: 'butterfree-gmax',
+            10199: 'pikachu-gmax',
+            10200: 'meowth-gmax',
+            10201: 'machamp-gmax',
+            10202: 'gengar-gmax',
+            10203: 'kingler-gmax',
+            10204: 'lapras-gmax',
+            10205: 'eevee-gmax',
+            10206: 'snorlax-gmax',
+            10207: 'garbodor-gmax',
+            10208: 'melmetal-gmax',
+            10209: 'rillaboom-gmax',
+            10210: 'cinderace-gmax',
+            10211: 'inteleon-gmax',
+            10212: 'corviknight-gmax',
+            10213: 'orbeetle-gmax',
+            10214: 'drednaw-gmax',
+            10215: 'coalossal-gmax',
+            10216: 'flapple-gmax',
+            10217: 'appletun-gmax',
+            10218: 'sandaconda-gmax',
+            10219: 'toxtricity-gmax',
+            10220: 'centiskorch-gmax',
+            10221: 'hatterene-gmax',
+            10222: 'grimmsnarl-gmax',
+            10223: 'alcremie-gmax',
+            10224: 'copperajah-gmax',
+            10225: 'duraludon-gmax',
+            10226: 'urshifu-gmax',
+            
+            // ===== HISUI-FORMEN (10221-10239) =====
+            10229: 'growlithe-hisui',
+            10230: 'arcanine-hisui',
+            10231: 'voltorb-hisui',
+            10232: 'electrode-hisui',
+            10233: 'typhlosion-hisui',
+            10234: 'qwilfish-hisui',
+            10235: 'sneasel-hisui',
+            10236: 'samurott-hisui',
+            10237: 'lilligant-hisui',
+            10238: 'zorua-hisui',
+            10239: 'zoroark-hisui',
+            10240: 'braviary-hisui',
+            10241: 'sliggoo-hisui',
+            10242: 'goodra-hisui',
+            10243: 'avalugg-hisui',
+            10244: 'decidueye-hisui',
+            10245: 'dialga-origin',
+            10246: 'palkia-origin',
+            10247: 'basculin-white-striped',
+            
+            // ===== ENAMORUS (10248) =====
+            10249: 'enamorus-therian',
+            
+            // ===== BASCULEGION (10249) =====
+            10248: 'basculegion-female',
+            
+            // ===== PALDEA-FORMEN (10250-10253) =====
+            10253: 'wooper-paldea',
+            10250: 'tauros-paldea-combat',
+            10251: 'tauros-paldea-blaze',
+            10252: 'tauros-paldea-aqua',
+            
+            // ===== OINKOLOGNE (10254) =====
+            10254: 'oinkologne-female',
+            
+            // ===== MAUSHOLD (10255) =====
+            10262: 'squawkabilly-white-plumage',
+            
+            // ===== SQUAWKABILLY (10256-10258) =====
+            10260: 'squawkabilly-blue-plumage',
+            10261: 'squawkabilly-yellow-plumage',
+            
+            // ===== PALAFIN (10259) =====
+           // 10259: 'tatsugiri-droopy',
+            
+            // ===== TATSUGIRI (10260-10261) =====
+            10257: 'maushold-family-of-three',
+            10256: 'palafin-hero',
+            10258: 'tatsugiri-droopy',
+            10259: 'tatsugiri-stretchy',
+            
+            // ===== DUDUNSPARCE (10262) =====
+            10255: 'dudunsparce-three-segment',
+            
+            // ===== GIMMIGHOUL (10263) =====
+            10263: 'gimmighoul-roaming',
+                        
+            // ===== POLTCHAGEIST (10272) =====
+            10272: 'ursaluna_bloodmoon',
+            
+            // ===== OGERPON-MASKEN (10273-10275) =====
+            10273: 'ogerpon-wellspring-mask',
+            10274: 'ogerpon-hearthflame-mask',
+            10275: 'ogerpon-cornerstone-mask',
+                        
+            // ===== TERAPAGOS-FORMEN (10277-10278) =====
+            10276: 'terapagos-terastal',
+            10277: 'terapagos-stellar',
+        };
     }
     
     /**
@@ -99,19 +423,59 @@ class ApiService {
                 });
             }
             
-            // Spezielle Pokemon-IDs hinzufügen - auch ohne API-Calls
+            // Spezielle Pokemon-IDs hinzufügen - MIT korrekten Namen aus der Mapping-Tabelle
             for (let specialId = this.specialPokemonRange.min; specialId <= this.specialPokemonRange.max; specialId++) {
+                // Englischen Namen aus der Mapping-Tabelle holen
+                const englishName = this.specialPokemonIdToName[specialId];
+                
+                let germanName;
+                let displayName;
+                
+                if (englishName) {
+                    // Deutschen Namen aus dem TranslationService holen
+                    germanName = this.translationService.getGermanNameFromLocal(englishName);
+                    
+                    // Falls kein deutscher Name gefunden, englischen Namen formatieren
+                    if (!germanName) {
+                        // Formatierung: "vulpix-alola" -> "Vulpix Alola"
+                        germanName = englishName.split('-').map(part => 
+                            capitalizeFirstLetter(part)
+                        ).join(' ');
+                    }
+                    displayName = englishName;
+                } else {
+                    // Fallback für nicht gemappte IDs
+                    germanName = `Pokemon #${specialId}`;
+                    displayName = `special-${specialId}`;
+                }
+                
                 pokemonList.push({
                     id: specialId,
-                    name: `special-${specialId}`,
-                    germanName: `Pokemon #${specialId}`,
+                    name: displayName,
+                    germanName: germanName,
                     url: `${API.BASE_URL}/pokemon/${specialId}`,
                     isSpecial: true
                 });
             }
             
-            // Sortieren nach ID
-            pokemonList = pokemonList.sort((a, b) => a.id - b.id);
+            // Sortieren: Normale Pokemon nach ID, spezielle Formen alphabetisch nach deutschem Namen
+            pokemonList = pokemonList.sort((a, b) => {
+                // Erst nach "Basis-ID" sortieren (normale Pokemon zuerst)
+                const aIsSpecial = a.id >= 10000;
+                const bIsSpecial = b.id >= 10000;
+                
+                // Normale Pokemon nach ID
+                if (!aIsSpecial && !bIsSpecial) {
+                    return a.id - b.id;
+                }
+                
+                // Spezielle Pokemon ans Ende
+                if (!aIsSpecial && bIsSpecial) return -1;
+                if (aIsSpecial && !bIsSpecial) return 1;
+                
+                // Beide speziell: alphabetisch nach deutschem Namen sortieren
+                return a.germanName.localeCompare(b.germanName, 'de');
+            });
             
             // Im Cache speichern
             this._saveToCache(this.CACHE_KEY_POKEMON_LIST, pokemonList);
