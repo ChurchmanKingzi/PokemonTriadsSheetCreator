@@ -133,6 +133,16 @@ class EvolutionService {
         
         console.log(`EvolutionService: Entwickle zu ${targetEvolution.germanName}...`);
         
+        // ============================================================
+        // CRY-PRELOADING FÜR DIE ENTWICKELTE FORM STARTEN
+        // Der Cry wird parallel geladen während die Evolution durchgeführt wird
+        // ============================================================
+        let cryPreloadPromise = null;
+        if (window.pokemonCryService && window.pokemonCryService.isEnabled()) {
+            cryPreloadPromise = window.pokemonCryService.preloadCry(targetEvolution.id);
+            console.log(`EvolutionService: Cry-Preloading für #${targetEvolution.id} (${targetEvolution.germanName}) gestartet`);
+        }
+        
         try {
             // 1. Alte Werte sichern, die beibehalten werden sollen
             const preservedData = {
@@ -282,6 +292,18 @@ class EvolutionService {
             const uiRenderer = window.pokemonApp?.uiRenderer;
             if (uiRenderer) {
                 uiRenderer.renderPokemonSheet();
+                
+                // ============================================================
+                // CRY ABSPIELEN (nach UI-Rendering)
+                // ============================================================
+                if (cryPreloadPromise) {
+                    cryPreloadPromise.then(() => {
+                        // Kurzer Delay um sicherzustellen dass UI komplett sichtbar ist
+                        setTimeout(() => {
+                            window.pokemonCryService.playCry(targetEvolution.id);
+                        }, 100);
+                    });
+                }
                 
                 // Attacken laden und UI aktualisieren
                 const apiService = window.pokemonApp?.apiService;

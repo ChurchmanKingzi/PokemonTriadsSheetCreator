@@ -126,6 +126,10 @@
             <button id="load-pokemon-button" class="action-button load-button" title="Importiert JSON-Dateien (Trainer oder Pokémon)">
                 📂 Daten Laden
             </button>
+            <!-- Pokémon-Rufe Toggle - NUR im Pokemon-View sichtbar -->
+            <button id="cry-toggle-button" class="action-button cry-toggle-button hidden" title="Pokémon-Rufe ein- oder ausschalten">
+                🔊 Rufe An
+            </button>
             <!-- Dark Mode -->
             <button id="dark-mode-button" class="action-button dark-mode-button">🌙 Dark Mode</button>
         </div>
@@ -172,6 +176,9 @@
     
     <!-- Storage-Service (muss früh geladen werden) -->
     <script src="storageService.js"></script>
+    
+    <!-- Pokémon Cry Service (früh laden für Event-Listener) -->
+    <script src="pokemonCryService.js"></script>
     
     <!-- Trainer-Services (vor Trainer-Modulen laden) -->
     <script src="klasseService.js"></script>
@@ -229,12 +236,16 @@
                 this.saveAllButton = document.getElementById('save-all-json-button');
                 this.saveButton = document.getElementById('save-json-button');
                 this.loadButton = document.getElementById('load-pokemon-button');
+                this.cryToggleButton = document.getElementById('cry-toggle-button');
                 
                 this._initEventListeners();
                 this._updateButtonVisibility();
                 
                 // Navigation-Events überwachen
                 this._setupNavigationObserver();
+                
+                // Cry-Button initial aktualisieren
+                this._updateCryButtonState();
                 
                 console.log('ButtonController initialisiert');
             }
@@ -276,6 +287,38 @@
                         }
                     });
                 }
+                
+                // Cry Toggle Button
+                if (this.cryToggleButton) {
+                    this.cryToggleButton.addEventListener('click', () => {
+                        if (window.pokemonCryService) {
+                            window.pokemonCryService.toggle();
+                            this._updateCryButtonState();
+                        } else {
+                            console.error('PokemonCryService nicht verfügbar');
+                        }
+                    });
+                }
+            }
+            
+            /**
+             * Aktualisiert den Zustand des Cry-Toggle-Buttons
+             * @private
+             */
+            _updateCryButtonState() {
+                if (!this.cryToggleButton || !window.pokemonCryService) return;
+                
+                const enabled = window.pokemonCryService.isEnabled();
+                
+                if (enabled) {
+                    this.cryToggleButton.textContent = '🔊 Rufe An';
+                    this.cryToggleButton.classList.add('cry-enabled');
+                    this.cryToggleButton.classList.remove('cry-disabled');
+                } else {
+                    this.cryToggleButton.textContent = '🔇 Rufe Aus';
+                    this.cryToggleButton.classList.remove('cry-enabled');
+                    this.cryToggleButton.classList.add('cry-disabled');
+                }
             }
             
             /**
@@ -309,6 +352,7 @@
             _updateButtonVisibility() {
                 const currentView = this._getCurrentView();
                 
+                // "Alles Speichern" nur im Trainer-View
                 if (this.saveAllButton) {
                     if (currentView === 'trainer') {
                         this.saveAllButton.classList.remove('hidden');
@@ -316,6 +360,18 @@
                     } else {
                         this.saveAllButton.classList.add('hidden');
                         this.saveAllButton.style.display = 'none';
+                    }
+                }
+                
+                // Cry-Toggle nur im Pokemon-View
+                if (this.cryToggleButton) {
+                    if (currentView === 'pokemon') {
+                        this.cryToggleButton.classList.remove('hidden');
+                        this.cryToggleButton.style.display = '';
+                        this._updateCryButtonState();
+                    } else {
+                        this.cryToggleButton.classList.add('hidden');
+                        this.cryToggleButton.style.display = 'none';
                     }
                 }
                 

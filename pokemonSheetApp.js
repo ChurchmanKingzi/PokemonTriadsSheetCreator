@@ -8,6 +8,7 @@
  * 2. UUID-basierte Persistenz - Pokemon werden durch UUID identifiziert, NICHT durch Position
  * 3. Klare Trennung: API → AppState → UI
  * 4. Auto-Save bei jeder Änderung
+ * 5. Paralleles Preloading für Pokemon-Cries (keine Verzögerung beim Abspielen)
  */
 class PokemonSheetApp {
     /**
@@ -294,6 +295,17 @@ class PokemonSheetApp {
     async _loadPokemonById(pokemonId, savedSheet = null) {
         this._setLoadingState(true, 'Pokémon-Daten werden geladen');
         
+        // ============================================================
+        // PARALLELES CRY-PRELOADING STARTEN
+        // Der Cry wird gleichzeitig mit den Pokemon-Daten geladen,
+        // sodass er sofort abgespielt werden kann wenn die UI fertig ist.
+        // ============================================================
+        let cryPreloadPromise = null;
+        if (window.pokemonCryService && window.pokemonCryService.isEnabled()) {
+            cryPreloadPromise = window.pokemonCryService.preloadCry(pokemonId);
+            console.log(`PokemonSheetApp: Cry-Preloading für #${pokemonId} gestartet (parallel)`);
+        }
+        
         try {
             const hasExistingSheet = savedSheet !== null;
             
@@ -319,6 +331,20 @@ class PokemonSheetApp {
             // UI rendern
             this.uiRenderer.renderPokemonSheet();
             
+            // ============================================================
+            // CRY ABSPIELEN (sobald UI gerendert ist)
+            // Warte auf das Preload-Promise und spiele dann ab.
+            // Da das Preloading parallel lief, sollte der Cry jetzt bereit sein!
+            // ============================================================
+            if (cryPreloadPromise) {
+                cryPreloadPromise.then(() => {
+                    // Kleiner Delay um sicherzustellen dass die UI komplett sichtbar ist
+                    setTimeout(() => {
+                        window.pokemonCryService.playCry(pokemonId);
+                    }, 50);
+                });
+            }
+            
             // Attacken laden
             this.loadingOperations.moves = true;
             await this.apiService.fetchPokemonMoves(pokemonData);
@@ -341,7 +367,7 @@ class PokemonSheetApp {
             // Auto-Save einrichten
             this._setupAutoSave();
             
-            // Event auslösen
+            // Event auslösen (für andere Komponenten die darauf lauschen)
             document.dispatchEvent(this.pokemonLoadedEvent);
             
             console.log(`Pokémon mit ID ${pokemonId} erfolgreich geladen`);
