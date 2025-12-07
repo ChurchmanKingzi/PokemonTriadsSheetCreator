@@ -158,56 +158,57 @@ class RideabilityService {
             1009: "land",   // Windewoge
             1014: "land",   // Okidogi
             1018: "land",   // Briduradon
-            1030: "land",   // Alola-Geowaz
-            1051: "flying", // Boreos (Tiergeist)
-            1058: "land",
-            1059: "land",   //Coronospa-Formen
-            1060: "flying", // Cupidos (Tiergeist)
-            1062: "flying", // Demeteros (Tiergeist)
+            10111: "land",   // Alola-Geowaz
+            10019: "flying", // Boreos (Tiergeist)
+            // 1058 entfernt - keine gültige Pokemon-ID
+            10193: "land",   //Coronospa (Ice Rider/Schimmelreiter)
+            10194: "flying", // Coronospa (Shadow Rider/Rappenreiter)
+            10249: "flying", // Cupidos (Tiergeist)
+            10021: "flying", // Demeteros (Tiergeist)
             982: "land",    
-            1068: "land",   // Dummimisel-Formen
-            1086: "land",   // Galar-Geradaks
-            1088: "flying", // Giratina (Urform)
-            1091: "land",   // GMax-Drapfel
-            1092: "land",   // Gmax-Duraludon
-            1095: "land",   // GMax-Glurak
-            1097: "land",   // GMax-Infernopod
-            1102: "water",  // GMax-Lapras
-            1104: "land",   // GMax-Machomei
-            1107: "land",   // GMax-Melmetal
-            1108: "land",   // GMax-Montecarbo
-            1109: "land",   // GMax-Olangaar
-            1114: "land",   // GMax-Riffex
-            1119: "land",   // GMax-Turtok
-            1120: "land",   // GMax-Wulaosu
-            1129: "land",   // Kyurem Black
-            1130: "land",   // Kyurem White
-            1135: "water",  // Lusardin Schwarm
-            1141: "land",   // Mega-Ampharos
-            1143: "land",   // Mega-Bibor
-            1145: "flying", // Mega-Brutalanda
-            1147: "land",   // Mega-Despotar
-            1148: "flying", // Mega-Diancie
-            1152: "water",  // Mega-Garados
-            1154: "land",   // Mega-Gewaldro
-            1155: "flying", // Mega-Zard X
-            1156: "flying", // Mega-Zard Y
-            1159: "land",   // Mega-Kangama
-            1160: "land",   // Mega-Knakrack
-            1167: "flying", // Mega-Metagross
-            1171: "flying", // Mega-Pinsir
-            1172: "flying", // Mega-Rayquaza
-            1173: "land",   // Mega-Rexblisar
-            1177: "land",   // Mega-Skaraborn
-            1178: "land",   // Mega-Stahlos
-            1179: "land",   // Mega-Stolloss
-            1180: "land",   // Mega-Sumpex
-            1182: "water",  // Mega-Tohaido
+            10255: "land",   // Dummimisel (Drei-Segment)
+            10175: "land",   // Galar-Geradaks (Linoone)
+            10007: "flying", // Giratina (Urform)
+            10216: "land",   // GMax-Drapfel
+            10225: "land",   // Gmax-Duraludon
+            10196: "land",   // GMax-Glurak
+            10220: "land",   // GMax-Infernopod
+            10204: "water",  // GMax-Lapras
+            10201: "land",   // GMax-Machomei
+            10208: "land",   // GMax-Melmetal
+            10215: "land",   // GMax-Montecarbo
+            10222: "land",   // GMax-Olangaar (Grimmsnarl)
+            10219: "land",   // GMax-Riffex (Toxtricity)
+            10197: "land",   // GMax-Turtok
+            10226: "land",   // GMax-Wulaosu (Urshifu Single Strike)
+            10022: "land",   // Kyurem Black
+            10023: "land",   // Kyurem White
+            10127: "water",  // Lusardin Schwarm
+            10045: "land",   // Mega-Ampharos
+            10090: "land",   // Mega-Bibor
+            10089: "flying", // Mega-Brutalanda
+            10049: "land",   // Mega-Despotar
+            10075: "flying", // Mega-Diancie
+            10041: "water",  // Mega-Garados
+            10065: "land",   // Mega-Gewaldro
+            10034: "flying", // Mega-Glurak X
+            10035: "flying", // Mega-Glurak Y
+            10039: "land",   // Mega-Kangama
+            10058: "land",   // Mega-Knakrack
+            10076: "flying", // Mega-Metagross
+            10040: "flying", // Mega-Pinsir
+            10079: "flying", // Mega-Rayquaza
+            10060: "land",   // Mega-Rexblisar
+            10047: "land",   // Mega-Skaraborn
+            10072: "land",   // Mega-Stahlos
+            10053: "land",   // Mega-Stolloss
+            10064: "land",   // Mega-Sumpex
+            10070: "water",  // Mega-Tohaido
             9: "land",      // Turtok
-            1183: "land",   // Mega-Turtok
-            1188: "land",   // Necrozma (Abendmähne)
-            1189: "flying", // Necrozma (Morgenschwingen)
-            1198: "land",   // Palkia (Urform)
+            10036: "land",   // Mega-Turtok
+            10155: "land",   // Necrozma (Abendmähne)
+            10156: "flying", // Necrozma (Morgenschwingen)
+            10246: "land",   // Palkia (Urform)
 
             // Legendäre/Mystische die oft als Reittiere dienen
             249: "flying",  // Lugia
@@ -264,7 +265,6 @@ class RideabilityService {
             663: "flying",  // Fiaro
             
             // Psycho/Schwebe-Pokemon die tragen können
-            65: "flying",   // Simsala (Schwebe-ähnlich, Teleport)
             376: "flying",  // Metagross (schwebt)
             437: "flying",  // Bronzong (Schwebe)
         };
@@ -303,9 +303,9 @@ class RideabilityService {
             986,                // Wutpilz
             987,                // Fluttermane
             988,                // Kriechflügel
-            1077,               // Galar-Flegmon
-            1084,               // Hisui-Fukano
-            1174,               // Mega-Scherox
+            10164,               // Galar-Flegmon
+            10229,               // Hisui-Fukano
+            10046,               // Mega-Scherox
             
             // Humanoide die der Algo fälschlicherweise als reitbar einstufen könnte
             68,                  // Machomei
