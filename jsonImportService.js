@@ -506,6 +506,55 @@ class JSONImportService {
             }
         }
         
+        // Erfahrungspunkte
+        if (data.currentExp !== undefined) {
+            appState.currentExp = data.currentExp;
+            const expInput = document.getElementById('current-exp-input');
+            if (expInput) expInput.value = data.currentExp.toString();
+        }
+        
+        // Stat-Auswahl für Level-Up
+        if (data.primaryStatChoice) {
+            appState.primaryStatChoice = data.primaryStatChoice;
+        }
+        if (data.secondaryStatChoice) {
+            appState.secondaryStatChoice = data.secondaryStatChoice;
+        }
+        
+        // Statuseffekte
+        if (data.statusEffects && Array.isArray(data.statusEffects)) {
+            appState.statusEffects = [...data.statusEffects];
+        }
+        
+        // Temporäre Stat-Modifikatoren
+        if (data.tempStatModifiers) {
+            appState.tempStatModifiers = { ...data.tempStatModifiers };
+        }
+        
+        // Benutzerdefinierte Fertigkeiten
+        if (data.customSkills) {
+            appState.customSkills = JSON.parse(JSON.stringify(data.customSkills));
+        }
+        
+        // Benutzerdefinierte Würfelklasse
+        if (data.customDiceClass !== undefined) {
+            appState.customDiceClass = data.customDiceClass;
+            // UI aktualisieren
+            const diceClassDisplay = document.getElementById('dice-class-display');
+            const resetBtn = document.getElementById('dice-class-reset-btn');
+            if (diceClassDisplay) {
+                const displayDice = data.customDiceClass || appState.pokemonData?.diceClass || '';
+                diceClassDisplay.textContent = displayDice;
+                if (data.customDiceClass) {
+                    diceClassDisplay.classList.add('dice-class-customized');
+                    if (resetBtn) resetBtn.classList.remove('hidden');
+                } else {
+                    diceClassDisplay.classList.remove('dice-class-customized');
+                    if (resetBtn) resetBtn.classList.add('hidden');
+                }
+            }
+        }
+        
         // Attacken
         if (data.moves && Array.isArray(data.moves)) {
             this._applyMoves(data.moves);

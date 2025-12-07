@@ -282,6 +282,7 @@ class JSONExportService {
             tempStatModifiers: appState.tempStatModifiers || {},
             tallyMarks: appState.tallyMarks || [],
             customSkills: appState.customSkills || { 'KÖ': [], 'WI': [], 'CH': [], 'GL': [] },
+            customDiceClass: appState.customDiceClass || null,
             textFields: {
                 trainer: document.getElementById('trainer-input')?.value || '',
                 nickname: document.getElementById('nickname-input')?.value || '',

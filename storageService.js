@@ -263,6 +263,9 @@ class PokemonStorageService {
                 'KÖ': [], 'WI': [], 'CH': [], 'GL': []
             },
             
+            // Benutzerdefinierte Würfelklasse (null = automatisch berechnet)
+            customDiceClass: appState.customDiceClass || null,
+            
             // Textfelder
             textFields: textFields
         };

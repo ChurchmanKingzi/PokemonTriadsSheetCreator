@@ -547,10 +547,9 @@ class PokemonSheetApp {
             this.appState.customSkills = JSON.parse(JSON.stringify(sheet.customSkills));
         }
         
-        // Benutzerdefinierte Würfelklasse
-        if (sheet.customDiceClass !== undefined) {
-            this.appState.customDiceClass = sheet.customDiceClass;
-        }
+        // Benutzerdefinierte Würfelklasse - IMMER setzen (null wenn nicht vorhanden)
+        // Sonst "rutscht" die customDiceClass eines anderen Pokemon durch!
+        this.appState.customDiceClass = sheet.customDiceClass || null;
     }
     
     /**
