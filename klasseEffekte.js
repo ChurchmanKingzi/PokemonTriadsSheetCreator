@@ -668,4 +668,4 @@ function initKlasseEffekte() {
             dropdownList.style.display = 'none';
         });
     }
-});
+};

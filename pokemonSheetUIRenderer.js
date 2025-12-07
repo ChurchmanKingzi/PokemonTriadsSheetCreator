@@ -1179,7 +1179,10 @@ class UiRenderer {
                             style: `background-color: ${TYPE_COLORS[typeInfo.type.name] || '#777777'}`
                         }, typeInfo.type.germanName || capitalizeFirstLetter(typeInfo.type.name))
                     )
-                )
+                ),
+                
+                // Physische Infos: Größe, Gewicht, Reitbarkeit
+                this._createPhysicalInfoRow()
             ])
         ]);
         
@@ -1255,6 +1258,83 @@ class UiRenderer {
                 className: 'text-field-input'
             })
         ]);
+    }
+
+    /**
+     * Erstellt die Zeile mit physischen Infos: Größe, Gewicht, Reitbarkeit
+     * @returns {HTMLElement} Die Physical-Info-Zeile
+     * @private
+     */
+    _createPhysicalInfoRow() {
+        const { pokemonData } = this.appState;
+        
+        // Größe in Metern (API liefert Dezimeter)
+        const heightInMeters = pokemonData.height / 10;
+        const heightDisplay = heightInMeters.toFixed(1).replace('.', ',') + ' m';
+        
+        // Gewicht in Kilogramm (API liefert Hektogramm)
+        const weightInKg = pokemonData.weight / 10;
+        const weightDisplay = weightInKg.toFixed(1).replace('.', ',') + ' kg';
+        
+        // Reitbarkeit ermitteln
+        const rideability = this._getRideability();
+        
+        return createElement('div', { className: 'physical-info-row' }, [
+            // Größe
+            createElement('div', { className: 'physical-info-item' }, [
+                createElement('span', { className: 'info-icon' }, '📏'),
+                createElement('span', { className: 'info-label' }, 'Größe:'),
+                createElement('span', { className: 'info-value' }, heightDisplay)
+            ]),
+            
+            // Gewicht
+            createElement('div', { className: 'physical-info-item' }, [
+                createElement('span', { className: 'info-icon' }, '⚖️'),
+                createElement('span', { className: 'info-label' }, 'Gewicht:'),
+                createElement('span', { className: 'info-value' }, weightDisplay)
+            ]),
+            
+            // Reitbarkeit
+            createElement('div', { 
+                className: `rideability-badge ${rideability.cssClass}`,
+                title: rideability.label
+            }, [
+                createElement('span', {}, rideability.icon),
+                createElement('span', {}, rideability.labelShort)
+            ])
+        ]);
+    }
+    
+    /**
+     * Ermittelt die Reitbarkeit des aktuellen Pokemon
+     * Nutzt den RideabilityService falls verfügbar
+     * @returns {Object} Reitbarkeits-Info mit type, label, labelShort, icon, cssClass
+     * @private
+     */
+    _getRideability() {
+        const { pokemonData } = this.appState;
+        const speciesData = pokemonData.speciesData;
+        
+        // Fallback falls Service nicht verfügbar
+        if (!window.rideabilityService) {
+            return {
+                type: 'none',
+                label: 'Kann nicht geritten werden',
+                labelShort: 'Nicht reitbar',
+                icon: '🚫',
+                cssClass: 'rideability-none'
+            };
+        }
+        
+        // Lernbare Attacken für Fly/Surf-Check ermitteln
+        // availableMoves enthält alle lernbaren Attacken des Pokemon
+        const learnableMoves = this.appState.availableMoves || [];
+        
+        return window.rideabilityService.getRideability(
+            pokemonData,
+            speciesData,
+            learnableMoves
+        );
     }
 
     /**

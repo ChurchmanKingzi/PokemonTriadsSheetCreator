@@ -288,4 +288,4 @@ function initNachteilEffekte() {
         // Initiale Ausführung
         updateExclusionState();
     }
-});
+};
