@@ -315,7 +315,9 @@ class JSONExportService {
      * @private
      */
     _downloadJSON(jsonString, filename) {
-        const blob = new Blob([jsonString], { type: 'application/json' });
+        // Explizit UTF-8 BOM hinzufügen und charset angeben, um Encoding-Probleme zu vermeiden
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + jsonString], { type: 'application/json;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         
         const a = document.createElement('a');

@@ -14,7 +14,62 @@ class JSONImportService {
         // Event-Listener initialisieren
         this._initEventListeners();
         
+        // Mojibake-Ersetzungstabelle (UTF-8 als ISO-8859-1/Windows-1252 interpretiert)
+        this._mojibakeMap = {
+            'Ã–': 'Ö', 'Ã¶': 'ö',
+            'Ã„': 'Ä', 'Ã¤': 'ä',
+            'Ãœ': 'Ü', 'Ã¼': 'ü',
+            'ÃŸ': 'ß',
+            'Ã©': 'é', 'Ã¨': 'è',
+            'Ã ': 'à', 'Ã¡': 'á',
+            'Ã®': 'î', 'Ã¯': 'ï',
+            'Ã´': 'ô', 'Ã²': 'ò',
+            'Ã»': 'û', 'Ã¹': 'ù'
+        };
+        
         console.log('JSON Import Service initialisiert');
+    }
+    
+    /**
+     * Repariert Mojibake-Strings (UTF-8 falsch als ISO-8859-1 decodiert)
+     * @param {string} str - Der möglicherweise kaputte String
+     * @returns {string} Der reparierte String
+     * @private
+     */
+    _fixMojibake(str) {
+        if (!str || typeof str !== 'string') return str;
+        
+        let result = str;
+        for (const [broken, fixed] of Object.entries(this._mojibakeMap)) {
+            result = result.split(broken).join(fixed);
+        }
+        return result;
+    }
+    
+    /**
+     * Repariert alle String-Keys und -Values in einem Objekt rekursiv
+     * @param {Object} obj - Das zu reparierende Objekt
+     * @returns {Object} Das reparierte Objekt
+     * @private
+     */
+    _fixMojibakeInObject(obj) {
+        if (!obj || typeof obj !== 'object') return obj;
+        
+        if (Array.isArray(obj)) {
+            return obj.map(item => this._fixMojibakeInObject(item));
+        }
+        
+        const fixed = {};
+        for (const [key, value] of Object.entries(obj)) {
+            const fixedKey = this._fixMojibake(key);
+            const fixedValue = typeof value === 'string' 
+                ? this._fixMojibake(value)
+                : typeof value === 'object' 
+                    ? this._fixMojibakeInObject(value)
+                    : value;
+            fixed[fixedKey] = fixedValue;
+        }
+        return fixed;
     }
     
     /**
@@ -117,6 +172,10 @@ class JSONImportService {
         } catch (parseError) {
             throw new Error('Die ausgewählte Datei enthält kein gültiges JSON.');
         }
+        
+        // Mojibake reparieren (UTF-8 falsch als ISO-8859-1 decodiert)
+        // Dies behebt Probleme mit Umlauten wie "KÃ–" -> "KÖ"
+        data = this._fixMojibakeInObject(data);
         
         // Typ der Datei erkennen und entsprechend verarbeiten
         const importType = this._detectImportType(data);
@@ -322,17 +381,191 @@ class JSONImportService {
         if (selectElement && data.pokemonId) {
             selectElement.value = data.pokemonId.toString();
             
+            // Promise erstellen das auf das pokemonLoaded Event wartet
+            const waitForPokemonLoaded = new Promise((resolve) => {
+                const handler = () => {
+                    document.removeEventListener('pokemonLoaded', handler);
+                    resolve();
+                };
+                document.addEventListener('pokemonLoaded', handler);
+                
+                // Fallback-Timeout falls das Event nie kommt (10 Sekunden)
+                setTimeout(() => {
+                    document.removeEventListener('pokemonLoaded', handler);
+                    resolve();
+                }, 10000);
+            });
+            
             // Change-Event auslösen
             const event = new Event('change', { bubbles: true });
             selectElement.dispatchEvent(event);
             
-            // Warten und dann restliche Daten anwenden
-            await this._waitForPokemonLoad(2000);
-            this._applyPokemonData(data);
+            // Auf das Pokemon-Loaded-Event warten (oder Timeout)
+            await waitForPokemonLoaded;
+            
+            // Warten bis alle nachfolgenden Operationen abgeschlossen sind
+            await this._waitForPokemonLoad(1500);
+            
+            // Import-Daten auf den AppState anwenden (NICHT auf die UI!)
+            this._applyPokemonDataToAppState(data);
+            
+            // UI komplett neu rendern - sie liest die Werte aus dem AppState
+            if (window.pokemonApp?.uiRenderer) {
+                console.log('Re-Render der UI mit importierten Werten...');
+                window.pokemonApp.uiRenderer.renderPokemonSheet();
+                
+                // Move-Selects auch aktualisieren
+                window.pokemonApp.uiRenderer.updateMoveSelects();
+            }
+            
+            // Attacken und Textfelder separat anwenden (nach dem Re-Render)
+            setTimeout(() => {
+                this._applyMovesAndTextFields(data);
+                
+                // Auto-Save triggern
+                if (window.pokemonStorageService) {
+                    window.pokemonStorageService.triggerAutoSave();
+                }
+            }, 300);
             
             this._showToast(`"${pokemonName}" erfolgreich importiert`, 'success');
         } else {
             throw new Error('Pokemon-Select nicht gefunden oder keine Pokemon-ID vorhanden.');
+        }
+    }
+    
+    /**
+     * Wendet Pokemon-Daten NUR auf den AppState an (nicht auf die UI)
+     * @param {Object} data - Die anzuwendenden Daten
+     * @private
+     */
+    _applyPokemonDataToAppState(data) {
+        const appState = window.pokemonApp?.appState;
+        if (!appState) return;
+        
+        console.log('Wende Import-Daten auf AppState an...');
+        
+        // Level
+        if (data.level !== undefined) {
+            appState.level = data.level;
+        }
+        
+        // Erfahrung
+        if (data.currentExp !== undefined) {
+            appState.currentExp = data.currentExp;
+        }
+        
+        // Stats
+        if (data.stats) {
+            appState.stats = { ...data.stats };
+        }
+        
+        // HP, GENA, PA, BW
+        if (data.currentHp !== undefined) appState.currentHp = data.currentHp;
+        if (data.gena !== undefined) appState.gena = data.gena;
+        if (data.pa !== undefined) appState.pa = data.pa;
+        if (data.bw !== undefined) appState.bw = data.bw;
+        
+        // Stat-Auswahl
+        if (data.primaryStatChoice) appState.primaryStatChoice = data.primaryStatChoice;
+        if (data.secondaryStatChoice) appState.secondaryStatChoice = data.secondaryStatChoice;
+        
+        // Wunden
+        if (data.wounds !== undefined) {
+            appState.wounds = data.wounds;
+        }
+        
+        // Fertigkeiten - ALLE setzen
+        if (data.skillValues) {
+            Object.entries(data.skillValues).forEach(([skill, value]) => {
+                appState.skillValues[skill] = value;
+            });
+            console.log('Skill-Werte im AppState gesetzt:', appState.skillValues['KÖ'], appState.skillValues['WI']);
+        }
+        
+        // Statuseffekte
+        if (data.statusEffects) {
+            appState.statusEffects = [...data.statusEffects];
+        }
+        
+        // Temp Stat Modifiers
+        if (data.tempStatModifiers) {
+            appState.tempStatModifiers = { ...data.tempStatModifiers };
+        }
+        
+        // Freundschaft
+        if (data.tallyMarks) {
+            appState.tallyMarks = [...data.tallyMarks];
+        }
+        
+        // Custom Skills
+        if (data.customSkills) {
+            appState.customSkills = JSON.parse(JSON.stringify(data.customSkills));
+        }
+        
+        // Würfelklasse
+        appState.customDiceClass = data.customDiceClass || null;
+        
+        console.log('AppState erfolgreich aktualisiert.');
+    }
+    
+    /**
+     * Wendet Attacken und Textfelder an (nach UI-Render)
+     * @param {Object} data - Die anzuwendenden Daten
+     * @private
+     */
+    _applyMovesAndTextFields(data) {
+        // Attacken
+        if (data.moves && Array.isArray(data.moves)) {
+            data.moves.forEach((moveData, index) => {
+                if (!moveData) return;
+                
+                const moveName = typeof moveData === 'object' ? moveData.name : moveData;
+                const moveSelect = document.getElementById(`move-${index}`);
+                
+                if (moveSelect && moveName) {
+                    moveSelect.value = moveName;
+                    const event = new Event('change', { bubbles: true });
+                    moveSelect.dispatchEvent(event);
+                    
+                    // Benutzerdefinierte Beschreibung
+                    if (typeof moveData === 'object' && moveData.customDescription) {
+                        setTimeout(() => {
+                            const descField = document.getElementById(`move-description-${index}`);
+                            if (descField) {
+                                descField.value = moveData.customDescription;
+                                const appState = window.pokemonApp?.appState;
+                                if (appState?.moves?.[index]) {
+                                    appState.moves[index].customDescription = moveData.customDescription;
+                                }
+                            }
+                        }, 200);
+                    }
+                }
+            });
+        }
+        
+        // Textfelder
+        if (data.textFields) {
+            const nicknameInput = document.getElementById('nickname-input');
+            if (nicknameInput && data.textFields.nickname) {
+                nicknameInput.value = data.textFields.nickname;
+            }
+            
+            const itemInput = document.getElementById('item-input');
+            if (itemInput && data.textFields.item) {
+                itemInput.value = data.textFields.item;
+            }
+        }
+        
+        // Wunden-Anzeige aktualisieren
+        if (data.wounds !== undefined && typeof displayWoundsState === 'function') {
+            displayWoundsState(data.wounds);
+        }
+        
+        // Freundschaft rendern
+        if (data.tallyMarks && typeof window.renderTallyMarks === 'function') {
+            window.renderTallyMarks(data.tallyMarks);
         }
     }
     
@@ -477,13 +710,62 @@ class JSONImportService {
             }, 100);
         }
         
-        // Fertigkeiten
+        // Fertigkeiten - mit robuster Key-Zuordnung für unterschiedliche Encodings
+        // WICHTIG: Wir müssen den BESTEHENDEN Key im appState verwenden, nicht den aus der JSON,
+        // da die Keys aufgrund unterschiedlicher Unicode-Normalisierung abweichen können!
         if (data.skillValues) {
-            Object.entries(data.skillValues).forEach(([skill, value]) => {
-                appState.setSkillValue(skill, value);
-                const skillInput = document.querySelector(`input[data-skill="${skill}"]`);
-                if (skillInput) skillInput.value = value.toString();
+            const knownKeys = Object.keys(appState.skillValues);
+            console.log('=== SKILL IMPORT DEBUG ===');
+            console.log('Bekannte Keys im AppState:', knownKeys);
+            console.log('Keys aus Import-Daten:', Object.keys(data.skillValues));
+            
+            Object.entries(data.skillValues).forEach(([importedKey, value]) => {
+                // Normalisiere den importierten Key
+                const normalizedImportedKey = importedKey.normalize('NFC');
+                
+                // Suche den passenden bestehenden Key im AppState
+                let targetKey = null;
+                
+                // 1. Direkte Übereinstimmung
+                if (knownKeys.includes(importedKey)) {
+                    targetKey = importedKey;
+                }
+                // 2. Übereinstimmung mit normalisiertem Key
+                else if (knownKeys.includes(normalizedImportedKey)) {
+                    targetKey = normalizedImportedKey;
+                }
+                // 3. Fuzzy-Match: Suche nach Key mit gleichem normalisierten Wert
+                else {
+                    targetKey = knownKeys.find(k => k.normalize('NFC') === normalizedImportedKey);
+                }
+                
+                console.log(`Import "${importedKey}" (Wert: ${value}) -> targetKey: "${targetKey}"`);
+                
+                // Wert setzen wenn ein passender Key gefunden wurde
+                if (targetKey) {
+                    const success = appState.setSkillValue(targetKey, value);
+                    console.log(`  setSkillValue Erfolg: ${success}, AppState jetzt: ${appState.skillValues[targetKey]}`);
+                    
+                    // UI aktualisieren - verwende den gefundenen targetKey für den Selektor
+                    let skillInput = document.querySelector(`input[data-skill="${targetKey}"]`);
+                    if (!skillInput) {
+                        // Fallback mit verschiedenen Encodings
+                        skillInput = document.querySelector(`input[data-skill="${importedKey}"]`);
+                    }
+                    if (!skillInput) {
+                        skillInput = document.querySelector(`input[data-skill="${normalizedImportedKey}"]`);
+                    }
+                    if (skillInput) {
+                        skillInput.value = value.toString();
+                        console.log(`  UI Input gefunden und gesetzt auf: ${skillInput.value}`);
+                    } else {
+                        console.log(`  WARNUNG: Kein Input-Element gefunden für data-skill="${targetKey}"`);
+                    }
+                } else {
+                    console.log(`  WARNUNG: Kein passender Key gefunden für "${importedKey}"!`);
+                }
             });
+            console.log('=== SKILL IMPORT DEBUG ENDE ===');
         }
         
         // BW neu berechnen

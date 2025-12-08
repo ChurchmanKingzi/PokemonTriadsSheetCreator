@@ -232,8 +232,10 @@ class PokemonStorageService {
             primaryStatChoice: appState.primaryStatChoice || 'hp',
             secondaryStatChoice: appState.secondaryStatChoice || 'speed',
             
-            // Fertigkeiten
-            skillValues: { ...appState.skillValues },
+            // Fertigkeiten - Keys normalisieren für konsistentes Encoding
+            skillValues: Object.fromEntries(
+                Object.entries(appState.skillValues).map(([key, value]) => [key.normalize('NFC'), value])
+            ),
             
             // Attacken
             moves: movesData,

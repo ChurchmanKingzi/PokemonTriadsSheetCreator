@@ -511,10 +511,31 @@ class PokemonSheetApp {
             this.appState.secondaryStatChoice = sheet.secondaryStatChoice;
         }
         
-        // Fertigkeiten
+        // Fertigkeiten - mit robuster Key-Zuordnung für unterschiedliche Encodings
         if (sheet.skillValues) {
-            Object.entries(sheet.skillValues).forEach(([skill, value]) => {
-                this.appState.skillValues[skill] = value;
+            const knownKeys = Object.keys(this.appState.skillValues);
+            
+            Object.entries(sheet.skillValues).forEach(([importedKey, value]) => {
+                // Normalisiere den importierten Key
+                const normalizedImportedKey = importedKey.normalize('NFC');
+                
+                // Direkte Übereinstimmung
+                if (knownKeys.includes(importedKey)) {
+                    this.appState.skillValues[importedKey] = value;
+                    return;
+                }
+                
+                // Übereinstimmung mit normalisiertem Key
+                if (knownKeys.includes(normalizedImportedKey)) {
+                    this.appState.skillValues[normalizedImportedKey] = value;
+                    return;
+                }
+                
+                // Fuzzy-Match: Suche nach Key mit gleichem normalisierten Wert
+                const match = knownKeys.find(k => k.normalize('NFC') === normalizedImportedKey);
+                if (match) {
+                    this.appState.skillValues[match] = value;
+                }
             });
         }
         
@@ -610,11 +631,36 @@ class PokemonSheetApp {
                 }, this.timing.short);
             }
             
-            // Fertigkeiten
+            // Fertigkeiten - auch AppState synchronisieren!
             if (sheet.skillValues) {
                 Object.entries(sheet.skillValues).forEach(([skill, value]) => {
-                    const skillInput = document.querySelector(`input[data-skill="${skill}"]`);
-                    if (skillInput) skillInput.value = value.toString();
+                    // Normalisiere den Key (wichtig für Umlaute wie KÖ)
+                    const normalizedSkill = skill.normalize('NFC');
+                    
+                    // Setze im AppState (mit Fallback für unterschiedliche Encodings)
+                    if (this.appState.skillValues.hasOwnProperty(skill)) {
+                        this.appState.setSkillValue(skill, value);
+                    } else if (this.appState.skillValues.hasOwnProperty(normalizedSkill)) {
+                        this.appState.setSkillValue(normalizedSkill, value);
+                    } else {
+                        // Fallback: Suche nach ähnlichem Key
+                        const matchingKey = Object.keys(this.appState.skillValues).find(
+                            k => k.normalize('NFC') === normalizedSkill
+                        );
+                        if (matchingKey) {
+                            this.appState.setSkillValue(matchingKey, value);
+                        }
+                    }
+                    
+                    // Setze in der UI
+                    let skillInput = document.querySelector(`input[data-skill="${skill}"]`);
+                    if (!skillInput) {
+                        // Fallback: Suche mit normalisiertem Key
+                        skillInput = document.querySelector(`input[data-skill="${normalizedSkill}"]`);
+                    }
+                    if (skillInput) {
+                        skillInput.value = value.toString();
+                    }
                 });
             }
             
