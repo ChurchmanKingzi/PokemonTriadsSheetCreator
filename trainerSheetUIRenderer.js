@@ -795,7 +795,10 @@ class TrainerUIRenderer {
                 <div class="trainer-perks-section">
                     <div class="perks-header-row">
                         <h3 class="section-title perks-title">Perks</h3>
-                        <button type="button" class="perk-add-button" id="add-perk-button" title="Perk hinzufügen">+</button>
+                        <div class="perks-header-buttons">
+                            <button type="button" class="perk-toggle-all-button" id="toggle-all-perks-button" title="Alle Beschreibungen ein-/ausblenden">📖</button>
+                            <button type="button" class="perk-add-button" id="add-perk-button" title="Perk hinzufügen">+</button>
+                        </div>
                     </div>
                     <div class="perks-list" id="perks-list">
                         ${this._createPerksHTML()}
@@ -806,7 +809,10 @@ class TrainerUIRenderer {
                 <div class="trainer-kommandos-section">
                     <div class="kommandos-header-row">
                         <h3 class="section-title kommandos-title">Kommandos</h3>
-                        <button type="button" class="kommando-add-button" id="add-kommando-button" title="Kommando hinzufügen">+</button>
+                        <div class="kommandos-header-buttons">
+                            <button type="button" class="kommando-toggle-all-button" id="toggle-all-kommandos-button" title="Alle Beschreibungen ein-/ausblenden">📖</button>
+                            <button type="button" class="kommando-add-button" id="add-kommando-button" title="Kommando hinzufügen">+</button>
+                        </div>
                     </div>
                     <div class="kommandos-list" id="kommandos-list">
                         ${this._createKommandosHTML()}
@@ -928,6 +934,7 @@ class TrainerUIRenderer {
             const requiresChoice = selectedPerk && selectedPerk.requiresChoice;
             const choices = selectedPerk && selectedPerk.choices ? selectedPerk.choices : [];
             const displayName = selectedPerk ? selectedPerk.name : '-- Perk wählen --';
+            const hasBeschreibung = beschreibung && beschreibung.trim().length > 0;
             
             return `
                 <div class="perk-item" data-perk-index="${index}">
@@ -964,13 +971,16 @@ class TrainerUIRenderer {
                                 `).join('')}
                             </select>
                         ` : ''}
+                        <button type="button" class="perk-info-toggle ${hasBeschreibung ? '' : 'disabled'}" 
+                                data-perk-index="${index}" 
+                                title="${hasBeschreibung ? 'Beschreibung ein-/ausblenden' : 'Keine Beschreibung verfügbar'}"
+                                ${hasBeschreibung ? '' : 'disabled'}>ℹ️</button>
                         <button type="button" class="perk-remove-button" 
                                 data-perk-index="${index}" 
                                 title="Perk entfernen">×</button>
                     </div>
-                    <div class="perk-description-container">
-                        <textarea class="perk-description" readonly 
-                                  data-perk-index="${index}">${beschreibung}</textarea>
+                    <div class="perk-description-container collapsed" data-perk-index="${index}">
+                        <div class="perk-description" data-perk-index="${index}">${beschreibung}</div>
                     </div>
                 </div>
             `;
@@ -979,12 +989,41 @@ class TrainerUIRenderer {
     
     /**
      * Aktualisiert die Perks-Liste
+     * Erhält den expanded-State der Beschreibungen
      */
     updatePerksList() {
         const perksList = document.getElementById('perks-list');
         if (perksList) {
+            // 1. Aktuellen expanded-State speichern (welche Indices sind offen)
+            const expandedIndices = new Set();
+            document.querySelectorAll('.perk-description-container').forEach(container => {
+                if (!container.classList.contains('collapsed')) {
+                    const index = parseInt(container.dataset.perkIndex, 10);
+                    expandedIndices.add(index);
+                }
+            });
+            
+            // 2. Toggle-All Status prüfen
+            const toggleAllButton = document.getElementById('toggle-all-perks-button');
+            const isToggleAllActive = toggleAllButton?.classList.contains('active');
+            
+            // 3. HTML neu rendern
             perksList.innerHTML = this._createPerksHTML();
             this._addPerkEventListeners();
+            
+            // 4. Expanded-States wiederherstellen
+            document.querySelectorAll('.perk-description-container').forEach(container => {
+                const index = parseInt(container.dataset.perkIndex, 10);
+                const infoButton = document.querySelector(`.perk-info-toggle[data-perk-index="${index}"]`);
+                const desc = container.querySelector('.perk-description');
+                const hasBeschreibung = desc && desc.textContent.trim().length > 0;
+                
+                // Öffnen wenn: (war vorher offen ODER Toggle-All aktiv) UND hat Beschreibung
+                if ((expandedIndices.has(index) || isToggleAllActive) && hasBeschreibung) {
+                    container.classList.remove('collapsed');
+                    infoButton?.classList.add('active');
+                }
+            });
         }
     }
     
@@ -1092,6 +1131,57 @@ class TrainerUIRenderer {
                 });
             }
         });
+        
+        // Info-Toggle-Buttons für einzelne Perks
+        const infoToggleButtons = document.querySelectorAll('.perk-info-toggle');
+        infoToggleButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(button.dataset.perkIndex, 10);
+                const descContainer = document.querySelector(`.perk-description-container[data-perk-index="${index}"]`);
+                if (descContainer) {
+                    const isCollapsed = descContainer.classList.toggle('collapsed');
+                    button.classList.toggle('active', !isCollapsed);
+                }
+            });
+        });
+        
+        // "Alle ein-/ausklappen" Button für Perks
+        const toggleAllPerksButton = document.getElementById('toggle-all-perks-button');
+        if (toggleAllPerksButton) {
+            toggleAllPerksButton.onclick = () => {
+                const allDescContainers = document.querySelectorAll('.perk-description-container');
+                const allInfoButtons = document.querySelectorAll('.perk-info-toggle');
+                
+                // Prüfen ob mindestens einer offen ist
+                const anyOpen = Array.from(allDescContainers).some(c => !c.classList.contains('collapsed'));
+                
+                // Alle umschalten
+                allDescContainers.forEach(container => {
+                    if (anyOpen) {
+                        container.classList.add('collapsed');
+                    } else {
+                        // Nur öffnen wenn Beschreibung vorhanden
+                        const desc = container.querySelector('.perk-description');
+                        if (desc && desc.textContent.trim().length > 0) {
+                            container.classList.remove('collapsed');
+                        }
+                    }
+                });
+                
+                // Button-States aktualisieren
+                allInfoButtons.forEach(btn => {
+                    const index = parseInt(btn.dataset.perkIndex, 10);
+                    const descContainer = document.querySelector(`.perk-description-container[data-perk-index="${index}"]`);
+                    if (descContainer) {
+                        btn.classList.toggle('active', !descContainer.classList.contains('collapsed'));
+                    }
+                });
+                
+                // Toggle-All Button State aktualisieren
+                toggleAllPerksButton.classList.toggle('active', !anyOpen);
+            };
+        }
     }
     
     // ==================== KOMMANDOS UI ====================
@@ -1121,6 +1211,7 @@ class TrainerUIRenderer {
             const requiresChoice = selectedKommando && selectedKommando.requiresChoice;
             const choices = selectedKommando && selectedKommando.choices ? selectedKommando.choices : [];
             const displayName = selectedKommando ? selectedKommando.name : '-- Kommando wählen --';
+            const hasBeschreibung = beschreibung && beschreibung.trim().length > 0;
             
             return `
                 <div class="kommando-item" data-kommando-index="${index}">
@@ -1157,13 +1248,16 @@ class TrainerUIRenderer {
                                 `).join('')}
                             </select>
                         ` : ''}
+                        <button type="button" class="kommando-info-toggle ${hasBeschreibung ? '' : 'disabled'}" 
+                                data-kommando-index="${index}" 
+                                title="${hasBeschreibung ? 'Beschreibung ein-/ausblenden' : 'Keine Beschreibung verfügbar'}"
+                                ${hasBeschreibung ? '' : 'disabled'}>ℹ️</button>
                         <button type="button" class="kommando-remove-button" 
                                 data-kommando-index="${index}" 
                                 title="Kommando entfernen">×</button>
                     </div>
-                    <div class="kommando-description-container">
-                        <textarea class="kommando-description" readonly 
-                                  data-kommando-index="${index}">${beschreibung}</textarea>
+                    <div class="kommando-description-container collapsed" data-kommando-index="${index}">
+                        <div class="kommando-description" data-kommando-index="${index}">${beschreibung}</div>
                     </div>
                 </div>
             `;
@@ -1172,12 +1266,41 @@ class TrainerUIRenderer {
     
     /**
      * Aktualisiert die Kommandos-Liste
+     * Erhält den expanded-State der Beschreibungen
      */
     updateKommandosList() {
         const kommandosList = document.getElementById('kommandos-list');
         if (kommandosList) {
+            // 1. Aktuellen expanded-State speichern (welche Indices sind offen)
+            const expandedIndices = new Set();
+            document.querySelectorAll('.kommando-description-container').forEach(container => {
+                if (!container.classList.contains('collapsed')) {
+                    const index = parseInt(container.dataset.kommandoIndex, 10);
+                    expandedIndices.add(index);
+                }
+            });
+            
+            // 2. Toggle-All Status prüfen
+            const toggleAllButton = document.getElementById('toggle-all-kommandos-button');
+            const isToggleAllActive = toggleAllButton?.classList.contains('active');
+            
+            // 3. HTML neu rendern
             kommandosList.innerHTML = this._createKommandosHTML();
             this._addKommandoEventListeners();
+            
+            // 4. Expanded-States wiederherstellen
+            document.querySelectorAll('.kommando-description-container').forEach(container => {
+                const index = parseInt(container.dataset.kommandoIndex, 10);
+                const infoButton = document.querySelector(`.kommando-info-toggle[data-kommando-index="${index}"]`);
+                const desc = container.querySelector('.kommando-description');
+                const hasBeschreibung = desc && desc.textContent.trim().length > 0;
+                
+                // Öffnen wenn: (war vorher offen ODER Toggle-All aktiv) UND hat Beschreibung
+                if ((expandedIndices.has(index) || isToggleAllActive) && hasBeschreibung) {
+                    container.classList.remove('collapsed');
+                    infoButton?.classList.add('active');
+                }
+            });
         }
     }
     
@@ -1285,6 +1408,57 @@ class TrainerUIRenderer {
                 });
             }
         });
+        
+        // Info-Toggle-Buttons für einzelne Kommandos
+        const infoToggleButtons = document.querySelectorAll('.kommando-info-toggle');
+        infoToggleButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(button.dataset.kommandoIndex, 10);
+                const descContainer = document.querySelector(`.kommando-description-container[data-kommando-index="${index}"]`);
+                if (descContainer) {
+                    const isCollapsed = descContainer.classList.toggle('collapsed');
+                    button.classList.toggle('active', !isCollapsed);
+                }
+            });
+        });
+        
+        // "Alle ein-/ausklappen" Button für Kommandos
+        const toggleAllKommandosButton = document.getElementById('toggle-all-kommandos-button');
+        if (toggleAllKommandosButton) {
+            toggleAllKommandosButton.onclick = () => {
+                const allDescContainers = document.querySelectorAll('.kommando-description-container');
+                const allInfoButtons = document.querySelectorAll('.kommando-info-toggle');
+                
+                // Prüfen ob mindestens einer offen ist
+                const anyOpen = Array.from(allDescContainers).some(c => !c.classList.contains('collapsed'));
+                
+                // Alle umschalten
+                allDescContainers.forEach(container => {
+                    if (anyOpen) {
+                        container.classList.add('collapsed');
+                    } else {
+                        // Nur öffnen wenn Beschreibung vorhanden
+                        const desc = container.querySelector('.kommando-description');
+                        if (desc && desc.textContent.trim().length > 0) {
+                            container.classList.remove('collapsed');
+                        }
+                    }
+                });
+                
+                // Button-States aktualisieren
+                allInfoButtons.forEach(btn => {
+                    const index = parseInt(btn.dataset.kommandoIndex, 10);
+                    const descContainer = document.querySelector(`.kommando-description-container[data-kommando-index="${index}"]`);
+                    if (descContainer) {
+                        btn.classList.toggle('active', !descContainer.classList.contains('collapsed'));
+                    }
+                });
+                
+                // Toggle-All Button State aktualisieren
+                toggleAllKommandosButton.classList.toggle('active', !anyOpen);
+            };
+        }
     }
     
     /**

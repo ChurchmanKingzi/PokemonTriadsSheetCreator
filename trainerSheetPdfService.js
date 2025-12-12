@@ -304,12 +304,14 @@ class TrainerPdfService {
     
     /**
      * Versteckt UI-Elemente die im PDF nicht erscheinen sollen
+     * UND blendet alle Perk/Kommando-Beschreibungen ein
      * @param {HTMLElement} container - Das Container-Element
-     * @returns {Array} Array mit versteckten Elementen
+     * @returns {Object} Objekt mit versteckten Elementen und ursprünglichen Beschreibungsstates
      * @private
      */
     _hideUiElements(container) {
         const hidden = [];
+        const descriptionStates = [];
         
         // Drag-Handles verstecken
         container.querySelectorAll('.drag-handle-section').forEach(el => {
@@ -325,17 +327,75 @@ class TrainerPdfService {
             hidden.push({ element: el, originalDisplay: orig });
         });
         
-        return hidden;
+        // Perk/Kommando Buttons verstecken (Add, Remove, Info-Toggle, Toggle-All)
+        const buttonSelectors = [
+            '.perk-add-button',
+            '.perk-remove-button',
+            '.perk-info-toggle',
+            '.perk-toggle-all-button',
+            '.kommando-add-button',
+            '.kommando-remove-button',
+            '.kommando-info-toggle',
+            '.kommando-toggle-all-button',
+            '.perks-header-buttons',
+            '.kommandos-header-buttons'
+        ];
+        
+        buttonSelectors.forEach(selector => {
+            container.querySelectorAll(selector).forEach(el => {
+                const orig = el.style.display;
+                el.style.display = 'none';
+                hidden.push({ element: el, originalDisplay: orig });
+            });
+        });
+        
+        // Alle Perk-Beschreibungen einblenden (collapsed entfernen)
+        container.querySelectorAll('.perk-description-container').forEach(el => {
+            const wasCollapsed = el.classList.contains('collapsed');
+            descriptionStates.push({ element: el, wasCollapsed: wasCollapsed });
+            el.classList.remove('collapsed');
+            // Sicherstellen, dass die Styles für das Einblenden gesetzt sind
+            el.style.maxHeight = 'none';
+            el.style.opacity = '1';
+            el.style.marginTop = '0.5rem';
+        });
+        
+        // Alle Kommando-Beschreibungen einblenden (collapsed entfernen)
+        container.querySelectorAll('.kommando-description-container').forEach(el => {
+            const wasCollapsed = el.classList.contains('collapsed');
+            descriptionStates.push({ element: el, wasCollapsed: wasCollapsed });
+            el.classList.remove('collapsed');
+            // Sicherstellen, dass die Styles für das Einblenden gesetzt sind
+            el.style.maxHeight = 'none';
+            el.style.opacity = '1';
+            el.style.marginTop = '0.5rem';
+        });
+        
+        return { hidden, descriptionStates };
     }
     
     /**
-     * Stellt versteckte UI-Elemente wieder her
-     * @param {Array} hiddenElements - Array mit versteckten Elementen
+     * Stellt versteckte UI-Elemente und Beschreibungsstates wieder her
+     * @param {Object} hiddenData - Objekt mit versteckten Elementen und Beschreibungsstates
      * @private
      */
-    _restoreUiElements(hiddenElements) {
-        hiddenElements.forEach(({ element, originalDisplay }) => {
+    _restoreUiElements(hiddenData) {
+        const { hidden, descriptionStates } = hiddenData;
+        
+        // UI-Elemente wiederherstellen
+        hidden.forEach(({ element, originalDisplay }) => {
             element.style.display = originalDisplay || '';
+        });
+        
+        // Beschreibungsstates wiederherstellen
+        descriptionStates.forEach(({ element, wasCollapsed }) => {
+            if (wasCollapsed) {
+                element.classList.add('collapsed');
+            }
+            // Inline-Styles entfernen, damit CSS-Klassen wieder wirken
+            element.style.maxHeight = '';
+            element.style.opacity = '';
+            element.style.marginTop = '';
         });
     }
     

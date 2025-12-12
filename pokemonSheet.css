@@ -5468,10 +5468,43 @@ body.dark-mode .attack-remove-button:hover {
     margin-bottom: 0.5rem;
 }
 
+.perks-header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
 .perks-title {
     margin-bottom: 0 !important;
     border-bottom: none !important;
     padding-bottom: 0 !important;
+}
+
+.perk-toggle-all-button {
+    width: 28px;
+    height: 28px;
+    border: 2px solid #805ad5;
+    border-radius: 50%;
+    background-color: transparent;
+    color: #805ad5;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.perk-toggle-all-button:hover {
+    background-color: #805ad5;
+    color: white;
+    transform: scale(1.05);
+}
+
+.perk-toggle-all-button.active {
+    background-color: #805ad5;
+    color: white;
 }
 
 .perk-add-button {
@@ -5514,7 +5547,6 @@ body.dark-mode .attack-remove-button:hover {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.5rem;
 }
 
 .perk-select {
@@ -5542,6 +5574,41 @@ body.dark-mode .attack-remove-button:hover {
     background-color: white;
 }
 
+/* Info-Toggle Button für einzelne Perks */
+.perk-info-toggle {
+    width: 26px;
+    height: 26px;
+    border: 2px solid #805ad5;
+    border-radius: 50%;
+    background-color: transparent;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.perk-info-toggle:hover:not(.disabled) {
+    background-color: #805ad5;
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.perk-info-toggle.active {
+    background-color: #805ad5;
+    opacity: 1;
+}
+
+.perk-info-toggle.disabled {
+    border-color: #ccc;
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
 .perk-remove-button {
     width: 24px;
     height: 24px;
@@ -5565,25 +5632,36 @@ body.dark-mode .attack-remove-button:hover {
     transform: scale(1.1);
 }
 
+/* Description Container mit Toggle-Animation */
 .perk-description-container {
     width: 100%;
     box-sizing: border-box;
+    overflow: hidden;
+    transition: max-height 0.3s ease, margin-top 0.3s ease, opacity 0.3s ease;
+    max-height: 500px;
+    margin-top: 0.5rem;
+    opacity: 1;
 }
 
+.perk-description-container.collapsed {
+    max-height: 0;
+    margin-top: 0;
+    opacity: 0;
+}
+
+/* Perk Description als Div mit Auto-Height */
 .perk-description {
     width: 100%;
-    min-height: 3.6em;
-    max-height: 3.6em;
-    padding: 0.35rem 0.5rem;
+    padding: 0.5rem 0.6rem;
     border: 1px solid #d1d5db;
     border-radius: 0.25rem;
     font-size: 0.8rem;
     background-color: #faf5ff;
-    resize: none;
-    overflow-y: auto;
-    line-height: 1.2;
+    line-height: 1.4;
     font-family: inherit;
     box-sizing: border-box;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 /* ==================== TRAINER KOMMANDOS SYSTEM ==================== */
@@ -5601,10 +5679,43 @@ body.dark-mode .attack-remove-button:hover {
     margin-bottom: 0.5rem;
 }
 
+.kommandos-header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
 .kommandos-title {
     margin-bottom: 0 !important;
     border-bottom: none !important;
     padding-bottom: 0 !important;
+}
+
+.kommando-toggle-all-button {
+    width: 28px;
+    height: 28px;
+    border: 2px solid #dd6b20;
+    border-radius: 50%;
+    background-color: transparent;
+    color: #dd6b20;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.kommando-toggle-all-button:hover {
+    background-color: #dd6b20;
+    color: white;
+    transform: scale(1.05);
+}
+
+.kommando-toggle-all-button.active {
+    background-color: #dd6b20;
+    color: white;
 }
 
 .kommando-add-button {
@@ -5647,7 +5758,6 @@ body.dark-mode .attack-remove-button:hover {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.5rem;
 }
 
 .kommando-select {
@@ -5675,6 +5785,41 @@ body.dark-mode .attack-remove-button:hover {
     background-color: white;
 }
 
+/* Info-Toggle Button für einzelne Kommandos */
+.kommando-info-toggle {
+    width: 26px;
+    height: 26px;
+    border: 2px solid #dd6b20;
+    border-radius: 50%;
+    background-color: transparent;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.kommando-info-toggle:hover:not(.disabled) {
+    background-color: #dd6b20;
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.kommando-info-toggle.active {
+    background-color: #dd6b20;
+    opacity: 1;
+}
+
+.kommando-info-toggle.disabled {
+    border-color: #ccc;
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
 .kommando-remove-button {
     width: 24px;
     height: 24px;
@@ -5698,25 +5843,36 @@ body.dark-mode .attack-remove-button:hover {
     transform: scale(1.1);
 }
 
+/* Description Container mit Toggle-Animation */
 .kommando-description-container {
     width: 100%;
     box-sizing: border-box;
+    overflow: hidden;
+    transition: max-height 0.3s ease, margin-top 0.3s ease, opacity 0.3s ease;
+    max-height: 500px;
+    margin-top: 0.5rem;
+    opacity: 1;
 }
 
+.kommando-description-container.collapsed {
+    max-height: 0;
+    margin-top: 0;
+    opacity: 0;
+}
+
+/* Kommando Description als Div mit Auto-Height */
 .kommando-description {
     width: 100%;
-    min-height: 3.6em;
-    max-height: 3.6em;
-    padding: 0.35rem 0.5rem;
+    padding: 0.5rem 0.6rem;
     border: 1px solid #d1d5db;
     border-radius: 0.25rem;
     font-size: 0.8rem;
     background-color: #fffaf0;
-    resize: none;
-    overflow-y: auto;
-    line-height: 1.2;
+    line-height: 1.4;
     font-family: inherit;
     box-sizing: border-box;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 /* ==================== DARK MODE: PERKS & KOMMANDOS ==================== */
@@ -5774,12 +5930,75 @@ body.dark-mode .kommando-add-button:hover {
     background-color: #ed8936;
 }
 
+/* Dark Mode für Toggle-Buttons */
+body.dark-mode .perk-toggle-all-button {
+    border-color: #9f7aea;
+    color: #9f7aea;
+}
+
+body.dark-mode .perk-toggle-all-button:hover,
+body.dark-mode .perk-toggle-all-button.active {
+    background-color: #9f7aea;
+    color: white;
+}
+
+body.dark-mode .perk-info-toggle {
+    border-color: #9f7aea;
+}
+
+body.dark-mode .perk-info-toggle:hover:not(.disabled),
+body.dark-mode .perk-info-toggle.active {
+    background-color: #9f7aea;
+}
+
+body.dark-mode .kommando-toggle-all-button {
+    border-color: #ed8936;
+    color: #ed8936;
+}
+
+body.dark-mode .kommando-toggle-all-button:hover,
+body.dark-mode .kommando-toggle-all-button.active {
+    background-color: #ed8936;
+    color: white;
+}
+
+body.dark-mode .kommando-info-toggle {
+    border-color: #ed8936;
+}
+
+body.dark-mode .kommando-info-toggle:hover:not(.disabled),
+body.dark-mode .kommando-info-toggle.active {
+    background-color: #ed8936;
+}
+
+body.dark-mode .perk-info-toggle.disabled,
+body.dark-mode .kommando-info-toggle.disabled {
+    border-color: #4a5568;
+}
+
 /* ==================== PDF/PRINT STYLES FÜR PERKS & KOMMANDOS ==================== */
 
 @media print {
     .perks-kommandos-container {
         display: flex;
         gap: 1rem;
+    }
+    
+    /* Im Druck alle Beschreibungen IMMER sichtbar */
+    .perk-description-container,
+    .kommando-description-container {
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        opacity: 1 !important;
+        margin-top: 0.5rem !important;
+    }
+    
+    .perk-description-container.collapsed,
+    .kommando-description-container.collapsed {
+        max-height: none !important;
+        opacity: 1 !important;
+        margin-top: 0.5rem !important;
     }
     
     .perk-description,
@@ -5790,10 +6009,17 @@ body.dark-mode .kommando-add-button:hover {
         white-space: pre-wrap !important;
     }
     
+    /* Buttons im Druck verstecken */
     .perk-add-button,
     .perk-remove-button,
+    .perk-info-toggle,
+    .perk-toggle-all-button,
     .kommando-add-button,
-    .kommando-remove-button {
+    .kommando-remove-button,
+    .kommando-info-toggle,
+    .kommando-toggle-all-button,
+    .perks-header-buttons,
+    .kommandos-header-buttons {
         display: none !important;
     }
     
