@@ -199,19 +199,38 @@ class PdfService {
      * @private
      */
     _addMetadataToPdf(pdf) {
+        // Skill-Display-Modus ermitteln
+        const skillDisplayMode = window.skillDisplayModeService?.getMode() || 'individual';
+        
+        // Skill-Werte je nach Modus berechnen
+        const displaySkillValues = {};
+        Object.entries(this.appState.skillValues).forEach(([skillName, baseValue]) => {
+            if (skillDisplayMode === 'total' && window.skillDisplayModeService) {
+                const displayInfo = window.skillDisplayModeService.getDisplayValue(
+                    skillName, baseValue, this.appState.skillValues
+                );
+                displaySkillValues[skillName] = displayInfo.displayValue;
+            } else {
+                displaySkillValues[skillName] = baseValue;
+            }
+        });
+        
         // Pokemon-Daten als JSON-String in Metadaten speichern
         const metadataString = JSON.stringify({
-            version: '1.0',
+            version: '1.1',
             appState: {
                 pokemonId: this.appState.pokemonData.id,
                 pokemonName: this.appState.selectedPokemon,
                 level: this.appState.level,
                 currentExp: this.appState.currentExp || 0,
-                stats: this.appState.stats,currentHp: this.appState.currentHp,
+                stats: this.appState.stats,
+                currentHp: this.appState.currentHp,
                 gena: this.appState.gena,
                 pa: this.appState.pa,
                 bw: this.appState.bw,
-                skillValues: this.appState.skillValues,
+                skillValues: this.appState.skillValues, // Basis-Werte
+                displaySkillValues: displaySkillValues, // Angezeigte Werte (je nach Modus)
+                skillDisplayMode: skillDisplayMode, // Aktueller Modus
                 moves: this.appState.moves.map(move => move ? move.name : null),
                 abilities: this.appState.abilities
             },

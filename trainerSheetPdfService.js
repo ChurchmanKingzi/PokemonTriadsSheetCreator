@@ -420,9 +420,27 @@ class TrainerPdfService {
      * @private
      */
     _addMetadataToPdf(pdf, trainer) {
+        // Skill-Display-Modus ermitteln
+        const skillDisplayMode = window.skillDisplayModeService?.getMode() || 'individual';
+        
+        // Skill-Werte je nach Modus berechnen
+        const displaySkillValues = {};
+        if (trainer.skillValues) {
+            Object.entries(trainer.skillValues).forEach(([skillName, baseValue]) => {
+                if (skillDisplayMode === 'total' && window.skillDisplayModeService) {
+                    const displayInfo = window.skillDisplayModeService.getDisplayValue(
+                        skillName, baseValue, trainer.skillValues
+                    );
+                    displaySkillValues[skillName] = displayInfo.displayValue;
+                } else {
+                    displaySkillValues[skillName] = baseValue;
+                }
+            });
+        }
+        
         // Trainer-Daten als JSON-String in Metadaten speichern
         const metadataString = JSON.stringify({
-            version: '1.0',
+            version: '1.1',
             type: 'trainer',
             trainerData: {
                 id: trainer.id,
@@ -435,7 +453,9 @@ class TrainerPdfService {
                 nachteil: trainer.nachteil,
                 level: trainer.level,
                 stats: trainer.stats,
-                skillValues: trainer.skillValues,
+                skillValues: trainer.skillValues, // Basis-Werte
+                displaySkillValues: displaySkillValues, // Angezeigte Werte (je nach Modus)
+                skillDisplayMode: skillDisplayMode, // Aktueller Modus
                 pokemonCount: trainer.pokemonSlots?.filter(s => !s.isEmpty()).length || 0
             },
             timestamp: new Date().toISOString()

@@ -1706,6 +1706,9 @@ class TrainerUIRenderer {
         const remainingBasePoints = this.trainerState.getRemainingBaseStatPoints();
         const remainingSkillPoints = this.trainerState.getRemainingSkillPoints();
         
+        // Aktuellen Modus vom Service holen
+        const isTotalMode = window.skillDisplayModeService?.isTotalMode() || false;
+        
         // Farben für Kategorien
         const categoryColors = {
             'KÖ': '#e53e3e', // Rot
@@ -1714,12 +1717,26 @@ class TrainerUIRenderer {
             'GL': '#38a169'  // Grün
         };
         
+        // Toggle-Button HTML
+        const toggleButtonHtml = `
+            <button type="button" 
+                    id="trainer-skill-display-mode-toggle" 
+                    class="skill-display-mode-toggle ${isTotalMode ? 'mode-total' : 'mode-individual'}"
+                    title="${isTotalMode 
+                        ? 'Gesamtwerte-Modus aktiv (Fertigkeit + Grundwert)\nKlicken für Einzelwerte'
+                        : 'Einzelwerte-Modus aktiv\nKlicken für Gesamtwerte (Fertigkeit + Grundwert)'}"
+            >${isTotalMode ? 'Σ' : '#'}</button>
+        `;
+        
         let html = `
-            <div class="skills-points-display">
-                <div class="points-display">
-                    <span class="points-label">Punkte für Grundwerte: <span id="remaining-base-points" class="${remainingBasePoints < 0 ? 'negative-points' : ''}">${remainingBasePoints}</span></span>
-                    <span class="points-label">Punkte für Fertigkeiten: <span id="remaining-skill-points" class="${remainingSkillPoints < 0 ? 'negative-points' : ''}">${remainingSkillPoints}</span></span>
+            <div class="skills-header-container trainer-skills-header">
+                <div class="skills-points-display">
+                    <div class="points-display">
+                        <span class="points-label">Punkte für Grundwerte: <span id="remaining-base-points" class="${remainingBasePoints < 0 ? 'negative-points' : ''}">${remainingBasePoints}</span></span>
+                        <span class="points-label">Punkte für Fertigkeiten: <span id="remaining-skill-points" class="${remainingSkillPoints < 0 ? 'negative-points' : ''}">${remainingSkillPoints}</span></span>
+                    </div>
                 </div>
+                ${toggleButtonHtml}
             </div>
         `;
         html += '<div class="skills-container">';
@@ -1754,28 +1771,47 @@ class TrainerUIRenderer {
             
             // Standard-Skills
             skills.forEach(skill => {
+                const baseValue = this.trainerState.skillValues[skill] || 0;
+                const displayInfo = window.skillDisplayModeService?.getDisplayValue(
+                    skill, baseValue, this.trainerState.skillValues
+                ) || { displayValue: baseValue, isTotal: false };
+                
+                const totalModeClass = displayInfo.isTotal ? ' skill-total-mode' : '';
+                
                 html += `
                     <div class="skill-row">
                         <span class="skill-name">${skill}</span>
-                        <input type="number" class="skill-value skill-input" 
-                               data-skill="${skill}" value="${this.trainerState.skillValues[skill] || 0}"
-                               min="-9" max="9">
+                        <input type="number" class="skill-value skill-input${totalModeClass}" 
+                               data-skill="${skill}" 
+                               data-base-value="${baseValue}"
+                               value="${displayInfo.displayValue}"
+                               min="-9" max="99">
                     </div>
                 `;
             });
             
             // Benutzerdefinierte Skills
             customSkills.forEach((customSkill, index) => {
+                const baseValue = customSkill.value || 0;
+                // Custom Skills nutzen die Kategorie direkt für den Gesamtwert
+                const displayInfo = window.skillDisplayModeService?.getDisplayValueForCustomSkill(
+                    category, baseValue, this.trainerState.skillValues
+                ) || { displayValue: baseValue, isTotal: false };
+                
+                const totalModeClass = displayInfo.isTotal ? ' skill-total-mode' : '';
+                
                 html += `
                     <div class="skill-row custom-skill-row" data-category="${category}" data-custom-index="${index}">
                         <input type="text" class="custom-skill-name trainer-custom-skill-name" 
                                data-category="${category}" data-custom-index="${index}"
                                value="${this._escapeHtml(customSkill.name)}" 
                                placeholder="Neue Fertigkeit">
-                        <input type="number" class="skill-value skill-input trainer-custom-skill-value" 
+                        <input type="number" class="skill-value skill-input trainer-custom-skill-value${totalModeClass}" 
                                data-category="${category}" data-custom-index="${index}"
-                               value="${customSkill.value || 1}"
-                               min="-9" max="9">
+                               data-base-value="${baseValue}"
+                               data-is-custom-skill="true"
+                               value="${displayInfo.displayValue}"
+                               min="-9" max="99">
                         <button type="button" class="trainer-custom-skill-remove-btn" 
                                 data-category="${category}" data-custom-index="${index}"
                                 title="Fertigkeit entfernen">×</button>
@@ -2841,6 +2877,101 @@ class TrainerUIRenderer {
         
         // Custom-Skills Event-Listener
         this._addCustomSkillEventListeners();
+        
+        // Skill-Display-Mode Event-Listener
+        this._addSkillDisplayModeListeners();
+    }
+    
+    /**
+     * Fügt Event-Listener für den Fertigkeiten-Anzeigemodus hinzu
+     * @private
+     */
+    _addSkillDisplayModeListeners() {
+        const self = this;
+        const trainerContainer = document.getElementById('trainer-sheet-container');
+        if (!trainerContainer) return;
+        
+        // Toggle-Button Click-Handler - Event-Delegation für persistente Handler
+        trainerContainer.addEventListener('click', function(e) {
+            // Prüfe ob der Toggle-Button geklickt wurde
+            if (e.target.classList.contains('skill-display-mode-toggle')) {
+                console.log('Trainer Toggle-Button geklickt!');
+                if (!window.skillDisplayModeService) {
+                    console.error('skillDisplayModeService nicht verfügbar!');
+                    return;
+                }
+                
+                const newMode = window.skillDisplayModeService.toggleMode();
+                console.log('Neuer Modus:', newMode);
+                
+                // Skills-Sektion neu rendern
+                self._refreshSkillsSection();
+                
+                // Auch Pokemon-Sheet aktualisieren falls vorhanden
+                if (window.pokemonApp && window.pokemonApp.uiRenderer) {
+                    window.pokemonApp.uiRenderer._refreshSkillsSection?.();
+                }
+            }
+        });
+        
+        // Focus-Handler: Bei Fokus zeige den Basiswert (nicht Gesamtwert)
+        trainerContainer.addEventListener('focusin', function(e) {
+            if (!e.target.classList.contains('skill-input')) return;
+            if (e.target.classList.contains('base-stat-input')) return;
+            if (!window.skillDisplayModeService?.isTotalMode()) return;
+            
+            const input = e.target;
+            const skill = input.dataset.skill;
+            const category = input.dataset.category;
+            const baseValue = input.dataset.baseValue;
+            
+            // Funktioniert für beide: normale Skills (haben skill) und Custom Skills (haben category)
+            if ((skill || category) && baseValue !== undefined) {
+                // Speichere aktuellen Display-Wert und zeige Basiswert
+                input.dataset.displayValue = input.value;
+                input.value = baseValue;
+                input.classList.remove('skill-total-mode');
+                input.classList.add('skill-editing');
+            }
+        });
+        
+        // Blur-Handler: Bei Blur zeige wieder den Gesamtwert (wenn im Total-Mode)
+        trainerContainer.addEventListener('focusout', function(e) {
+            if (!e.target.classList.contains('skill-input')) return;
+            if (e.target.classList.contains('base-stat-input')) return;
+            if (!window.skillDisplayModeService?.isTotalMode()) return;
+            
+            const input = e.target;
+            const skill = input.dataset.skill;
+            const category = input.dataset.category;
+            const isCustomSkill = input.dataset.isCustomSkill === 'true';
+            
+            // Berechne und zeige den neuen Gesamtwert
+            const skillValue = parseInt(input.value, 10) || 0;
+            let displayInfo;
+            
+            if (isCustomSkill && category) {
+                // Custom Skill - nutze Kategorie direkt
+                displayInfo = window.skillDisplayModeService.getDisplayValueForCustomSkill(
+                    category, skillValue, self.trainerState.skillValues
+                );
+            } else if (skill) {
+                // Normaler Skill - nutze Skill-Namen
+                displayInfo = window.skillDisplayModeService.getDisplayValue(
+                    skill, skillValue, self.trainerState.skillValues
+                );
+            } else {
+                return;
+            }
+            
+            input.value = displayInfo.displayValue;
+            input.dataset.baseValue = skillValue.toString();
+            input.classList.remove('skill-editing');
+            
+            if (displayInfo.isTotal) {
+                input.classList.add('skill-total-mode');
+            }
+        });
     }
     
     /**

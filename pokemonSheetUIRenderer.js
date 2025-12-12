@@ -544,8 +544,27 @@ class UiRenderer {
      * @private
      */
     _createSkillsSection() {
+        // Aktuellen Modus vom Service holen
+        const isTotalMode = window.skillDisplayModeService?.isTotalMode() || false;
+        
+        // Toggle-Button erstellen
+        const toggleButton = createElement('button', {
+            type: 'button',
+            id: 'skill-display-mode-toggle',
+            className: `skill-display-mode-toggle ${isTotalMode ? 'mode-total' : 'mode-individual'}`,
+            title: isTotalMode 
+                ? 'Gesamtwerte-Modus aktiv (Fertigkeit + Grundwert)\nKlicken für Einzelwerte'
+                : 'Einzelwerte-Modus aktiv\nKlicken für Gesamtwerte (Fertigkeit + Grundwert)'
+        }, isTotalMode ? 'Σ' : '#');
+        
+        // Header-Container mit Titel und Toggle-Button
+        const headerContainer = createElement('div', { className: 'skills-header-container' }, [
+            createElement('h3', { className: 'section-title skills-title' }, 'Fertigkeiten'),
+            toggleButton
+        ]);
+        
         const skillsSection = createElement('div', { className: 'skills-table' }, [
-            createElement('h3', { className: 'section-title' }, 'Fertigkeiten'),
+            headerContainer,
             
             // Skills-Grid
             createElement('div', { className: 'skills-grid' },
@@ -585,23 +604,39 @@ class UiRenderer {
         
         // Standard-Skills hinzufügen
         skills.forEach(skill => {
+            const baseValue = this.appState.skillValues[skill] || 0;
+            const displayInfo = window.skillDisplayModeService?.getDisplayValue(
+                skill, baseValue, this.appState.skillValues
+            ) || { displayValue: baseValue, isTotal: false };
+            
+            const skillInput = createElement('input', {
+                type: 'number',
+                min: '-9',
+                max: '99',
+                value: displayInfo.displayValue.toString(),
+                className: `skill-input${displayInfo.isTotal ? ' skill-total-mode' : ''}`,
+                dataset: { 
+                    skill,
+                    baseValue: baseValue.toString()
+                }
+            });
+            
             skillsList.appendChild(
                 createElement('div', { className: 'skill-item' }, [
                     createElement('span', { className: 'skill-name' }, skill),
-                    createElement('input', {
-                        type: 'number',
-                        min: '-9',
-                        max: '9',
-                        value: this.appState.skillValues[skill].toString(),
-                        className: 'skill-input',
-                        dataset: { skill }
-                    })
+                    skillInput
                 ])
             );
         });
         
         // Benutzerdefinierte Skills hinzufügen
         customSkills.forEach((customSkill, index) => {
+            const baseValue = customSkill.value || 0;
+            // Custom Skills nutzen die Kategorie direkt für den Gesamtwert
+            const displayInfo = window.skillDisplayModeService?.getDisplayValueForCustomSkill(
+                category, baseValue, this.appState.skillValues
+            ) || { displayValue: baseValue, isTotal: false };
+            
             const customSkillItem = createElement('div', { 
                 className: 'skill-item custom-skill-item',
                 dataset: { category, customIndex: index.toString() }
@@ -616,10 +651,15 @@ class UiRenderer {
                 createElement('input', {
                     type: 'number',
                     min: '-9',
-                    max: '9',
-                    value: customSkill.value.toString(),
-                    className: 'skill-input custom-skill-value',
-                    dataset: { category, customIndex: index.toString() }
+                    max: '99',
+                    value: displayInfo.displayValue.toString(),
+                    className: `skill-input custom-skill-value${displayInfo.isTotal ? ' skill-total-mode' : ''}`,
+                    dataset: { 
+                        category, 
+                        customIndex: index.toString(),
+                        baseValue: baseValue.toString(),
+                        isCustomSkill: 'true'
+                    }
                 }),
                 createElement('button', {
                     type: 'button',
@@ -652,7 +692,7 @@ class UiRenderer {
                     min: '-9',
                     max: '9',
                     value: this.appState.skillValues[category].toString(),
-                    className: 'skill-input',
+                    className: 'skill-input base-stat-input',
                     dataset: { skill: category }
                 })
             ]),
@@ -950,6 +990,93 @@ class UiRenderer {
         
         // Event-Listener für die Export/Import-Buttons
         this._addExportImportButtonListeners();
+        
+        // Event-Listener für Skill-Display-Mode-Toggle
+        this._addSkillDisplayModeListeners(autoSave);
+    }
+    
+    /**
+     * Fügt Event-Listener für den Fertigkeiten-Anzeigemodus hinzu
+     * @param {Function} autoSave - Callback für automatisches Speichern
+     * @private
+     */
+    _addSkillDisplayModeListeners(autoSave) {
+        const self = this;
+        
+        // Toggle-Button Click-Handler - Event-Delegation, damit es nach _refreshSkillsSection funktioniert
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.skill-display-mode-toggle', 'click', function(e) {
+            console.log('Toggle-Button geklickt!');
+            if (!window.skillDisplayModeService) {
+                console.error('skillDisplayModeService nicht verfügbar!');
+                return;
+            }
+            
+            const newMode = window.skillDisplayModeService.toggleMode();
+            console.log('Neuer Modus:', newMode);
+            
+            // Skills-Sektion neu rendern
+            self._refreshSkillsSection();
+            
+            // Auch Trainer-Sheet aktualisieren falls vorhanden
+            if (window.trainerApp && window.trainerApp.uiRenderer) {
+                window.trainerApp.uiRenderer._refreshSkillsSection?.();
+            }
+        });
+        
+        // Focus-Handler: Bei Fokus zeige den Basiswert (nicht Gesamtwert)
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.skill-input:not(.base-stat-input)', 'focus', function(e) {
+            if (!window.skillDisplayModeService?.isTotalMode()) return;
+            
+            const input = e.target;
+            const skill = input.dataset.skill;
+            const category = input.dataset.category;
+            const baseValue = input.dataset.baseValue;
+            
+            // Funktioniert für beide: normale Skills (haben skill) und Custom Skills (haben category)
+            if ((skill || category) && baseValue !== undefined) {
+                // Speichere aktuellen Display-Wert und zeige Basiswert
+                input.dataset.displayValue = input.value;
+                input.value = baseValue;
+                input.classList.remove('skill-total-mode');
+                input.classList.add('skill-editing');
+            }
+        });
+        
+        // Blur-Handler: Bei Blur zeige wieder den Gesamtwert (wenn im Total-Mode)
+        delegateEvent('#' + DOM_IDS.SHEET_CONTAINER, '.skill-input:not(.base-stat-input)', 'blur', function(e) {
+            if (!window.skillDisplayModeService?.isTotalMode()) return;
+            
+            const input = e.target;
+            const skill = input.dataset.skill;
+            const category = input.dataset.category;
+            const isCustomSkill = input.dataset.isCustomSkill === 'true';
+            
+            // Berechne und zeige den neuen Gesamtwert
+            const skillValue = parseInt(input.value, 10) || 0;
+            let displayInfo;
+            
+            if (isCustomSkill && category) {
+                // Custom Skill - nutze Kategorie direkt
+                displayInfo = window.skillDisplayModeService.getDisplayValueForCustomSkill(
+                    category, skillValue, self.appState.skillValues
+                );
+            } else if (skill) {
+                // Normaler Skill - nutze Skill-Namen
+                displayInfo = window.skillDisplayModeService.getDisplayValue(
+                    skill, skillValue, self.appState.skillValues
+                );
+            } else {
+                return;
+            }
+            
+            input.value = displayInfo.displayValue;
+            input.dataset.baseValue = skillValue.toString();
+            input.classList.remove('skill-editing');
+            
+            if (displayInfo.isTotal) {
+                input.classList.add('skill-total-mode');
+            }
+        });
     }
     
     /**

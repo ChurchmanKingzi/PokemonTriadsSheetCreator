@@ -8951,3 +8951,164 @@ body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name
     color: #999;
     border-color: #555;
 }
+/* ============================================
+   SKILL DISPLAY MODE TOGGLE
+   ============================================ */
+
+/* Skills Header Container für Toggle-Button */
+.skills-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    gap: 0.5rem;
+}
+
+.skills-header-container .section-title,
+.skills-header-container .skills-title {
+    margin-bottom: 0;
+    border-bottom: none;
+    flex-grow: 1;
+}
+
+/* Trainer-spezifischer Header */
+.trainer-skills-header {
+    flex-wrap: wrap;
+}
+
+.trainer-skills-header .skills-points-display {
+    flex-grow: 1;
+}
+
+/* Toggle Button */
+.skill-display-mode-toggle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #4a5568;
+    background-color: #f7fafc;
+    color: #4a5568;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.skill-display-mode-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Individual Mode (Default) - # Symbol */
+.skill-display-mode-toggle.mode-individual {
+    background-color: #f7fafc;
+    border-color: #4a5568;
+    color: #4a5568;
+}
+
+.skill-display-mode-toggle.mode-individual:hover {
+    background-color: #edf2f7;
+}
+
+/* Total Mode - Σ Symbol - Grün */
+.skill-display-mode-toggle.mode-total {
+    background-color: #c6f6d5;
+    border-color: #38a169;
+    color: #276749;
+}
+
+.skill-display-mode-toggle.mode-total:hover {
+    background-color: #9ae6b4;
+}
+
+/* Skill Input im Total Mode - Grüne Farbe */
+.skill-input.skill-total-mode {
+    color: #276749 !important;
+    font-weight: 600;
+    background-color: rgba(198, 246, 213, 0.3) !important;
+    border-color: #68d391 !important;
+}
+
+.skill-input.skill-total-mode:focus {
+    outline-color: #38a169;
+    box-shadow: 0 0 0 2px rgba(56, 161, 105, 0.3);
+}
+
+/* Skill Input beim Editieren - Normal */
+.skill-input.skill-editing {
+    color: #2d3748 !important;
+    background-color: #fff !important;
+    border-color: #4299e1 !important;
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.4);
+}
+
+/* Animation beim Modus-Wechsel */
+.skill-input {
+    transition: color 0.3s ease, 
+                background-color 0.3s ease, 
+                border-color 0.3s ease;
+}
+
+/* Dark Mode Support */
+.dark-mode .skill-display-mode-toggle {
+    background-color: #2d3748;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+.dark-mode .skill-display-mode-toggle:hover {
+    background-color: #4a5568;
+}
+
+.dark-mode .skill-display-mode-toggle.mode-total {
+    background-color: #276749;
+    border-color: #48bb78;
+    color: #c6f6d5;
+}
+
+.dark-mode .skill-display-mode-toggle.mode-total:hover {
+    background-color: #2f855a;
+}
+
+.dark-mode .skill-input.skill-total-mode {
+    color: #9ae6b4 !important;
+    background-color: rgba(39, 103, 73, 0.3) !important;
+    border-color: #48bb78 !important;
+}
+
+.dark-mode .skill-input.skill-editing {
+    color: #fff !important;
+    background-color: #2d3748 !important;
+    border-color: #63b3ed !important;
+}
+
+/* Tooltip-Styling für den Toggle-Button */
+.skill-display-mode-toggle[title] {
+    position: relative;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 768px) {
+    .skill-display-mode-toggle {
+        width: 28px;
+        height: 28px;
+        font-size: 0.875rem;
+    }
+    
+    .skills-header-container {
+        flex-wrap: wrap;
+    }
+}
+
+/* Spezielles Styling für Grundwert-Inputs (KÖ, WI, CH, GL) */
+/* Diese sollen NIE grün werden, da sie nicht addiert werden */
+.skill-input.base-stat-input.skill-total-mode {
+    color: inherit;
+    background-color: inherit;
+    border-color: inherit;
+}
