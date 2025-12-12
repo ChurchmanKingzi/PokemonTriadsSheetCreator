@@ -13,6 +13,7 @@ class ApiService {
         
         // Cache Keys für LocalStorage
         this.CACHE_KEY_POKEMON_LIST = 'pokemon_list_cache_v5'; // Version erhöht wegen neuer Daten!
+        this.CACHE_KEY_ALL_MOVES = 'all_moves_cache_v1'; // Cache für alle Attacken
         this.CACHE_EXPIRY_DAYS = 7;
         
         // Normale Pokemon IDs (1-1025) und spezielle IDs (10001-10277)
@@ -1126,6 +1127,20 @@ class ApiService {
             allMoves.push(...preEvolutionMoves);
         }
         
+        // === NEU: Alle fehlenden Attacken laden ===
+        const remainingMoves = await this._fetchRemainingMoves(processedMoveNames);
+        
+        // Separator 5: Alle anderen Attacken (nicht lernbar)
+        if (remainingMoves.length > 0) {
+            allMoves.push({ isSeparator: true, label: '══════════════════════════════════' });
+            allMoves.push({ isSeparator: true, label: '── Alle anderen Attacken ──' });
+        }
+        
+        // Kategorie 6: Fehlende/Sonstige Attacken
+        if (remainingMoves.length > 0) {
+            allMoves.push(...remainingMoves);
+        }
+        
         // Im AppState speichern
         this.appState.setAvailableMoves(allMoves);
         
@@ -1144,10 +1159,135 @@ class ApiService {
     }
     
     /**
+     * Lädt die Liste aller verfügbaren Attacken von der API (mit Cache)
+     * @returns {Promise<Array>} Liste aller Attacken mit Name und URL
+     */
+    async fetchAllMovesList() {
+        // Prüfen, ob gecachte Daten vorhanden sind
+        const cached = localStorage.getItem(this.CACHE_KEY_ALL_MOVES);
+        if (cached) {
+            try {
+                const cachedData = JSON.parse(cached);
+                const cacheAge = Date.now() - cachedData.timestamp;
+                const maxAge = this.CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+                
+                if (cacheAge < maxAge) {
+                    console.log('Verwende gecachte Attacken-Liste');
+                    return cachedData.moves;
+                }
+            } catch (e) {
+                console.warn('Fehler beim Lesen des Move-Caches:', e);
+            }
+        }
+        
+        // Alle Attacken von der API laden (es gibt ca. 900+ Attacken)
+        console.log('Lade alle Attacken von der API...');
+        try {
+            const response = await fetch(`${API.BASE_URL}/move?limit=1000`);
+            if (!response.ok) {
+                throw new Error(`API-Fehler: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            const moves = data.results;
+            
+            // In Cache speichern
+            localStorage.setItem(this.CACHE_KEY_ALL_MOVES, JSON.stringify({
+                timestamp: Date.now(),
+                moves: moves
+            }));
+            
+            console.log(`${moves.length} Attacken geladen und gecacht`);
+            return moves;
+        } catch (error) {
+            console.error('Fehler beim Laden der Attacken-Liste:', error);
+            return [];
+        }
+    }
+    
+    /**
+     * Lädt alle fehlenden Attacken (die das Pokemon nicht lernen kann)
+     * @param {Set} processedMoveNames - Namen der bereits verarbeiteten Attacken
+     * @returns {Promise<Array>} Liste der fehlenden Attacken
+     * @private
+     */
+    async _fetchRemainingMoves(processedMoveNames) {
+        const remainingMoves = [];
+        
+        // Alle verfügbaren Attacken laden
+        const allMoves = await this.fetchAllMovesList();
+        
+        // Fehlende Attacken ermitteln
+        const missingMoves = allMoves.filter(move => !processedMoveNames.has(move.name));
+        
+        console.log(`${missingMoves.length} fehlende Attacken gefunden, werden geladen...`);
+        
+        // Status-Update für UI (falls vorhanden)
+        const statusElement = document.getElementById('loading-status');
+        if (statusElement) {
+            statusElement.textContent = `Lade zusätzliche Attacken... (0/${missingMoves.length})`;
+        }
+        
+        // Attacken in Batches laden, um die API nicht zu überlasten
+        const batchSize = 20;
+        for (let i = 0; i < missingMoves.length; i += batchSize) {
+            const batch = missingMoves.slice(i, i + batchSize);
+            
+            // Parallel laden für bessere Performance
+            const batchPromises = batch.map(async (moveEntry) => {
+                try {
+                    const moveResponse = await fetch(moveEntry.url);
+                    if (!moveResponse.ok) return null;
+                    
+                    const moveData = await moveResponse.json();
+                    
+                    // Deutschen Namen ermitteln
+                    const germanMoveName = this.translationService.translateMoveName(moveEntry.name, moveData);
+                    const germanType = this.translationService.translateTypeName(moveData.type.name);
+                    
+                    // Dummy-methodData für Attacken, die das Pokemon nicht lernen kann
+                    const dummyMethodData = {
+                        move_learn_method: { name: 'other' },
+                        level_learned_at: 0
+                    };
+                    
+                    return this._createMoveObject(
+                        moveData,
+                        dummyMethodData,
+                        germanMoveName,
+                        germanType,
+                        'all-moves',
+                        'Sonstige'
+                    );
+                } catch (error) {
+                    console.error(`Fehler beim Laden von ${moveEntry.name}:`, error);
+                    return null;
+                }
+            });
+            
+            const batchResults = await Promise.all(batchPromises);
+            remainingMoves.push(...batchResults.filter(m => m !== null));
+            
+            // Status-Update
+            if (statusElement) {
+                statusElement.textContent = `Lade zusätzliche Attacken... (${Math.min(i + batchSize, missingMoves.length)}/${missingMoves.length})`;
+            }
+        }
+        
+        // Alphabetisch sortieren
+        remainingMoves.sort((a, b) => a.germanName.localeCompare(b.germanName, 'de'));
+        
+        console.log(`${remainingMoves.length} zusätzliche Attacken erfolgreich geladen`);
+        
+        return remainingMoves;
+    }
+    
+    /**
      * Löscht den Pokemon-Listen-Cache (für Debug/Reset)
      */
     clearCache() {
         localStorage.removeItem(this.CACHE_KEY_POKEMON_LIST);
-        console.log('Pokemon-Listen-Cache gelöscht');
+        localStorage.removeItem(this.CACHE_KEY_ALL_MOVES);
+        console.log('Pokemon-Listen-Cache und Attacken-Cache gelöscht');
     }
 }

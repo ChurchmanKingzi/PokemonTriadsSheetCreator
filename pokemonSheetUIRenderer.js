@@ -149,6 +149,9 @@ class UiRenderer {
         const descriptionContainer = document.getElementById(`move-description-container-${index}`);
         const move = this.appState.moves[index];
         
+        // Slot-Farbe basierend auf dem Attacken-Typ aktualisieren
+        this._updateMoveSlotColor(index, move);
+        
         if (!move) {
             detailsContainer.innerHTML = '';
             // Beschreibungs-Textbox verstecken und leeren, wenn keine Attacke ausgewählt
@@ -799,16 +802,24 @@ class UiRenderer {
             if (!this.appState.setSkillValue(skill, value)) {
                 e.target.value = this.appState.skillValues[skill];
             } else {
-                // Bei Änderung des KÖ-Werts: BW automatisch neu berechnen
-                if (skill === 'KÖ') {
-                    this.appState.recalculateBw();
-                    // BW-Input im UI aktualisieren
-                    const bwInput = document.getElementById('bw-input');
-                    if (bwInput) {
-                        bwInput.value = this.appState.bw.toString();
-                        // Tooltip aktualisieren
-                        if (this.appState.getBwTooltip) {
-                            bwInput.title = this.appState.getBwTooltip();
+                // Bei Änderung eines Grundwerts (KÖ, WI, CH, GL):
+                // Abhängige Fertigkeiten im Gesamtwerte-Modus aktualisieren
+                const baseStats = ['KÖ', 'WI', 'CH', 'GL'];
+                if (baseStats.includes(skill)) {
+                    // Fertigkeiten dieser Kategorie aktualisieren
+                    this._updateSkillDisplaysForCategory(skill);
+                    
+                    // BW nur bei KÖ-Änderung neu berechnen
+                    if (skill === 'KÖ') {
+                        this.appState.recalculateBw();
+                        // BW-Input im UI aktualisieren
+                        const bwInput = document.getElementById('bw-input');
+                        if (bwInput) {
+                            bwInput.value = this.appState.bw.toString();
+                            // Tooltip aktualisieren
+                            if (this.appState.getBwTooltip) {
+                                bwInput.title = this.appState.getBwTooltip();
+                            }
                         }
                     }
                 }
@@ -2173,6 +2184,70 @@ class UiRenderer {
     }
     
     /**
+     * Aktualisiert die angezeigten Werte aller Fertigkeiten einer Kategorie
+     * Wird aufgerufen, wenn ein Grundwert (KÖ, WI, CH, GL) geändert wird
+     * @param {string} category - Die Kategorie (KÖ, WI, CH, GL)
+     * @private
+     */
+    _updateSkillDisplaysForCategory(category) {
+        // Nur im Gesamtwerte-Modus relevant
+        if (!window.skillDisplayModeService?.isTotalMode()) return;
+        
+        const container = document.getElementById(DOM_IDS.SHEET_CONTAINER);
+        if (!container) return;
+        
+        // Alle Skills dieser Kategorie aus SKILL_GROUPS holen
+        const skillsInCategory = SKILL_GROUPS[category] || [];
+        
+        // Standard-Skills dieser Kategorie aktualisieren
+        skillsInCategory.forEach(skillName => {
+            const input = container.querySelector(`input.skill-input[data-skill="${skillName}"]`);
+            if (!input || input.classList.contains('base-stat-input')) return;
+            
+            // Nicht aktualisieren wenn gerade editiert wird
+            if (input.classList.contains('skill-editing')) return;
+            
+            // Fertigkeitswert aus dem AppState holen (source of truth)
+            const skillValue = this.appState.skillValues[skillName] || 0;
+            const displayInfo = window.skillDisplayModeService.getDisplayValue(
+                skillName, skillValue, this.appState.skillValues
+            );
+            
+            input.value = displayInfo.displayValue;
+            input.dataset.baseValue = skillValue.toString(); // dataset synchron halten
+            if (displayInfo.isTotal) {
+                input.classList.add('skill-total-mode');
+            }
+        });
+        
+        // Custom-Skills dieser Kategorie aktualisieren
+        const customSkillInputs = container.querySelectorAll(
+            `input.custom-skill-value[data-category="${category}"]`
+        );
+        customSkillInputs.forEach(input => {
+            // Nicht aktualisieren wenn gerade editiert wird
+            if (input.classList.contains('skill-editing')) return;
+            
+            // Custom-Skill-Wert aus dem AppState holen
+            const customIndex = parseInt(input.dataset.customIndex, 10);
+            const customSkills = this.appState.getCustomSkills ? 
+                this.appState.getCustomSkills(category) : [];
+            const customSkill = customSkills[customIndex];
+            const skillValue = customSkill?.value || 0;
+            
+            const displayInfo = window.skillDisplayModeService.getDisplayValueForCustomSkill(
+                category, skillValue, this.appState.skillValues
+            );
+            
+            input.value = displayInfo.displayValue;
+            input.dataset.baseValue = skillValue.toString(); // dataset synchron halten
+            if (displayInfo.isTotal) {
+                input.classList.add('skill-total-mode');
+            }
+        });
+    }
+    
+    /**
      * Hilfsmethode zum Auslösen der Auto-Save-Funktion
      * @private
      */
@@ -2488,5 +2563,44 @@ class UiRenderer {
         container.appendChild(grid);
         
         return container;
+    }
+    
+    /**
+     * Aktualisiert die Hintergrundfarbe eines Move-Slots basierend auf dem Typ der Attacke
+     * @param {number} index - Index des Attacken-Slots
+     * @param {Object|null} move - Die ausgewählte Attacke oder null
+     * @private
+     */
+    _updateMoveSlotColor(index, move) {
+        // Slot über das Select-Element finden (zuverlässiger als :has())
+        const select = document.getElementById(`move-${index}`);
+        if (!select) return;
+        
+        const slot = select.closest('.move-slot');
+        if (!slot) return;
+        
+        this._applyMoveSlotColor(slot, move);
+    }
+    
+    /**
+     * Wendet die Farbe auf einen Move-Slot an
+     * @param {HTMLElement} slot - Das Slot-Element
+     * @param {Object|null} move - Die ausgewählte Attacke oder null
+     * @private
+     */
+    _applyMoveSlotColor(slot, move) {
+        if (!move || !move.type) {
+            // Keine Attacke ausgewählt - Standardfarben wiederherstellen
+            slot.classList.remove('move-slot-typed');
+            slot.style.backgroundColor = '';
+            return;
+        }
+        
+        // Typ-Farbe aus TYPE_COLORS holen (englischer Typ-Name als Key)
+        const typeColor = TYPE_COLORS[move.type.toLowerCase()] || '#A8A878'; // Fallback: Normal
+        
+        // Farbe anwenden
+        slot.classList.add('move-slot-typed');
+        slot.style.backgroundColor = typeColor;
     }
 }

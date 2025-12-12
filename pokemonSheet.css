@@ -854,8 +854,45 @@ body {
 
 .move-slot {
     margin-bottom: 0.5rem;
+    padding: 0.5rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Farbiger Move-Slot wenn Attacke ausgewählt */
+.move-slot.move-slot-typed {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.move-slot.move-slot-typed .move-label,
+.move-slot.move-slot-typed .move-details,
+.move-slot.move-slot-typed .move-type,
+.move-slot.move-slot-typed .move-power {
+    color: #FFFFFF;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.move-slot.move-slot-typed .move-select {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #1a202c;
+}
+
+.move-slot.move-slot-typed .move-description {
+    background-color: rgba(255, 255, 255, 0.85);
+    color: #1a202c;
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+.move-slot.move-slot-typed .move-description:focus {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.4);
+}
+
+.move-slot.move-slot-typed .move-description::placeholder {
+    color: #6b7280;
 }
 
 .move-details {
@@ -1573,6 +1610,29 @@ body.dark-mode .moves-selection {
 
 body.dark-mode .move-slot {
     background-color: transparent;
+}
+
+/* Dark Mode: Farbiger Move-Slot behält seine Farbe */
+body.dark-mode .move-slot.move-slot-typed {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+body.dark-mode .move-slot.move-slot-typed .move-select {
+    background-color: rgba(22, 33, 62, 0.9);
+    color: #e0e0e0;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .move-slot.move-slot-typed .move-description {
+    background-color: rgba(22, 33, 62, 0.85);
+    color: #e0e0e0;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .move-slot.move-slot-typed .move-description:focus {
+    background-color: rgba(22, 33, 62, 0.95);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 body.dark-mode .move-label {
@@ -4405,6 +4465,114 @@ body.dark-mode .editable-stat[title]::before {
     background-color: #63b3ed;
 }
 
+/* ==================== GEMEINSAME BUTTON-STYLES ==================== */
+
+/* Einheitlicher Add-Button Style (grün, rund) */
+.trainer-add-button,
+.inventory-add-button,
+.notes-add-button,
+.attack-add-button,
+.perk-add-button,
+.kommando-add-button {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 50%;
+    background-color: #48bb78;
+    color: white;
+    font-size: 1.15rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.trainer-add-button:hover,
+.inventory-add-button:hover,
+.notes-add-button:hover,
+.attack-add-button:hover,
+.perk-add-button:hover,
+.kommando-add-button:hover {
+    background-color: #38a169;
+    transform: scale(1.1);
+}
+
+/* Einheitlicher Remove-Button Style (rot, rund) */
+.trainer-remove-button,
+.inventory-remove-button,
+.notes-remove-button,
+.attack-remove-button,
+.perk-remove-button,
+.kommando-remove-button {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 50%;
+    background-color: #fc8181;
+    color: white;
+    font-size: 1.15rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.trainer-remove-button:hover,
+.inventory-remove-button:hover,
+.notes-remove-button:hover,
+.attack-remove-button:hover,
+.perk-remove-button:hover,
+.kommando-remove-button:hover {
+    background-color: #f56565;
+    transform: scale(1.1);
+}
+
+/* Dark Mode: Gemeinsame Button-Styles */
+body.dark-mode .trainer-add-button,
+body.dark-mode .inventory-add-button,
+body.dark-mode .notes-add-button,
+body.dark-mode .attack-add-button,
+body.dark-mode .perk-add-button,
+body.dark-mode .kommando-add-button {
+    background-color: #48bb78;
+}
+
+body.dark-mode .trainer-add-button:hover,
+body.dark-mode .inventory-add-button:hover,
+body.dark-mode .notes-add-button:hover,
+body.dark-mode .attack-add-button:hover,
+body.dark-mode .perk-add-button:hover,
+body.dark-mode .kommando-add-button:hover {
+    background-color: #68d391;
+}
+
+body.dark-mode .trainer-remove-button,
+body.dark-mode .inventory-remove-button,
+body.dark-mode .notes-remove-button,
+body.dark-mode .attack-remove-button,
+body.dark-mode .perk-remove-button,
+body.dark-mode .kommando-remove-button {
+    background-color: #fc8181;
+}
+
+body.dark-mode .trainer-remove-button:hover,
+body.dark-mode .inventory-remove-button:hover,
+body.dark-mode .notes-remove-button:hover,
+body.dark-mode .attack-remove-button:hover,
+body.dark-mode .perk-remove-button:hover,
+body.dark-mode .kommando-remove-button:hover {
+    background-color: #f56565;
+}
+
 /* ==================== INVENTAR-STYLES ==================== */
 
 .trainer-inventory-section {
@@ -4436,11 +4604,6 @@ body.dark-mode .editable-stat[title]::before {
     flex-shrink: 0;
     margin-left: 0 !important;
     margin-right: 0 !important;
-}
-
-/* Plus-Button bleibt am Ende, aber nicht zu weit weg */
-.inventory-header-row .inventory-add-button {
-    margin-left: 0.5rem;
 }
 
 .money-field label {
@@ -4479,28 +4642,6 @@ body.dark-mode .editable-stat[title]::before {
     color: #d69e2e; /* Gold/Gelb für Währung */
 }
 
-.inventory-add-button {
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 50%;
-    background-color: #48bb78;
-    color: white;
-    font-size: 1.25rem;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
-}
-
-.inventory-add-button:hover {
-    background-color: #38a169;
-    transform: scale(1.1);
-}
-
 .inventory-list {
     display: flex;
     flex-direction: column;
@@ -4528,6 +4669,13 @@ body.dark-mode .editable-stat[title]::before {
 
 .inventory-col-description {
     padding-left: 0.5rem;
+}
+
+/* Add-Button in der Header-Zeile */
+.inventory-col-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .inventory-item {
@@ -4617,29 +4765,6 @@ body.dark-mode .editable-stat[title]::before {
     font-style: italic;
 }
 
-.inventory-remove-button {
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 50%;
-    background-color: #fc8181;
-    color: white;
-    font-size: 1.25rem;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
-    align-self: center;
-}
-
-.inventory-remove-button:hover {
-    background-color: #f56565;
-    transform: scale(1.1);
-}
-
 /* Nur ein Eintrag - Remove-Button versteckt */
 .inventory-list:has(.inventory-item:only-of-type) .inventory-remove-button {
     opacity: 0.3;
@@ -4720,22 +4845,6 @@ body.dark-mode .inventory-description:focus {
 
 body.dark-mode .inventory-description::placeholder {
     color: #718096;
-}
-
-body.dark-mode .inventory-add-button {
-    background-color: #48bb78;
-}
-
-body.dark-mode .inventory-add-button:hover {
-    background-color: #68d391;
-}
-
-body.dark-mode .inventory-remove-button {
-    background-color: #fc8181;
-}
-
-body.dark-mode .inventory-remove-button:hover {
-    background-color: #f56565;
 }
 
 /* Responsive: Inventar auf kleineren Bildschirmen */
@@ -4872,33 +4981,56 @@ body.dark-mode .inventory-remove-button:hover {
     display: block;
 }
 
-/* Header Row mit Add-Button */
+/* Header Row mit Toggle-All und Add-Button */
 .notes-header-row {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 0.5rem;
+    gap: 0.5rem;
 }
 
-.notes-add-button {
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 50%;
-    background-color: #48bb78;
-    color: white;
-    font-size: 1.25rem;
-    font-weight: bold;
-    cursor: pointer;
+/* Toggle-All Button */
+.notes-toggle-all-button {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid #cbd5e0;
+    border-radius: 0.25rem;
+    background: #f7fafc;
+    color: #4a5568;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
     transition: all 0.2s ease;
-    line-height: 1;
 }
 
-.notes-add-button:hover {
-    background-color: #38a169;
-    transform: scale(1.1);
+.notes-toggle-all-button:hover {
+    background: #edf2f7;
+    border-color: #a0aec0;
+}
+
+.notes-toggle-all-button.active {
+    background: #e2e8f0;
+    border-color: #a0aec0;
+}
+
+.notes-toggle-all-button .toggle-icon {
+    font-size: 0.65rem;
+    transition: transform 0.2s ease;
+}
+
+/* Tab Count Badge */
+.notes-tab-count {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #718096;
+    margin-left: 0.25rem;
+}
+
+.notes-tab.active .notes-tab-count {
+    color: #4a5568;
 }
 
 /* Notes List */
@@ -4911,41 +5043,22 @@ body.dark-mode .inventory-remove-button:hover {
     overflow: hidden;
 }
 
-/* Table Headers */
-.notes-table-header {
-    display: grid;
-    background-color: #f7fafc;
-    font-weight: 600;
-    font-size: 0.75rem;
-    color: #4a5568;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.5rem;
-    border-bottom: 1px solid #e2e8f0;
+/* Leere Liste */
+.notes-list:empty::after {
+    content: 'Noch keine Einträge vorhanden';
+    display: block;
+    padding: 1.5rem;
+    text-align: center;
+    color: #a0aec0;
+    font-style: italic;
+    font-size: 0.875rem;
 }
 
-.notes-personen-header {
-    grid-template-columns: 1fr 1fr 2fr 32px;
-    gap: 0.5rem;
-}
-
-.notes-orte-header {
-    grid-template-columns: 1fr 2fr 32px;
-    gap: 0.5rem;
-}
-
-.notes-sonstiges-header {
-    grid-template-columns: 1fr 2fr 32px;
-    gap: 0.5rem;
-}
-
-/* Notes Items */
+/* Notes Items - Klappbares Layout */
 .notes-item {
-    display: grid;
-    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
     border-bottom: 1px solid #e2e8f0;
-    align-items: start;
-    gap: 0.5rem;
     transition: background-color 0.15s ease;
 }
 
@@ -4953,20 +5066,135 @@ body.dark-mode .inventory-remove-button:hover {
     border-bottom: none;
 }
 
-.notes-item:hover {
+/* Item Header (immer sichtbar) */
+.notes-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.notes-item-header:hover {
     background-color: #f7fafc;
 }
 
-.notes-personen-item {
-    grid-template-columns: 1fr 1fr 2fr 32px;
+/* Expand Icon */
+.notes-expand-icon {
+    font-size: 0.65rem;
+    color: #718096;
+    transition: transform 0.2s ease;
+    width: 1rem;
+    text-align: center;
+    flex-shrink: 0;
 }
 
-.notes-orte-item {
-    grid-template-columns: 1fr 2fr 32px;
+.notes-item.expanded .notes-expand-icon {
+    transform: rotate(90deg);
 }
 
-.notes-sonstiges-item {
-    grid-template-columns: 1fr 2fr 32px;
+/* Drag Handle */
+.notes-drag-handle {
+    cursor: grab;
+    color: #a0aec0;
+    font-size: 0.75rem;
+    padding: 0.25rem;
+    margin-right: 0.25rem;
+    user-select: none;
+    transition: color 0.15s ease;
+    flex-shrink: 0;
+}
+
+.notes-drag-handle:hover {
+    color: #4a5568;
+}
+
+.notes-drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Dragging State */
+.notes-item-dragging {
+    opacity: 0.4;
+}
+
+.notes-item-placeholder {
+    background-color: #e2e8f0;
+    border: 2px dashed #a0aec0;
+    border-radius: 0.25rem;
+    margin: 0.25rem 0;
+}
+
+/* Name Input im Header */
+.notes-item-header .notes-input {
+    flex: 0 0 200px;
+    max-width: 200px;
+    font-weight: 500;
+}
+
+/* Vorschau Text */
+.notes-preview {
+    flex: 1;
+    font-size: 0.8rem;
+    color: #718096;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 0.5rem;
+    font-style: italic;
+}
+
+.notes-preview.empty {
+    color: #cbd5e0;
+}
+
+/* Remove Button im Header */
+.notes-item-header .notes-remove-button {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* Details Bereich (ausgeklappt) */
+.notes-item-details {
+    display: none;
+    padding: 0.5rem 0.5rem 0.75rem 2rem;
+    background-color: #fafbfc;
+    border-top: 1px solid #edf2f7;
+    gap: 0.75rem;
+    flex-direction: column;
+}
+
+.notes-item.expanded .notes-item-details {
+    display: flex;
+}
+
+/* Detail-Felder */
+.notes-detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.notes-detail-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Kategorie-Farbakzente */
+.notes-personen-item .notes-item-header {
+    border-left: 3px solid #4299e1;
+}
+
+.notes-orte-item .notes-item-header {
+    border-left: 3px solid #48bb78;
+}
+
+.notes-sonstiges-item .notes-item-header {
+    border-left: 3px solid #a0aec0;
 }
 
 /* Input Fields */
@@ -4985,14 +5213,10 @@ body.dark-mode .inventory-remove-button:hover {
     box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.1);
 }
 
-/* Textarea Wrapper */
-.notes-notizen-wrapper {
-    min-height: 60px;
-}
-
+/* Textarea in Details */
 .notes-textarea {
     width: 100%;
-    min-height: 60px;
+    min-height: 80px;
     max-height: 200px;
     padding: 0.375rem 0.5rem;
     border: 1px solid #e2e8f0;
@@ -5011,30 +5235,6 @@ body.dark-mode .inventory-remove-button:hover {
 
 .notes-textarea::placeholder {
     color: #a0aec0;
-}
-
-/* Remove Button */
-.notes-remove-button {
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 50%;
-    background-color: #fc8181;
-    color: white;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
-    align-self: center;
-}
-
-.notes-remove-button:hover {
-    background-color: #f56565;
-    transform: scale(1.1);
 }
 
 /* Hide remove button when only one entry */
@@ -5065,27 +5265,82 @@ body.dark-mode .notes-tab.active {
     border-bottom-color: #1a202c;
 }
 
+body.dark-mode .notes-tab-count {
+    color: #718096;
+}
+
+body.dark-mode .notes-tab.active .notes-tab-count {
+    color: #a0aec0;
+}
+
 body.dark-mode .notes-content {
     background: #1a202c;
     border-color: #4a5568;
+}
+
+body.dark-mode .notes-toggle-all-button {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #a0aec0;
+}
+
+body.dark-mode .notes-toggle-all-button:hover {
+    background: #3a4a5a;
+    border-color: #718096;
+}
+
+body.dark-mode .notes-toggle-all-button.active {
+    background: #4a5568;
 }
 
 body.dark-mode .notes-list {
     border-color: #4a5568;
 }
 
-body.dark-mode .notes-table-header {
-    background-color: #2d3748;
-    color: #a0aec0;
-    border-bottom-color: #4a5568;
+body.dark-mode .notes-list:empty::after {
+    color: #718096;
 }
 
 body.dark-mode .notes-item {
     border-bottom-color: #4a5568;
 }
 
-body.dark-mode .notes-item:hover {
+body.dark-mode .notes-item-header:hover {
     background-color: #2d3748;
+}
+
+body.dark-mode .notes-expand-icon {
+    color: #a0aec0;
+}
+
+body.dark-mode .notes-drag-handle {
+    color: #718096;
+}
+
+body.dark-mode .notes-drag-handle:hover {
+    color: #a0aec0;
+}
+
+body.dark-mode .notes-item-placeholder {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+body.dark-mode .notes-preview {
+    color: #a0aec0;
+}
+
+body.dark-mode .notes-preview.empty {
+    color: #4a5568;
+}
+
+body.dark-mode .notes-item-details {
+    background-color: #232d3b;
+    border-top-color: #4a5568;
+}
+
+body.dark-mode .notes-detail-label {
+    color: #a0aec0;
 }
 
 body.dark-mode .notes-input,
@@ -5117,26 +5372,41 @@ body.dark-mode .notes-textarea::placeholder {
         font-size: 0.75rem;
     }
     
-    .notes-table-header {
+    .notes-item-header .notes-input {
+        flex: 0 0 120px;
+        max-width: 120px;
+    }
+    
+    .notes-preview {
         display: none;
-    }
-    
-    .notes-personen-item,
-    .notes-orte-item,
-    .notes-sonstiges-item {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-    }
-    
-    .notes-remove-button {
-        justify-self: end;
     }
 }
 
 /* PDF Mode */
 .pdf-mode .notes-add-button,
-.pdf-mode .notes-remove-button {
+.pdf-mode .notes-remove-button,
+.pdf-mode .notes-toggle-all-button {
     display: none !important;
+}
+
+.pdf-mode .notes-item {
+    /* Im PDF alle Einträge aufgeklappt */
+}
+
+.pdf-mode .notes-item-details {
+    display: flex !important;
+}
+
+.pdf-mode .notes-expand-icon {
+    display: none;
+}
+
+.pdf-mode .notes-drag-handle {
+    display: none;
+}
+
+.pdf-mode .notes-preview {
+    display: none;
 }
 
 .pdf-mode .notes-textarea {
@@ -5165,28 +5435,6 @@ body.dark-mode .notes-textarea::placeholder {
     margin-bottom: 0 !important;
     border-bottom: none !important;
     padding-bottom: 0 !important;
-}
-
-.attack-add-button {
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 50%;
-    background-color: #48bb78;
-    color: white;
-    font-size: 1.25rem;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
-}
-
-.attack-add-button:hover {
-    background-color: #38a169;
-    transform: scale(1.1);
 }
 
 .attacks-table-container {
@@ -5291,27 +5539,23 @@ body.dark-mode .notes-textarea::placeholder {
     overflow-y: auto;
 }
 
-/* Remove-Button für Attacken */
-.attack-remove-button {
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 50%;
-    background-color: #fc8181;
-    color: white;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
+/* Farbige Attacken-Zeilen basierend auf Typ */
+.attack-row-typed {
+    transition: background-color 0.2s ease;
 }
 
-.attack-remove-button:hover {
-    background-color: #f56565;
-    transform: scale(1.1);
+.attack-row-typed .attack-input {
+    background-color: rgba(255, 255, 255, 0.85);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.attack-row-typed .attack-input:focus {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.3);
+}
+
+.attack-row-typed:hover {
+    filter: brightness(1.05);
 }
 
 /* Dark Mode: Attacken */
@@ -5355,20 +5599,24 @@ body.dark-mode .attack-input::placeholder {
     color: #718096;
 }
 
-body.dark-mode .attack-add-button {
-    background-color: #48bb78;
+/* Dark Mode: Farbige Attacken-Zeilen */
+body.dark-mode .attack-row-typed {
+    /* Typ-Farbe wird beibehalten */
 }
 
-body.dark-mode .attack-add-button:hover {
-    background-color: #68d391;
+body.dark-mode .attack-row-typed .attack-input {
+    background-color: rgba(45, 55, 72, 0.85);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #e2e8f0;
 }
 
-body.dark-mode .attack-remove-button {
-    background-color: #fc8181;
+body.dark-mode .attack-row-typed .attack-input:focus {
+    background-color: rgba(45, 55, 72, 0.95);
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
-body.dark-mode .attack-remove-button:hover {
-    background-color: #f56565;
+body.dark-mode .attack-row-typed:hover {
+    filter: brightness(1.1);
 }
 
 /* Responsive: Attacken auf kleineren Bildschirmen */
@@ -5507,28 +5755,6 @@ body.dark-mode .attack-remove-button:hover {
     color: white;
 }
 
-.perk-add-button {
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 50%;
-    background-color: #805ad5;
-    color: white;
-    font-size: 1.25rem;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
-}
-
-.perk-add-button:hover {
-    background-color: #6b46c1;
-    transform: scale(1.1);
-}
-
 .perks-list {
     display: flex;
     flex-direction: column;
@@ -5607,29 +5833,6 @@ body.dark-mode .attack-remove-button:hover {
     border-color: #ccc;
     opacity: 0.3;
     cursor: not-allowed;
-}
-
-.perk-remove-button {
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 50%;
-    background-color: #fc8181;
-    color: white;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
-    flex-shrink: 0;
-}
-
-.perk-remove-button:hover {
-    background-color: #f56565;
-    transform: scale(1.1);
 }
 
 /* Description Container mit Toggle-Animation */
@@ -5718,28 +5921,6 @@ body.dark-mode .attack-remove-button:hover {
     color: white;
 }
 
-.kommando-add-button {
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 50%;
-    background-color: #dd6b20;
-    color: white;
-    font-size: 1.25rem;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
-}
-
-.kommando-add-button:hover {
-    background-color: #c05621;
-    transform: scale(1.1);
-}
-
 .kommandos-list {
     display: flex;
     flex-direction: column;
@@ -5820,29 +6001,6 @@ body.dark-mode .attack-remove-button:hover {
     cursor: not-allowed;
 }
 
-.kommando-remove-button {
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 50%;
-    background-color: #fc8181;
-    color: white;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
-    flex-shrink: 0;
-}
-
-.kommando-remove-button:hover {
-    background-color: #f56565;
-    transform: scale(1.1);
-}
-
 /* Description Container mit Toggle-Animation */
 .kommando-description-container {
     width: 100%;
@@ -5912,22 +6070,6 @@ body.dark-mode .kommando-description {
     background-color: #744210;
     border-color: #975a16;
     color: #e2e8f0;
-}
-
-body.dark-mode .perk-add-button {
-    background-color: #805ad5;
-}
-
-body.dark-mode .perk-add-button:hover {
-    background-color: #9f7aea;
-}
-
-body.dark-mode .kommando-add-button {
-    background-color: #dd6b20;
-}
-
-body.dark-mode .kommando-add-button:hover {
-    background-color: #ed8936;
 }
 
 /* Dark Mode für Toggle-Buttons */
@@ -9337,4 +9479,44 @@ body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name
     color: inherit;
     background-color: inherit;
     border-color: inherit;
+}
+
+.notes-item-header {
+    cursor: grab;
+}
+.notes-item-header:active {
+    cursor: grabbing;
+}
+.notes-item-header input,
+.notes-item-header button {
+    cursor: auto;
+}
+
+.notes-item-dragging {
+    opacity: 0.4;
+}
+
+.notes-item-drag-clone {
+    transition: none;
+}
+
+.section-drag-clone {
+    transition: none;
+}
+
+.collapsible-header:active {
+    cursor: grabbing;
+}
+
+.collapsible-section.drag-ready {
+    outline: 2px solid var(--accent-color, #4a9eff);
+    outline-offset: 2px;
+}
+
+.drag-handle-section {
+    cursor: grab;
+}
+
+.drag-handle-section:active {
+    cursor: grabbing;
 }
