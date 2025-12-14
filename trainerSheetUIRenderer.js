@@ -5,6 +5,14 @@
 class TrainerUIRenderer {
     constructor(trainerState) {
         this.trainerState = trainerState;
+        
+        // Zustandsvariablen für "Alle aufklappen"-Modus
+        this.inventoryExpandAll = false;
+        this.notesExpandAll = {
+            personen: false,
+            orte: false,
+            sonstiges: false
+        };
     }
     
     /**
@@ -137,7 +145,7 @@ class TrainerUIRenderer {
      */
     _initDragAndDrop(container) {
         const DRAG_THRESHOLD = 5; // Pixel bevor Drag startet
-        const HOLD_DELAY = 100; // Millisekunden bis Drag aktiviert wird
+        const HOLD_DELAY = 200; // Millisekunden bis Drag aktiviert wird
         const self = this;
         
         // State-Variablen
@@ -1228,6 +1236,12 @@ class TrainerUIRenderer {
             };
         }
         
+        // Drag & Drop initialisieren
+        const perksList = document.getElementById('perks-list');
+        if (perksList) {
+            this._initPerksDragAndDrop(perksList);
+        }
+        
         // Custom Dropdown Event-Listener
         const perkDropdownButtons = document.querySelectorAll('.perk-dropdown-button');
         perkDropdownButtons.forEach(button => {
@@ -1371,6 +1385,183 @@ class TrainerUIRenderer {
         }
     }
     
+    /**
+     * Initialisiert Custom Drag & Drop für Perks
+     * @param {HTMLElement} container - Der Container mit den Perk-Items
+     * @private
+     */
+    _initPerksDragAndDrop(container) {
+        const DRAG_THRESHOLD = 5;
+        const self = this;
+        
+        let isDragging = false;
+        let dragStarted = false;
+        let draggedItem = null;
+        let dragClone = null;
+        let placeholder = null;
+        let startX = 0;
+        let startY = 0;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        const getItemAtPosition = (x, y) => {
+            const elements = document.elementsFromPoint(x, y);
+            for (const el of elements) {
+                if (el.classList.contains('perk-item') && el !== dragClone) {
+                    return el;
+                }
+                const parentItem = el.closest('.perk-item');
+                if (parentItem && parentItem !== dragClone && container.contains(parentItem)) {
+                    return parentItem;
+                }
+            }
+            return null;
+        };
+        
+        const onMouseMove = (e) => {
+            if (!isDragging || !draggedItem) return;
+            
+            const deltaX = Math.abs(e.clientX - startX);
+            const deltaY = Math.abs(e.clientY - startY);
+            
+            if (!dragStarted && (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD)) {
+                dragStarted = true;
+                draggedItem.classList.add('perk-item-dragging');
+                
+                dragClone = draggedItem.cloneNode(true);
+                dragClone.classList.remove('perk-item-dragging');
+                dragClone.classList.add('perk-item-drag-clone');
+                
+                const rect = draggedItem.getBoundingClientRect();
+                offsetX = startX - rect.left;
+                offsetY = startY - rect.top;
+                
+                dragClone.style.cssText = `
+                    position: fixed;
+                    left: ${rect.left}px;
+                    top: ${rect.top}px;
+                    width: ${rect.width}px;
+                    z-index: 10000;
+                    pointer-events: none;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+                    opacity: 0.95;
+                    background: var(--bg-secondary, #2a2a2a);
+                    border-radius: 8px;
+                `;
+                
+                document.body.appendChild(dragClone);
+                
+                placeholder = document.createElement('div');
+                placeholder.className = 'perk-item-placeholder';
+                placeholder.style.height = rect.height + 'px';
+                placeholder.style.margin = '4px 0';
+                placeholder.style.border = '2px dashed var(--accent-color, #4a9eff)';
+                placeholder.style.borderRadius = '8px';
+                placeholder.style.background = 'rgba(74, 158, 255, 0.1)';
+                
+                draggedItem.parentNode.insertBefore(placeholder, draggedItem);
+                draggedItem.style.display = 'none';
+                
+                document.body.style.cursor = 'grabbing';
+            }
+            
+            if (dragStarted && dragClone) {
+                dragClone.style.left = (e.clientX - offsetX) + 'px';
+                dragClone.style.top = (e.clientY - offsetY) + 'px';
+                
+                const targetItem = getItemAtPosition(e.clientX, e.clientY);
+                
+                if (targetItem && targetItem !== draggedItem) {
+                    const rect = targetItem.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    
+                    if (e.clientY < midY) {
+                        if (placeholder.nextSibling !== targetItem) {
+                            targetItem.parentNode.insertBefore(placeholder, targetItem);
+                        }
+                    } else {
+                        if (placeholder.previousSibling !== targetItem) {
+                            targetItem.parentNode.insertBefore(placeholder, targetItem.nextSibling);
+                        }
+                    }
+                }
+            }
+        };
+        
+        const onMouseUp = (e) => {
+            if (!isDragging) return;
+            
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            
+            if (dragStarted && draggedItem && placeholder) {
+                const items = Array.from(container.querySelectorAll('.perk-item, .perk-item-placeholder'));
+                const newIndex = items.indexOf(placeholder);
+                const oldIndex = parseInt(draggedItem.dataset.perkIndex, 10);
+                
+                if (dragClone && dragClone.parentNode) dragClone.remove();
+                if (placeholder && placeholder.parentNode) placeholder.remove();
+                
+                draggedItem.style.display = '';
+                draggedItem.classList.remove('perk-item-dragging');
+                
+                if (newIndex !== -1 && newIndex !== oldIndex) {
+                    const adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+                    self._movePerk(oldIndex, adjustedNewIndex);
+                }
+            } else if (draggedItem) {
+                draggedItem.classList.remove('perk-item-dragging');
+            }
+            
+            document.body.style.cursor = '';
+            isDragging = false;
+            dragStarted = false;
+            draggedItem = null;
+            dragClone = null;
+            placeholder = null;
+        };
+        
+        container.querySelectorAll('.perk-item').forEach(item => {
+            const row = item.querySelector('.perk-row');
+            if (!row) return;
+            
+            row.addEventListener('mousedown', (e) => {
+                if (e.target.closest('input, button, textarea, select, .custom-dropdown-button, .custom-dropdown-list')) return;
+                
+                e.preventDefault();
+                
+                isDragging = true;
+                dragStarted = false;
+                draggedItem = item;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        });
+    }
+    
+    /**
+     * Verschiebt einen Perk an eine neue Position
+     * @param {number} fromIndex - Ursprünglicher Index
+     * @param {number} toIndex - Ziel-Index
+     * @private
+     */
+    _movePerk(fromIndex, toIndex) {
+        const perks = this.trainerState.perks;
+        if (!perks || fromIndex < 0 || fromIndex >= perks.length) return;
+        
+        const [movedItem] = perks.splice(fromIndex, 1);
+        perks.splice(toIndex, 0, movedItem);
+        
+        this.updatePerksList();
+        
+        if (this.trainerState.save) {
+            this.trainerState.save();
+        }
+    }
+    
     // ==================== KOMMANDOS UI ====================
     
     /**
@@ -1503,6 +1694,12 @@ class TrainerUIRenderer {
                 this.trainerState.addKommando();
                 this.updateKommandosList();
             };
+        }
+        
+        // Drag & Drop initialisieren
+        const kommandosList = document.getElementById('kommandos-list');
+        if (kommandosList) {
+            this._initKommandosDragAndDrop(kommandosList);
         }
         
         // Custom Dropdown Event-Listener
@@ -1649,6 +1846,183 @@ class TrainerUIRenderer {
     }
     
     /**
+     * Initialisiert Custom Drag & Drop für Kommandos
+     * @param {HTMLElement} container - Der Container mit den Kommando-Items
+     * @private
+     */
+    _initKommandosDragAndDrop(container) {
+        const DRAG_THRESHOLD = 5;
+        const self = this;
+        
+        let isDragging = false;
+        let dragStarted = false;
+        let draggedItem = null;
+        let dragClone = null;
+        let placeholder = null;
+        let startX = 0;
+        let startY = 0;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        const getItemAtPosition = (x, y) => {
+            const elements = document.elementsFromPoint(x, y);
+            for (const el of elements) {
+                if (el.classList.contains('kommando-item') && el !== dragClone) {
+                    return el;
+                }
+                const parentItem = el.closest('.kommando-item');
+                if (parentItem && parentItem !== dragClone && container.contains(parentItem)) {
+                    return parentItem;
+                }
+            }
+            return null;
+        };
+        
+        const onMouseMove = (e) => {
+            if (!isDragging || !draggedItem) return;
+            
+            const deltaX = Math.abs(e.clientX - startX);
+            const deltaY = Math.abs(e.clientY - startY);
+            
+            if (!dragStarted && (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD)) {
+                dragStarted = true;
+                draggedItem.classList.add('kommando-item-dragging');
+                
+                dragClone = draggedItem.cloneNode(true);
+                dragClone.classList.remove('kommando-item-dragging');
+                dragClone.classList.add('kommando-item-drag-clone');
+                
+                const rect = draggedItem.getBoundingClientRect();
+                offsetX = startX - rect.left;
+                offsetY = startY - rect.top;
+                
+                dragClone.style.cssText = `
+                    position: fixed;
+                    left: ${rect.left}px;
+                    top: ${rect.top}px;
+                    width: ${rect.width}px;
+                    z-index: 10000;
+                    pointer-events: none;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+                    opacity: 0.95;
+                    background: var(--bg-secondary, #2a2a2a);
+                    border-radius: 8px;
+                `;
+                
+                document.body.appendChild(dragClone);
+                
+                placeholder = document.createElement('div');
+                placeholder.className = 'kommando-item-placeholder';
+                placeholder.style.height = rect.height + 'px';
+                placeholder.style.margin = '4px 0';
+                placeholder.style.border = '2px dashed var(--accent-color, #4a9eff)';
+                placeholder.style.borderRadius = '8px';
+                placeholder.style.background = 'rgba(74, 158, 255, 0.1)';
+                
+                draggedItem.parentNode.insertBefore(placeholder, draggedItem);
+                draggedItem.style.display = 'none';
+                
+                document.body.style.cursor = 'grabbing';
+            }
+            
+            if (dragStarted && dragClone) {
+                dragClone.style.left = (e.clientX - offsetX) + 'px';
+                dragClone.style.top = (e.clientY - offsetY) + 'px';
+                
+                const targetItem = getItemAtPosition(e.clientX, e.clientY);
+                
+                if (targetItem && targetItem !== draggedItem) {
+                    const rect = targetItem.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    
+                    if (e.clientY < midY) {
+                        if (placeholder.nextSibling !== targetItem) {
+                            targetItem.parentNode.insertBefore(placeholder, targetItem);
+                        }
+                    } else {
+                        if (placeholder.previousSibling !== targetItem) {
+                            targetItem.parentNode.insertBefore(placeholder, targetItem.nextSibling);
+                        }
+                    }
+                }
+            }
+        };
+        
+        const onMouseUp = (e) => {
+            if (!isDragging) return;
+            
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            
+            if (dragStarted && draggedItem && placeholder) {
+                const items = Array.from(container.querySelectorAll('.kommando-item, .kommando-item-placeholder'));
+                const newIndex = items.indexOf(placeholder);
+                const oldIndex = parseInt(draggedItem.dataset.kommandoIndex, 10);
+                
+                if (dragClone && dragClone.parentNode) dragClone.remove();
+                if (placeholder && placeholder.parentNode) placeholder.remove();
+                
+                draggedItem.style.display = '';
+                draggedItem.classList.remove('kommando-item-dragging');
+                
+                if (newIndex !== -1 && newIndex !== oldIndex) {
+                    const adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+                    self._moveKommando(oldIndex, adjustedNewIndex);
+                }
+            } else if (draggedItem) {
+                draggedItem.classList.remove('kommando-item-dragging');
+            }
+            
+            document.body.style.cursor = '';
+            isDragging = false;
+            dragStarted = false;
+            draggedItem = null;
+            dragClone = null;
+            placeholder = null;
+        };
+        
+        container.querySelectorAll('.kommando-item').forEach(item => {
+            const row = item.querySelector('.kommando-row');
+            if (!row) return;
+            
+            row.addEventListener('mousedown', (e) => {
+                if (e.target.closest('input, button, textarea, select, .custom-dropdown-button, .custom-dropdown-list')) return;
+                
+                e.preventDefault();
+                
+                isDragging = true;
+                dragStarted = false;
+                draggedItem = item;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        });
+    }
+    
+    /**
+     * Verschiebt ein Kommando an eine neue Position
+     * @param {number} fromIndex - Ursprünglicher Index
+     * @param {number} toIndex - Ziel-Index
+     * @private
+     */
+    _moveKommando(fromIndex, toIndex) {
+        const kommandos = this.trainerState.kommandos;
+        if (!kommandos || fromIndex < 0 || fromIndex >= kommandos.length) return;
+        
+        const [movedItem] = kommandos.splice(fromIndex, 1);
+        kommandos.splice(toIndex, 0, movedItem);
+        
+        this.updateKommandosList();
+        
+        if (this.trainerState.save) {
+            this.trainerState.save();
+        }
+    }
+    
+    /**
      * Aktualisiert die Attacken-Tabelle
      */
     updateAttacksTable() {
@@ -1671,6 +2045,12 @@ class TrainerUIRenderer {
                 this.trainerState.addAttack();
                 this.updateAttacksTable();
             };
+        }
+        
+        // Drag & Drop initialisieren
+        const tbody = document.getElementById('attacks-table-body');
+        if (tbody) {
+            this._initAttacksDragAndDrop(tbody);
         }
         
         // Input-Änderungen
@@ -1706,6 +2086,176 @@ class TrainerUIRenderer {
                 this.updateAttacksTable();
             };
         });
+    }
+    
+    /**
+     * Initialisiert Custom Drag & Drop für Attacken
+     * @param {HTMLElement} tbody - Der tbody mit den Attacken-Zeilen
+     * @private
+     */
+    _initAttacksDragAndDrop(tbody) {
+        const DRAG_THRESHOLD = 5;
+        const self = this;
+        
+        let isDragging = false;
+        let dragStarted = false;
+        let draggedRow = null;
+        let dragClone = null;
+        let placeholder = null;
+        let startX = 0;
+        let startY = 0;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        const getRowAtPosition = (x, y) => {
+            const elements = document.elementsFromPoint(x, y);
+            for (const el of elements) {
+                if (el.classList.contains('attack-row') && el !== dragClone) {
+                    return el;
+                }
+                const parentRow = el.closest('.attack-row');
+                if (parentRow && parentRow !== dragClone && tbody.contains(parentRow)) {
+                    return parentRow;
+                }
+            }
+            return null;
+        };
+        
+        const onMouseMove = (e) => {
+            if (!isDragging || !draggedRow) return;
+            
+            const deltaX = Math.abs(e.clientX - startX);
+            const deltaY = Math.abs(e.clientY - startY);
+            
+            if (!dragStarted && (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD)) {
+                dragStarted = true;
+                draggedRow.classList.add('attack-row-dragging');
+                
+                dragClone = draggedRow.cloneNode(true);
+                dragClone.classList.remove('attack-row-dragging');
+                dragClone.classList.add('attack-row-drag-clone');
+                
+                const rect = draggedRow.getBoundingClientRect();
+                offsetX = startX - rect.left;
+                offsetY = startY - rect.top;
+                
+                dragClone.style.cssText = `
+                    position: fixed;
+                    left: ${rect.left}px;
+                    top: ${rect.top}px;
+                    width: ${rect.width}px;
+                    z-index: 10000;
+                    pointer-events: none;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+                    opacity: 0.95;
+                    background: var(--bg-secondary, #2a2a2a);
+                    display: table-row;
+                `;
+                
+                document.body.appendChild(dragClone);
+                
+                placeholder = document.createElement('tr');
+                placeholder.className = 'attack-row-placeholder';
+                placeholder.innerHTML = `<td colspan="5" style="height: ${rect.height}px; border: 2px dashed var(--accent-color, #4a9eff); background: rgba(74, 158, 255, 0.1);"></td>`;
+                
+                draggedRow.parentNode.insertBefore(placeholder, draggedRow);
+                draggedRow.style.display = 'none';
+                
+                document.body.style.cursor = 'grabbing';
+            }
+            
+            if (dragStarted && dragClone) {
+                dragClone.style.left = (e.clientX - offsetX) + 'px';
+                dragClone.style.top = (e.clientY - offsetY) + 'px';
+                
+                const targetRow = getRowAtPosition(e.clientX, e.clientY);
+                
+                if (targetRow && targetRow !== draggedRow) {
+                    const rect = targetRow.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    
+                    if (e.clientY < midY) {
+                        if (placeholder.nextSibling !== targetRow) {
+                            targetRow.parentNode.insertBefore(placeholder, targetRow);
+                        }
+                    } else {
+                        if (placeholder.previousSibling !== targetRow) {
+                            targetRow.parentNode.insertBefore(placeholder, targetRow.nextSibling);
+                        }
+                    }
+                }
+            }
+        };
+        
+        const onMouseUp = (e) => {
+            if (!isDragging) return;
+            
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            
+            if (dragStarted && draggedRow && placeholder) {
+                const rows = Array.from(tbody.querySelectorAll('.attack-row, .attack-row-placeholder'));
+                const newIndex = rows.indexOf(placeholder);
+                const oldIndex = parseInt(draggedRow.dataset.attackIndex, 10);
+                
+                if (dragClone && dragClone.parentNode) dragClone.remove();
+                if (placeholder && placeholder.parentNode) placeholder.remove();
+                
+                draggedRow.style.display = '';
+                draggedRow.classList.remove('attack-row-dragging');
+                
+                if (newIndex !== -1 && newIndex !== oldIndex) {
+                    const adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+                    self._moveAttack(oldIndex, adjustedNewIndex);
+                }
+            } else if (draggedRow) {
+                draggedRow.classList.remove('attack-row-dragging');
+            }
+            
+            document.body.style.cursor = '';
+            isDragging = false;
+            dragStarted = false;
+            draggedRow = null;
+            dragClone = null;
+            placeholder = null;
+        };
+        
+        tbody.querySelectorAll('.attack-row').forEach(row => {
+            row.addEventListener('mousedown', (e) => {
+                if (e.target.closest('input, button, textarea, select')) return;
+                
+                e.preventDefault();
+                
+                isDragging = true;
+                dragStarted = false;
+                draggedRow = row;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        });
+    }
+    
+    /**
+     * Verschiebt eine Attacke an eine neue Position
+     * @param {number} fromIndex - Ursprünglicher Index
+     * @param {number} toIndex - Ziel-Index
+     * @private
+     */
+    _moveAttack(fromIndex, toIndex) {
+        const attacks = this.trainerState.attacks;
+        if (!attacks || fromIndex < 0 || fromIndex >= attacks.length) return;
+        
+        const [movedItem] = attacks.splice(fromIndex, 1);
+        attacks.splice(toIndex, 0, movedItem);
+        
+        this.updateAttacksTable();
+        
+        if (this.trainerState.save) {
+            this.trainerState.save();
+        }
     }
     
     /**
@@ -2275,16 +2825,14 @@ class TrainerUIRenderer {
                            placeholder="0">
                     <span class="money-symbol">₽</span>
                 </div>
+                <div class="inventory-header-buttons">
+                    <button type="button" class="inventory-toggle-all-button" id="inventory-toggle-all" title="Alle auf-/zuklappen">
+                        <span class="toggle-icon">▶</span> Alle
+                    </button>
+                    <button type="button" id="add-inventory-item" class="inventory-add-button" title="Eintrag hinzufügen">+</button>
+                </div>
             </div>
             <div class="inventory-list" id="inventory-list">
-                <div class="inventory-header">
-                    <span class="inventory-col-name">Name</span>
-                    <span class="inventory-col-quantity">Anz.</span>
-                    <span class="inventory-col-description">Beschreibung</span>
-                    <span class="inventory-col-actions">
-                        <button type="button" id="add-inventory-item" class="inventory-add-button" title="Eintrag hinzufügen">+</button>
-                    </span>
-                </div>
         `;
         
         // Inventar-Einträge rendern
@@ -2305,24 +2853,49 @@ class TrainerUIRenderer {
      * @private
      */
     _renderInventoryItem(item, index) {
+        const preview = this._getInventoryPreview(item);
+        const hasDetails = item.description && item.description.trim();
+        
         return `
             <div class="inventory-item" data-index="${index}">
-                <input type="text" class="inventory-name" 
-                       data-index="${index}" data-field="name"
-                       value="${this._escapeHtml(item.name)}" 
-                       placeholder="Gegenstand">
-                <input type="number" class="inventory-quantity" 
-                       data-index="${index}" data-field="quantity"
-                       value="${item.quantity}" min="0" max="999">
-                <div class="inventory-description-wrapper">
+                <div class="inventory-item-header" data-index="${index}">
+                    <span class="inventory-drag-handle" title="Ziehen zum Verschieben">⋮⋮</span>
+                    <span class="inventory-expand-icon">▶</span>
+                    <input type="text" class="inventory-name" 
+                           data-index="${index}" data-field="name"
+                           value="${this._escapeHtml(item.name)}" 
+                           placeholder="Gegenstand">
+                    <input type="number" class="inventory-quantity" 
+                           data-index="${index}" data-field="quantity"
+                           value="${item.quantity}" min="0" max="999">
+                    <span class="inventory-preview ${hasDetails ? '' : 'empty'}">${this._escapeHtml(preview)}</span>
+                    <button type="button" class="inventory-remove-button" 
+                            data-index="${index}" title="Eintrag entfernen">×</button>
+                </div>
+                <div class="inventory-item-details">
                     <textarea class="inventory-description" 
                               data-index="${index}" data-field="description"
-                              placeholder="Beschreibung...">${this._escapeHtml(item.description)}</textarea>
+                              placeholder="Beschreibung, Effekte, Notizen...">${this._escapeHtml(item.description)}</textarea>
                 </div>
-                <button type="button" class="inventory-remove-button" 
-                        data-index="${index}" title="Eintrag entfernen">×</button>
             </div>
         `;
+    }
+    
+    /**
+     * Generiert eine Vorschau für einen Inventar-Eintrag
+     * @param {InventoryItem} item - Der Inventar-Eintrag
+     * @private
+     */
+    _getInventoryPreview(item) {
+        if (!item.description || !item.description.trim()) {
+            return '';
+        }
+        const text = item.description.trim();
+        const maxLength = 40;
+        if (text.length <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength) + '...';
     }
     
     /**
@@ -2343,22 +2916,39 @@ class TrainerUIRenderer {
         const container = document.getElementById('inventory-list');
         if (!container) return;
         
-        let html = `
-            <div class="inventory-header">
-                <span class="inventory-col-name">Name</span>
-                <span class="inventory-col-quantity">Anz.</span>
-                <span class="inventory-col-description">Beschreibung</span>
-                <span class="inventory-col-actions">
-                    <button type="button" id="add-inventory-item" class="inventory-add-button" title="Eintrag hinzufügen">+</button>
-                </span>
-            </div>
-        `;
+        // Expanded-Zustand speichern (nach Position im Array, da sich Inhalte ändern können)
+        const expandedPositions = new Set();
+        const items = container.querySelectorAll('.inventory-item');
+        items.forEach((item, visualIndex) => {
+            if (item.classList.contains('expanded')) {
+                // Speichere den Namen des Items für robusteres Matching
+                const nameInput = item.querySelector('.inventory-name');
+                const name = nameInput?.value || '';
+                expandedPositions.add(name);
+            }
+        });
+        
+        let html = '';
         
         this.trainerState.inventory.forEach((item, index) => {
             html += this._renderInventoryItem(item, index);
         });
         
         container.innerHTML = html;
+        
+        // Expanded-Zustand wiederherstellen
+        container.querySelectorAll('.inventory-item').forEach(itemEl => {
+            const nameInput = itemEl.querySelector('.inventory-name');
+            const name = nameInput?.value || '';
+            
+            // Aufklappen wenn: Name war vorher aufgeklappt ODER expandAll aktiv ist
+            if (expandedPositions.has(name) || this.inventoryExpandAll) {
+                itemEl.classList.add('expanded');
+                const icon = itemEl.querySelector('.inventory-expand-icon');
+                if (icon) icon.textContent = '▼';
+            }
+        });
+        
         this._addInventoryEventListeners();
     }
     
@@ -2563,12 +3153,12 @@ class TrainerUIRenderer {
         const container = document.getElementById(`notes-list-${category}`);
         if (!container) return;
         
-        // Expanded-Zustand vor dem Re-Render speichern
-        const expandedIndices = new Set();
+        // Expanded-Zustand vor dem Re-Render speichern (nach Name für robusteres Matching)
+        const expandedNames = new Set();
         container.querySelectorAll('.notes-item.expanded').forEach(item => {
-            const index = parseInt(item.dataset.index, 10);
-            if (!isNaN(index)) {
-                expandedIndices.add(index);
+            const nameInput = item.querySelector('.notes-name, .notes-ueberschrift');
+            if (nameInput) {
+                expandedNames.add(nameInput.value || '');
             }
         });
         
@@ -2577,8 +3167,11 @@ class TrainerUIRenderer {
         
         // Expanded-Zustand wiederherstellen
         container.querySelectorAll('.notes-item').forEach(item => {
-            const index = parseInt(item.dataset.index, 10);
-            if (expandedIndices.has(index)) {
+            const nameInput = item.querySelector('.notes-name, .notes-ueberschrift');
+            const name = nameInput?.value || '';
+            
+            // Aufklappen wenn: Name war vorher aufgeklappt ODER expandAll für diese Kategorie aktiv ist
+            if (expandedNames.has(name) || this.notesExpandAll[category]) {
                 item.classList.add('expanded');
                 const icon = item.querySelector('.notes-expand-icon');
                 if (icon) icon.textContent = '▼';
@@ -2595,10 +3188,26 @@ class TrainerUIRenderer {
      * @private
      */
     _toggleNoteExpand(item) {
+        const wasExpanded = item.classList.contains('expanded');
         const isExpanded = item.classList.toggle('expanded');
         const icon = item.querySelector('.notes-expand-icon');
         if (icon) {
             icon.textContent = isExpanded ? '▼' : '▶';
+        }
+        
+        // Wenn manuell zugeklappt wird, expandAll für diese Kategorie deaktivieren
+        if (wasExpanded && !isExpanded) {
+            const category = item.dataset.category;
+            if (category && this.notesExpandAll[category]) {
+                this.notesExpandAll[category] = false;
+                // Auch den Button-Zustand aktualisieren
+                const toggleBtn = document.querySelector(`.notes-toggle-all-button[data-category="${category}"]`);
+                if (toggleBtn) {
+                    toggleBtn.classList.remove('active');
+                    const btnIcon = toggleBtn.querySelector('.toggle-icon');
+                    if (btnIcon) btnIcon.textContent = '▶';
+                }
+            }
         }
     }
     
@@ -2674,6 +3283,9 @@ class TrainerUIRenderer {
                 if (icon) {
                     icon.textContent = isExpanded ? '▼' : '▶';
                 }
+                
+                // Zustand speichern für neue Einträge
+                this.notesExpandAll[category] = isExpanded;
                 
                 this._toggleAllNotes(category, isExpanded);
             });
@@ -3148,7 +3760,9 @@ class TrainerUIRenderer {
                 const config = typeConfig[typeId];
                 const value = this.trainerState.getTypeMastery(typeId);
                 const isFavorite = favoriteType === typeId;
-                const effectiveValue = isFavorite ? value + 5 : value;
+                // Effektiver Wert mit Capping auf 0-100
+                const rawEffectiveValue = isFavorite ? value + 5 : value;
+                const effectiveValue = Math.max(0, Math.min(100, rawEffectiveValue));
                 
                 html += `
                     <div class="type-mastery-item ${isFavorite ? 'is-favorite' : ''}" data-type="${typeId}">
@@ -3157,12 +3771,14 @@ class TrainerUIRenderer {
                             <span class="type-name">${config.name}</span>
                         </div>
                         <div class="type-mastery-value-container">
+                            <button type="button" class="type-mastery-btn type-mastery-btn-decrease" data-type="${typeId}" title="Wert verringern">◀</button>
                             <input type="text" 
                                    class="type-mastery-input" 
                                    data-type="${typeId}"
                                    value="${effectiveValue}"
                                    data-base-value="${value}"
                                    inputmode="numeric">
+                            <button type="button" class="type-mastery-btn type-mastery-btn-increase" data-type="${typeId}" title="Wert erhöhen">▶</button>
                             ${isFavorite ? '<span class="favorite-indicator">★</span>' : ''}
                         </div>
                     </div>
@@ -3191,7 +3807,9 @@ class TrainerUIRenderer {
             const input = item.querySelector('.type-mastery-input');
             const isFavorite = favoriteType === typeId;
             const baseValue = this.trainerState.getTypeMastery(typeId);
-            const effectiveValue = isFavorite ? baseValue + 5 : baseValue;
+            // Effektiver Wert mit Capping auf 0-100
+            const rawEffectiveValue = isFavorite ? baseValue + 5 : baseValue;
+            const effectiveValue = Math.max(0, Math.min(100, rawEffectiveValue));
             
             // Favorit-Status aktualisieren
             item.classList.toggle('is-favorite', isFavorite);
@@ -3234,20 +3852,14 @@ class TrainerUIRenderer {
                 const oldFavorite = this.trainerState.getFavoriteType();
                 const newFavorite = e.target.value || null;
                 
-                // Alten Lieblingstyp: Basis-Wert wiederherstellen (effektiver Wert - 5)
-                if (oldFavorite) {
-                    const oldInput = document.querySelector(`.type-mastery-input[data-type="${oldFavorite}"]`);
-                    if (oldInput) {
-                        const baseValue = parseInt(oldInput.dataset.baseValue, 10) || 5;
-                        this.trainerState.setTypeMastery(oldFavorite, baseValue);
-                    }
-                }
-                
                 // Neuen Lieblingstyp setzen
                 this.trainerState.setFavoriteType(newFavorite);
                 
                 // Anzeige aktualisieren
                 this.updateTypeMastery();
+                
+                // Button-Zustände für alle Typen aktualisieren
+                this._updateAllTypeMasteryButtonStates();
             });
         }
         
@@ -3273,32 +3885,142 @@ class TrainerUIRenderer {
                 // Validierung: Muss eine ganze Zahl sein
                 if (isNaN(inputValue)) {
                     // Zurück zum letzten gültigen Wert
-                    const baseValue = parseInt(e.target.dataset.baseValue, 10) || 5;
-                    const effectiveValue = isFavorite ? baseValue + 5 : baseValue;
-                    e.target.value = effectiveValue;
+                    const parsedBase = parseInt(e.target.dataset.baseValue, 10);
+                    const baseValue = isNaN(parsedBase) ? 5 : parsedBase;
+                    const rawEffectiveValue = isFavorite ? baseValue + 5 : baseValue;
+                    e.target.value = Math.max(0, Math.min(100, rawEffectiveValue));
                     return;
                 }
                 
                 // Basis-Wert berechnen (wenn Favorit, -5 abziehen)
                 let baseValue = isFavorite ? inputValue - 5 : inputValue;
                 
+                // Min/Max-Grenzen anwenden (0-100)
+                baseValue = Math.max(0, Math.min(100, baseValue));
+                
+                // Effektiven Wert für Anzeige neu berechnen mit Capping
+                const rawEffectiveValue = isFavorite ? baseValue + 5 : baseValue;
+                const effectiveValue = Math.max(0, Math.min(100, rawEffectiveValue));
+                e.target.value = effectiveValue;
+                
                 // Speichern
                 this.trainerState.setTypeMastery(typeId, baseValue);
                 e.target.dataset.baseValue = baseValue;
                 lastValidValue = e.target.value;
+                
+                // Button-Zustände aktualisieren
+                this._updateTypeMasteryButtonStates(typeId, baseValue, isFavorite);
             });
             
             input.addEventListener('blur', (e) => {
                 const typeId = e.target.dataset.type;
                 const isFavorite = this.trainerState.getFavoriteType() === typeId;
-                const baseValue = parseInt(e.target.dataset.baseValue, 10) || 5;
-                const effectiveValue = isFavorite ? baseValue + 5 : baseValue;
+                const parsedBase = parseInt(e.target.dataset.baseValue, 10);
+                const baseValue = isNaN(parsedBase) ? 5 : parsedBase;
+                const rawEffectiveValue = isFavorite ? baseValue + 5 : baseValue;
+                const effectiveValue = Math.max(0, Math.min(100, rawEffectiveValue));
                 
                 // Bei leerem oder ungültigem Input: Zurücksetzen
                 if (e.target.value === '' || isNaN(parseInt(e.target.value, 10))) {
                     e.target.value = effectiveValue;
                 }
             });
+        });
+        
+        // Pfeil-Buttons für Wert verringern/erhöhen
+        document.querySelectorAll('.type-mastery-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const typeId = e.target.dataset.type;
+                const isIncrease = e.target.classList.contains('type-mastery-btn-increase');
+                const input = document.querySelector(`.type-mastery-input[data-type="${typeId}"]`);
+                
+                if (!input) return;
+                
+                const isFavorite = this.trainerState.getFavoriteType() === typeId;
+                const parsedValue = parseInt(input.dataset.baseValue, 10);
+                let baseValue = isNaN(parsedValue) ? 5 : parsedValue;
+                
+                // Aktuellen angezeigten Wert berechnen (gecappt)
+                const currentDisplayValue = Math.max(0, Math.min(100, isFavorite ? baseValue + 5 : baseValue));
+                
+                // Wert erhöhen oder verringern mit Min/Max-Grenzen für angezeigten Wert
+                if (isIncrease) {
+                    if (currentDisplayValue >= 100) return; // Maximum erreicht
+                    baseValue += 1;
+                } else {
+                    if (currentDisplayValue <= 0) return; // Minimum erreicht
+                    baseValue -= 1;
+                }
+                
+                // Basis-Wert auf 0-100 cappen
+                baseValue = Math.max(0, Math.min(100, baseValue));
+                
+                // Wert speichern und Anzeige aktualisieren
+                this.trainerState.setTypeMastery(typeId, baseValue);
+                input.dataset.baseValue = baseValue;
+                
+                // Effektiven Wert mit Capping berechnen
+                const rawEffectiveValue = isFavorite ? baseValue + 5 : baseValue;
+                const effectiveValue = Math.max(0, Math.min(100, rawEffectiveValue));
+                input.value = effectiveValue;
+                
+                // Button-Zustände aktualisieren (basierend auf angezeigtem Wert)
+                this._updateTypeMasteryButtonStates(typeId, baseValue, isFavorite);
+            });
+        });
+        
+        // Initiale Button-Zustände setzen
+        this._updateAllTypeMasteryButtonStates();
+    }
+    
+    /**
+     * Aktualisiert die Button-Zustände für einen bestimmten Typ
+     * @param {string} typeId - Die Typ-ID
+     * @param {number} baseValue - Der aktuelle Basis-Wert
+     * @param {boolean} [isFavorite] - Ob es der Lieblingstyp ist (optional, wird automatisch ermittelt)
+     * @private
+     */
+    _updateTypeMasteryButtonStates(typeId, baseValue, isFavorite) {
+        // Wenn isFavorite nicht übergeben wurde, automatisch ermitteln
+        if (isFavorite === undefined) {
+            isFavorite = this.trainerState.getFavoriteType() === typeId;
+        }
+        
+        // Angezeigten Wert berechnen (gecappt auf 0-100)
+        const rawDisplayValue = isFavorite ? baseValue + 5 : baseValue;
+        const displayValue = Math.max(0, Math.min(100, rawDisplayValue));
+        
+        const decreaseBtn = document.querySelector(`.type-mastery-btn-decrease[data-type="${typeId}"]`);
+        const increaseBtn = document.querySelector(`.type-mastery-btn-increase[data-type="${typeId}"]`);
+        
+        if (decreaseBtn) {
+            // Deaktiviert wenn angezeigter Wert <= 0
+            const disableDecrease = displayValue <= 0;
+            decreaseBtn.disabled = disableDecrease;
+            decreaseBtn.classList.toggle('disabled', disableDecrease);
+        }
+        
+        if (increaseBtn) {
+            // Deaktiviert wenn angezeigter Wert >= 100
+            const disableIncrease = displayValue >= 100;
+            increaseBtn.disabled = disableIncrease;
+            increaseBtn.classList.toggle('disabled', disableIncrease);
+        }
+    }
+    
+    /**
+     * Aktualisiert alle Button-Zustände für Typ-Meisterschaft
+     * @private
+     */
+    _updateAllTypeMasteryButtonStates() {
+        const favoriteType = this.trainerState.getFavoriteType();
+        
+        document.querySelectorAll('.type-mastery-input').forEach(input => {
+            const typeId = input.dataset.type;
+            const parsedValue = parseInt(input.dataset.baseValue, 10);
+            const baseValue = isNaN(parsedValue) ? 5 : parsedValue;
+            const isFavorite = favoriteType === typeId;
+            this._updateTypeMasteryButtonStates(typeId, baseValue, isFavorite);
         });
     }
     
@@ -3331,9 +4053,18 @@ class TrainerUIRenderer {
         const remainingPoints = this.trainerState.getRemainingGradePoints();
         const fivesCount = this.trainerState.countGradeFives();
         
+        // Gespeicherten Zustand für die Info-Box laden
+        const infoBoxCollapsed = localStorage.getItem('grades-info-collapsed') === 'true';
+        
         let html = `
-            <div class="grades-info-box">
-                <p class="grades-explanation">
+            <div class="grades-info-wrapper">
+                <div class="grades-info-header" id="grades-info-toggle">
+                    <span class="grades-info-toggle-icon">${infoBoxCollapsed ? '▶' : '▼'}</span>
+                    <span class="grades-info-toggle-text">Anleitung ${infoBoxCollapsed ? 'anzeigen' : 'ausblenden'}</span>
+                    <span class="grades-points-badge ${remainingPoints < 0 ? 'grades-warning' : ''}" id="grades-points-badge">${remainingPoints} Punkte</span>
+                </div>
+                <div class="grades-info-box ${infoBoxCollapsed ? 'collapsed' : ''}" id="grades-info-box">
+                    <p class="grades-explanation">
                     Verteile 30 Punkte, um deine Noten zu verbessern. Standard ist Note 5, je mehr Punkte du ausgibst, desto besser wird die Note.<br>
                     <strong>Beispiel:</strong> 3 Punkte in einem Fach verbessern die Note 5 auf 2.
                 </p>
@@ -3341,6 +4072,7 @@ class TrainerUIRenderer {
                     <span class="grades-points-label">Verfügbare Punkte:</span>
                     <span id="grades-remaining-points" class="grades-points-value ${remainingPoints < 0 ? 'grades-warning' : ''}">${remainingPoints}</span>
                 </div>
+            </div>
             </div>
             
             <div id="grades-points-warning" class="grades-warning-box" style="display: ${remainingPoints < 0 ? 'block' : 'none'};">
@@ -3387,18 +4119,35 @@ class TrainerUIRenderer {
      */
     _renderGradeItem(subject, grade) {
         const gradeClass = this._getGradeColorClass(grade);
+        const rowClass = this._getGradeRowClass(grade);
         return `
-            <div class="grade-item">
+            <div class="grade-item ${rowClass}" data-subject="${subject.id}">
                 <span class="grade-subject-name">${subject.name}</span>
                 <select class="grade-select ${gradeClass}" data-subject="${subject.id}">
-                    <option value="1" ${grade === 1 ? 'selected' : ''}>1</option>
-                    <option value="2" ${grade === 2 ? 'selected' : ''}>2</option>
-                    <option value="3" ${grade === 3 ? 'selected' : ''}>3</option>
-                    <option value="4" ${grade === 4 ? 'selected' : ''}>4</option>
-                    <option value="5" ${grade === 5 ? 'selected' : ''}>5</option>
+                    <option value="1" ${grade === 1 ? 'selected' : ''}>1 (5W6)</option>
+                    <option value="2" ${grade === 2 ? 'selected' : ''}>2 (4W6)</option>
+                    <option value="3" ${grade === 3 ? 'selected' : ''}>3 (3W6)</option>
+                    <option value="4" ${grade === 4 ? 'selected' : ''}>4 (2W6)</option>
+                    <option value="5" ${grade === 5 ? 'selected' : ''}>5 (1W6)</option>
                 </select>
             </div>
         `;
+    }
+    
+    /**
+     * Gibt die CSS-Klasse für den Zeilen-Hintergrund einer Note zurück
+     * @param {number} grade - Die Note (1-5)
+     * @private
+     */
+    _getGradeRowClass(grade) {
+        const rowClasses = {
+            1: 'grade-row-1',
+            2: 'grade-row-2',
+            3: 'grade-row-3',
+            4: 'grade-row-4',
+            5: 'grade-row-5'
+        };
+        return rowClasses[grade] || 'grade-row-5';
     }
     
     /**
@@ -3431,6 +4180,13 @@ class TrainerUIRenderer {
             pointsDisplay.classList.toggle('grades-warning', remainingPoints < 0);
         }
         
+        // Badge im Header aktualisieren
+        const pointsBadge = document.getElementById('grades-points-badge');
+        if (pointsBadge) {
+            pointsBadge.textContent = `${remainingPoints} Punkte`;
+            pointsBadge.classList.toggle('grades-warning', remainingPoints < 0);
+        }
+        
         // Punkte-Warnung anzeigen/verstecken
         const pointsWarning = document.getElementById('grades-points-warning');
         if (pointsWarning) {
@@ -3447,15 +4203,22 @@ class TrainerUIRenderer {
             fivesCountSpan.textContent = fivesCount;
         }
         
-        // Alle Select-Elemente aktualisieren
+        // Alle Select-Elemente und ihre Zeilen aktualisieren
         document.querySelectorAll('.grade-select').forEach(select => {
             const subject = select.dataset.subject;
             const grade = this.trainerState.getGrade(subject);
             select.value = grade;
             
-            // Farb-Klasse aktualisieren
+            // Farb-Klasse für Select aktualisieren
             select.classList.remove('grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5');
             select.classList.add(this._getGradeColorClass(grade));
+            
+            // Zeilen-Hintergrund-Klasse aktualisieren
+            const gradeItem = select.closest('.grade-item');
+            if (gradeItem) {
+                gradeItem.classList.remove('grade-row-1', 'grade-row-2', 'grade-row-3', 'grade-row-4', 'grade-row-5');
+                gradeItem.classList.add(this._getGradeRowClass(grade));
+            }
         });
     }
     
@@ -3464,6 +4227,29 @@ class TrainerUIRenderer {
      * @private
      */
     _addGradesEventListeners() {
+        // Event-Listener für die einklappbare Info-Box
+        const infoToggle = document.getElementById('grades-info-toggle');
+        const infoBox = document.getElementById('grades-info-box');
+        
+        if (infoToggle && infoBox) {
+            infoToggle.addEventListener('click', () => {
+                const isCollapsed = infoBox.classList.toggle('collapsed');
+                const toggleIcon = infoToggle.querySelector('.grades-info-toggle-icon');
+                const toggleText = infoToggle.querySelector('.grades-info-toggle-text');
+                
+                if (toggleIcon) {
+                    toggleIcon.textContent = isCollapsed ? '▶' : '▼';
+                }
+                if (toggleText) {
+                    toggleText.textContent = isCollapsed ? 'Anleitung anzeigen' : 'Anleitung ausblenden';
+                }
+                
+                // Zustand speichern
+                localStorage.setItem('grades-info-collapsed', isCollapsed);
+            });
+        }
+        
+        // Event-Listener für Noten-Selects
         document.querySelectorAll('.grade-select').forEach(select => {
             select.addEventListener('change', (e) => {
                 const subject = e.target.dataset.subject;
@@ -3474,6 +4260,13 @@ class TrainerUIRenderer {
                 // Farb-Klasse aktualisieren
                 e.target.classList.remove('grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5');
                 e.target.classList.add(this._getGradeColorClass(grade));
+                
+                // Zeilen-Hintergrund aktualisieren
+                const gradeItem = e.target.closest('.grade-item');
+                if (gradeItem) {
+                    gradeItem.classList.remove('grade-row-1', 'grade-row-2', 'grade-row-3', 'grade-row-4', 'grade-row-5');
+                    gradeItem.classList.add(this._getGradeRowClass(grade));
+                }
                 
                 // Warnungen und Punkte aktualisieren
                 this.updateGrades();
@@ -4027,6 +4820,79 @@ class TrainerUIRenderer {
             });
         }
         
+        // Toggle-All-Button
+        const toggleAllButton = document.getElementById('inventory-toggle-all');
+        if (toggleAllButton) {
+            const newToggleAllButton = toggleAllButton.cloneNode(true);
+            toggleAllButton.parentNode.replaceChild(newToggleAllButton, toggleAllButton);
+            
+            newToggleAllButton.addEventListener('click', () => {
+                const items = document.querySelectorAll('.inventory-item');
+                const expandedItems = document.querySelectorAll('.inventory-item.expanded');
+                const shouldExpand = expandedItems.length < items.length / 2;
+                
+                // Zustand speichern für neue Einträge
+                this.inventoryExpandAll = shouldExpand;
+                
+                // Button-Zustand und Icon aktualisieren
+                newToggleAllButton.classList.toggle('active', shouldExpand);
+                const buttonIcon = newToggleAllButton.querySelector('.toggle-icon');
+                if (buttonIcon) {
+                    buttonIcon.textContent = shouldExpand ? '▼' : '▶';
+                }
+                
+                items.forEach(item => {
+                    const icon = item.querySelector('.inventory-expand-icon');
+                    if (shouldExpand) {
+                        item.classList.add('expanded');
+                        if (icon) icon.textContent = '▼';
+                    } else {
+                        item.classList.remove('expanded');
+                        if (icon) icon.textContent = '▶';
+                    }
+                });
+            });
+        }
+        
+        // Einklappen/Ausklappen per Klick auf Header
+        document.querySelectorAll('.inventory-item-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                // Nicht auslösen wenn auf Input, Button oder Drag-Handle geklickt
+                if (e.target.matches('input, button, textarea, .inventory-drag-handle')) {
+                    return;
+                }
+                
+                const item = header.closest('.inventory-item');
+                const icon = header.querySelector('.inventory-expand-icon');
+                
+                if (item) {
+                    const wasExpanded = item.classList.contains('expanded');
+                    item.classList.toggle('expanded');
+                    if (icon) {
+                        icon.textContent = item.classList.contains('expanded') ? '▼' : '▶';
+                    }
+                    
+                    // Wenn manuell zugeklappt wird, expandAll deaktivieren
+                    if (wasExpanded) {
+                        this.inventoryExpandAll = false;
+                        // Auch den Button-Zustand aktualisieren
+                        const toggleBtn = document.getElementById('inventory-toggle-all');
+                        if (toggleBtn) {
+                            toggleBtn.classList.remove('active');
+                            const btnIcon = toggleBtn.querySelector('.toggle-icon');
+                            if (btnIcon) btnIcon.textContent = '▶';
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Drag & Drop initialisieren
+        const inventoryList = document.getElementById('inventory-list');
+        if (inventoryList) {
+            this._initInventoryDragAndDrop(inventoryList);
+        }
+        
         // Remove-Buttons
         document.querySelectorAll('.inventory-remove-button').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -4044,8 +4910,198 @@ class TrainerUIRenderer {
                 const index = parseInt(e.target.dataset.index, 10);
                 const field = e.target.dataset.field;
                 this.trainerState.updateInventoryItem(index, { [field]: e.target.value });
+                
+                // Vorschau aktualisieren wenn Beschreibung geändert wird
+                if (field === 'description') {
+                    const item = e.target.closest('.inventory-item');
+                    const preview = item?.querySelector('.inventory-preview');
+                    if (preview) {
+                        const previewText = this._getInventoryPreview({ description: e.target.value });
+                        preview.textContent = previewText;
+                        preview.classList.toggle('empty', !previewText);
+                    }
+                }
             });
         });
+    }
+    
+    /**
+     * Initialisiert Custom Drag & Drop für Inventar-Items
+     * @param {HTMLElement} container - Der Container mit den Inventar-Items
+     * @private
+     */
+    _initInventoryDragAndDrop(container) {
+        const DRAG_THRESHOLD = 5;
+        const self = this;
+        
+        let isDragging = false;
+        let dragStarted = false;
+        let draggedItem = null;
+        let dragClone = null;
+        let placeholder = null;
+        let startX = 0;
+        let startY = 0;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        const getItemAtPosition = (x, y) => {
+            const elements = document.elementsFromPoint(x, y);
+            for (const el of elements) {
+                if (el.classList.contains('inventory-item') && el !== dragClone) {
+                    return el;
+                }
+                const parentItem = el.closest('.inventory-item');
+                if (parentItem && parentItem !== dragClone && container.contains(parentItem)) {
+                    return parentItem;
+                }
+            }
+            return null;
+        };
+        
+        const onMouseMove = (e) => {
+            if (!isDragging || !draggedItem) return;
+            
+            const deltaX = Math.abs(e.clientX - startX);
+            const deltaY = Math.abs(e.clientY - startY);
+            
+            if (!dragStarted && (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD)) {
+                dragStarted = true;
+                draggedItem.classList.add('inventory-item-dragging');
+                
+                dragClone = draggedItem.cloneNode(true);
+                dragClone.classList.remove('inventory-item-dragging');
+                dragClone.classList.add('inventory-item-drag-clone');
+                
+                const rect = draggedItem.getBoundingClientRect();
+                offsetX = startX - rect.left;
+                offsetY = startY - rect.top;
+                
+                dragClone.style.cssText = `
+                    position: fixed;
+                    left: ${rect.left}px;
+                    top: ${rect.top}px;
+                    width: ${rect.width}px;
+                    z-index: 10000;
+                    pointer-events: none;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+                    opacity: 0.95;
+                    background: var(--bg-secondary, #2a2a2a);
+                    border-radius: 4px;
+                    display: flex;
+                    align-items: center;
+                `;
+                
+                document.body.appendChild(dragClone);
+                
+                placeholder = document.createElement('div');
+                placeholder.className = 'inventory-item-placeholder';
+                placeholder.style.height = rect.height + 'px';
+                placeholder.style.margin = '2px 0';
+                placeholder.style.border = '2px dashed var(--accent-color, #4a9eff)';
+                placeholder.style.borderRadius = '4px';
+                placeholder.style.background = 'rgba(74, 158, 255, 0.1)';
+                
+                draggedItem.parentNode.insertBefore(placeholder, draggedItem);
+                draggedItem.style.display = 'none';
+                
+                document.body.style.cursor = 'grabbing';
+            }
+            
+            if (dragStarted && dragClone) {
+                dragClone.style.left = (e.clientX - offsetX) + 'px';
+                dragClone.style.top = (e.clientY - offsetY) + 'px';
+                
+                const targetItem = getItemAtPosition(e.clientX, e.clientY);
+                
+                if (targetItem && targetItem !== draggedItem) {
+                    const rect = targetItem.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    
+                    if (e.clientY < midY) {
+                        if (placeholder.nextSibling !== targetItem) {
+                            targetItem.parentNode.insertBefore(placeholder, targetItem);
+                        }
+                    } else {
+                        if (placeholder.previousSibling !== targetItem) {
+                            targetItem.parentNode.insertBefore(placeholder, targetItem.nextSibling);
+                        }
+                    }
+                }
+            }
+        };
+        
+        const onMouseUp = (e) => {
+            if (!isDragging) return;
+            
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            
+            if (dragStarted && draggedItem && placeholder) {
+                const items = Array.from(container.querySelectorAll('.inventory-item, .inventory-item-placeholder'));
+                const newIndex = items.indexOf(placeholder);
+                const oldIndex = parseInt(draggedItem.dataset.index, 10);
+                
+                if (dragClone && dragClone.parentNode) dragClone.remove();
+                if (placeholder && placeholder.parentNode) placeholder.remove();
+                
+                draggedItem.style.display = '';
+                draggedItem.classList.remove('inventory-item-dragging');
+                
+                if (newIndex !== -1 && newIndex !== oldIndex) {
+                    const adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+                    self._moveInventoryItem(oldIndex, adjustedNewIndex);
+                }
+            } else if (draggedItem) {
+                draggedItem.classList.remove('inventory-item-dragging');
+            }
+            
+            document.body.style.cursor = '';
+            isDragging = false;
+            dragStarted = false;
+            draggedItem = null;
+            dragClone = null;
+            placeholder = null;
+        };
+        
+        // Drag nur über den Drag-Handle aktivieren
+        container.querySelectorAll('.inventory-drag-handle').forEach(handle => {
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation(); // Verhindere, dass der Header-Click-Event ausgelöst wird
+                
+                const item = handle.closest('.inventory-item');
+                if (!item) return;
+                
+                isDragging = true;
+                dragStarted = false;
+                draggedItem = item;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        });
+    }
+    
+    /**
+     * Verschiebt ein Inventar-Item an eine neue Position
+     * @param {number} fromIndex - Ursprünglicher Index
+     * @param {number} toIndex - Ziel-Index
+     * @private
+     */
+    _moveInventoryItem(fromIndex, toIndex) {
+        const inventory = this.trainerState.inventory;
+        if (!inventory || fromIndex < 0 || fromIndex >= inventory.length) return;
+        
+        const [movedItem] = inventory.splice(fromIndex, 1);
+        inventory.splice(toIndex, 0, movedItem);
+        
+        this.updateInventory();
+        
+        if (this.trainerState.save) {
+            this.trainerState.save();
+        }
     }
     
     /**
