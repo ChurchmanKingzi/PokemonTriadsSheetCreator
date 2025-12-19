@@ -435,6 +435,21 @@ class PokemonSheetApp {
         // Würfelklasse zurücksetzen
         this.appState.customDiceClass = null;
         
+        // Shiny-Modus zurücksetzen
+        this.appState.isShiny = false;
+        
+        // Geschlecht zurücksetzen (wird später durch API-Default oder geladene Daten überschrieben)
+        this.appState.gender = GENDER.MALE;
+        
+        // Exotische Färbung zurücksetzen
+        this.appState.isExoticColor = false;
+        this.appState.exoticHueRotation = 0;
+        
+        // Benutzerdefinierte physische Werte zurücksetzen
+        this.appState.customHeight = null;
+        this.appState.customWeight = null;
+        this.appState.customRideability = null;
+        
         // Fertigkeitswerte auf Standard zurücksetzen
         Object.keys(SKILL_GROUPS).forEach(category => {
             this.appState.skillValues[category] = DEFAULT_VALUES.SKILL_VALUE;
@@ -571,6 +586,27 @@ class PokemonSheetApp {
         // Benutzerdefinierte Würfelklasse - IMMER setzen (null wenn nicht vorhanden)
         // Sonst "rutscht" die customDiceClass eines anderen Pokemon durch!
         this.appState.customDiceClass = sheet.customDiceClass || null;
+        
+        // Shiny-Modus - IMMER setzen (false wenn nicht vorhanden)
+        this.appState.isShiny = sheet.isShiny || false;
+        
+        // Geschlecht - IMMER setzen (Default aus API wenn nicht vorhanden)
+        if (sheet.gender) {
+            this.appState.gender = sheet.gender;
+        } else if (this.appState.pokemonData?.defaultGender) {
+            this.appState.gender = this.appState.pokemonData.defaultGender;
+        } else {
+            this.appState.gender = GENDER.MALE;
+        }
+        
+        // Exotische Färbung - IMMER setzen (false/0 wenn nicht vorhanden)
+        this.appState.isExoticColor = sheet.isExoticColor || false;
+        this.appState.exoticHueRotation = sheet.exoticHueRotation || 0;
+        
+        // Benutzerdefinierte physische Werte - IMMER setzen (null wenn nicht vorhanden)
+        this.appState.customHeight = sheet.customHeight || null;
+        this.appState.customWeight = sheet.customWeight || null;
+        this.appState.customRideability = sheet.customRideability || null;
     }
     
     /**
@@ -672,6 +708,121 @@ class PokemonSheetApp {
             
             // Freundschaft
             this._updateFriendshipDisplay();
+            
+            // Shiny-Modus UI aktualisieren
+            if (sheet.isShiny !== undefined) {
+                const spriteImg = document.getElementById('pokemon-sprite');
+                const shinyToggleBtn = document.getElementById('shiny-toggle-btn');
+                
+                if (spriteImg && this.appState.pokemonData) {
+                    const spriteUrl = sheet.isShiny && this.appState.pokemonData.sprites?.front_shiny
+                        ? this.appState.pokemonData.sprites.front_shiny
+                        : this.appState.pokemonData.sprites?.front_default;
+                    if (spriteUrl) spriteImg.src = spriteUrl;
+                }
+                
+                if (shinyToggleBtn) {
+                    if (sheet.isShiny) {
+                        shinyToggleBtn.classList.add('shiny-active');
+                        shinyToggleBtn.title = 'Normale Farbe anzeigen';
+                    } else {
+                        shinyToggleBtn.classList.remove('shiny-active');
+                        shinyToggleBtn.title = 'Shiny-Farbe anzeigen';
+                    }
+                    const textSpan = shinyToggleBtn.querySelector('.shiny-text');
+                    if (textSpan) textSpan.textContent = sheet.isShiny ? 'Shiny' : 'Normal';
+                }
+            }
+            
+            // Geschlecht UI aktualisieren
+            if (sheet.gender !== undefined) {
+                const genderBadge = document.getElementById('gender-badge');
+                if (genderBadge && GENDER_DISPLAY[sheet.gender]) {
+                    const genderInfo = GENDER_DISPLAY[sheet.gender];
+                    genderBadge.textContent = genderInfo.symbol;
+                    genderBadge.style.color = genderInfo.color;
+                    genderBadge.title = `${genderInfo.label} (Klicken zum Ändern)`;
+                    genderBadge.className = `gender-badge gender-${sheet.gender}`;
+                }
+            }
+            
+            // Exotische Färbung UI aktualisieren
+            if (sheet.isExoticColor !== undefined || sheet.exoticHueRotation !== undefined) {
+                const spriteImg = document.getElementById('pokemon-sprite');
+                const exoticToggleBtn = document.getElementById('exotic-color-toggle-btn');
+                const sliderContainer = document.getElementById('exotic-hue-slider-container');
+                const hueSlider = document.getElementById('exotic-hue-slider');
+                const hueValueDisplay = document.getElementById('exotic-hue-value');
+                
+                const isExotic = sheet.isExoticColor || false;
+                const hueRotation = sheet.exoticHueRotation || 0;
+                
+                if (spriteImg) {
+                    if (isExotic) {
+                        spriteImg.style.filter = `hue-rotate(${hueRotation}deg)`;
+                    } else {
+                        spriteImg.style.filter = '';
+                    }
+                }
+                
+                if (exoticToggleBtn) {
+                    if (isExotic) {
+                        exoticToggleBtn.classList.add('exotic-active');
+                        exoticToggleBtn.title = 'Exotische Färbung deaktivieren';
+                    } else {
+                        exoticToggleBtn.classList.remove('exotic-active');
+                        exoticToggleBtn.title = 'Exotische Färbung aktivieren';
+                    }
+                    const textSpan = exoticToggleBtn.querySelector('.exotic-text');
+                    if (textSpan) textSpan.textContent = isExotic ? 'Exotisch' : 'Normal';
+                }
+                
+                if (sliderContainer) {
+                    sliderContainer.style.display = isExotic ? '' : 'none';
+                }
+                
+                if (hueSlider) {
+                    hueSlider.value = hueRotation.toString();
+                }
+                
+                if (hueValueDisplay) {
+                    hueValueDisplay.textContent = `${hueRotation}°`;
+                }
+            }
+            
+            // Benutzerdefinierte Größe
+            if (sheet.customHeight) {
+                const heightInput = document.getElementById('pokemon-height-input');
+                if (heightInput) heightInput.value = sheet.customHeight;
+            }
+            
+            // Benutzerdefiniertes Gewicht
+            if (sheet.customWeight) {
+                const weightInput = document.getElementById('pokemon-weight-input');
+                if (weightInput) weightInput.value = sheet.customWeight;
+            }
+            
+            // Benutzerdefinierte Reitbarkeit
+            if (sheet.customRideability) {
+                const rideabilityBadge = document.getElementById('rideability-badge');
+                if (rideabilityBadge) {
+                    const rideabilityInfo = {
+                        'none': { labelShort: 'Nicht reitbar', icon: '🚫', cssClass: 'rideability-none' },
+                        'land': { labelShort: 'Land', icon: '🏇', cssClass: 'rideability-land' },
+                        'water': { labelShort: 'Wasser', icon: '🌊', cssClass: 'rideability-water' },
+                        'fly': { labelShort: 'Fliegend', icon: '🦅', cssClass: 'rideability-fly' }
+                    };
+                    const info = rideabilityInfo[sheet.customRideability];
+                    if (info) {
+                        rideabilityBadge.className = `rideability-badge rideability-clickable ${info.cssClass}`;
+                        rideabilityBadge.dataset.rideabilityType = sheet.customRideability;
+                        const iconSpan = rideabilityBadge.querySelector('.rideability-icon');
+                        const labelSpan = rideabilityBadge.querySelector('.rideability-label');
+                        if (iconSpan) iconSpan.textContent = info.icon;
+                        if (labelSpan) labelSpan.textContent = info.labelShort;
+                    }
+                }
+            }
             
             console.log('UI-Anwendung abgeschlossen');
         } catch (error) {

@@ -55,6 +55,32 @@ class AppState {
         // Benutzerdefinierte Würfelklasse (null = automatisch berechnet)
         this.customDiceClass = null;
         
+        // Benutzerdefinierte physische Werte (null = API-Standardwert)
+        this.customHeight = null; // in Metern (z.B. "1,5")
+        this.customWeight = null; // in kg (z.B. "42,0")
+        this.customRideability = null; // 'none', 'land', 'water', 'fly'
+        
+        // Shiny-Modus (false = normal, true = shiny)
+        this.isShiny = false;
+        
+        // Geschlecht des Pokemon ('male', 'female', 'neutral')
+        this.gender = GENDER.MALE;
+        
+        // Exotische Färbung (Hue-Rotation)
+        this.isExoticColor = false;
+        this.exoticHueRotation = 0; // 0-360 Grad
+        
+        // Notizen-System
+        // Format: [{id: 'uuid', name: 'Notiz 1', content: 'Text...', isCollapsed: false}]
+        this.notes = [];
+        
+        // Container-Reihenfolge für Drag & Drop
+        // Default-Reihenfolge der Sektionen
+        this.sectionOrder = ['info', 'combat', 'moves', 'abilities', 'skills', 'notes'];
+        
+        // Eingeklappte Sektionen
+        this.collapsedSections = {};
+        
         // Temporäre Stat-Modifikatoren für den Kampf
         // Diese speichern die DIFFERENZ zum permanenten Wert
         this.tempStatModifiers = {
@@ -201,6 +227,224 @@ class AppState {
         return this.statusEffects && this.statusEffects.includes(statusId);
     }
     
+    // ==================== PHYSISCHE WERTE MANAGEMENT ====================
+    
+    /**
+     * Setzt die benutzerdefinierte Größe
+     * @param {string} value - Größe als String (z.B. "1,5" für 1,5m) oder null für API-Wert
+     * @returns {boolean} True bei Erfolg
+     */
+    setCustomHeight(value) {
+        if (value === null || value === '') {
+            this.customHeight = null;
+            return true;
+        }
+        this.customHeight = value;
+        return true;
+    }
+    
+    /**
+     * Gibt die aktuelle Größe zurück (custom oder API)
+     * @returns {string} Größe als formatierter String
+     */
+    getDisplayHeight() {
+        if (this.customHeight !== null) {
+            return this.customHeight;
+        }
+        if (this.pokemonData) {
+            const heightInMeters = this.pokemonData.height / 10;
+            return heightInMeters.toFixed(1).replace('.', ',') + ' m';
+        }
+        return '0,0 m';
+    }
+    
+    /**
+     * Setzt das benutzerdefinierte Gewicht
+     * @param {string} value - Gewicht als String (z.B. "42,0" für 42kg) oder null für API-Wert
+     * @returns {boolean} True bei Erfolg
+     */
+    setCustomWeight(value) {
+        if (value === null || value === '') {
+            this.customWeight = null;
+            return true;
+        }
+        this.customWeight = value;
+        return true;
+    }
+    
+    /**
+     * Gibt das aktuelle Gewicht zurück (custom oder API)
+     * @returns {string} Gewicht als formatierter String
+     */
+    getDisplayWeight() {
+        if (this.customWeight !== null) {
+            return this.customWeight;
+        }
+        if (this.pokemonData) {
+            const weightInKg = this.pokemonData.weight / 10;
+            return weightInKg.toFixed(1).replace('.', ',') + ' kg';
+        }
+        return '0,0 kg';
+    }
+    
+    /**
+     * Setzt die benutzerdefinierte Reitbarkeit
+     * @param {string} value - 'none', 'land', 'water', 'fly' oder null für automatisch
+     * @returns {boolean} True bei Erfolg
+     */
+    setCustomRideability(value) {
+        const validTypes = ['none', 'land', 'water', 'fly', null];
+        if (!validTypes.includes(value)) {
+            return false;
+        }
+        this.customRideability = value;
+        return true;
+    }
+    
+    /**
+     * Wechselt zur nächsten Reitbarkeits-Stufe
+     * @param {boolean} reverse - Bei true rückwärts durchschalten
+     * @returns {string} Die neue Reitbarkeit
+     */
+    cycleRideability(reverse = false) {
+        const order = ['none', 'land', 'water', 'fly'];
+        
+        // Wenn noch kein custom-Wert, den aktuellen ermitteln
+        let current = this.customRideability;
+        if (current === null && window.rideabilityService && this.pokemonData) {
+            const autoRide = window.rideabilityService.getRideability(
+                this.pokemonData,
+                this.pokemonData.speciesData,
+                window.pokemonApp?.appState?.availableMoves || []
+            );
+            current = autoRide.type;
+        }
+        if (current === null) {
+            current = 'none';
+        }
+        
+        const currentIndex = order.indexOf(current);
+        let newIndex;
+        
+        if (reverse) {
+            newIndex = (currentIndex - 1 + order.length) % order.length;
+        } else {
+            newIndex = (currentIndex + 1) % order.length;
+        }
+        
+        this.customRideability = order[newIndex];
+        return this.customRideability;
+    }
+    
+    /**
+     * Setzt den Shiny-Modus
+     * @param {boolean} value - true für Shiny, false für normal
+     * @returns {boolean} True bei Erfolg
+     */
+    setShiny(value) {
+        this.isShiny = !!value;
+        return true;
+    }
+    
+    /**
+     * Wechselt den Shiny-Modus
+     * @returns {boolean} Der neue Shiny-Zustand
+     */
+    toggleShiny() {
+        this.isShiny = !this.isShiny;
+        return this.isShiny;
+    }
+    
+    /**
+     * Wechselt den Exotische-Färbung-Modus
+     * @returns {boolean} Der neue Zustand
+     */
+    toggleExoticColor() {
+        this.isExoticColor = !this.isExoticColor;
+        return this.isExoticColor;
+    }
+    
+    /**
+     * Setzt den Hue-Rotation-Wert für exotische Färbung
+     * @param {number} value - Wert in Grad (0-360)
+     * @returns {boolean} True bei Erfolg
+     */
+    setExoticHueRotation(value) {
+        const numValue = parseInt(value, 10);
+        if (isNaN(numValue)) return false;
+        // Wert auf 0-360 begrenzen (modulo)
+        this.exoticHueRotation = ((numValue % 360) + 360) % 360;
+        return true;
+    }
+    
+    // ==================== GESCHLECHTS-MANAGEMENT ====================
+    
+    /**
+     * Setzt das Geschlecht des Pokemon
+     * @param {string} value - 'male', 'female', oder 'neutral'
+     * @returns {boolean} True bei Erfolg
+     */
+    setGender(value) {
+        if (!GENDER_CYCLE_ORDER.includes(value)) {
+            console.warn(`Ungültiges Geschlecht: ${value}`);
+            return false;
+        }
+        this.gender = value;
+        return true;
+    }
+    
+    /**
+     * Wechselt zum nächsten Geschlecht im Zyklus
+     * Linksklick: Male -> Female -> Neutral -> Male
+     * @param {boolean} reverse - Bei true rückwärts durchschalten
+     * @returns {string} Das neue Geschlecht
+     */
+    cycleGender(reverse = false) {
+        const currentIndex = GENDER_CYCLE_ORDER.indexOf(this.gender);
+        let newIndex;
+        
+        if (reverse) {
+            // Rückwärts: Male -> Neutral -> Female -> Male
+            newIndex = (currentIndex - 1 + GENDER_CYCLE_ORDER.length) % GENDER_CYCLE_ORDER.length;
+        } else {
+            // Vorwärts: Male -> Female -> Neutral -> Male
+            newIndex = (currentIndex + 1) % GENDER_CYCLE_ORDER.length;
+        }
+        
+        this.gender = GENDER_CYCLE_ORDER[newIndex];
+        return this.gender;
+    }
+    
+    /**
+     * Berechnet das Standard-Geschlecht basierend auf gender_rate aus der PokeAPI
+     * @param {number} genderRate - gender_rate Wert aus der API (-1 = geschlechtslos, 0-8 = Anteil weiblich in Achteln)
+     * @returns {string} Das empfohlene Standard-Geschlecht
+     */
+    static calculateDefaultGender(genderRate) {
+        // -1 = geschlechtslos
+        if (genderRate === -1) {
+            return GENDER.NEUTRAL;
+        }
+        
+        // 0 = 100% männlich
+        if (genderRate === 0) {
+            return GENDER.MALE;
+        }
+        
+        // 8 = 100% weiblich
+        if (genderRate === 8) {
+            return GENDER.FEMALE;
+        }
+        
+        // 1-4 = 0-50% weiblich -> Männlich ist häufiger oder gleich (bei 4 = 50/50 gilt Tiebreaker: Männlich)
+        if (genderRate <= 4) {
+            return GENDER.MALE;
+        }
+        
+        // 5-7 = 62.5%-87.5% weiblich -> Weiblich ist häufiger
+        return GENDER.FEMALE;
+    }
+    
     // ==================== WÜRFELKLASSEN-MANAGEMENT ====================
     
     /**
@@ -227,6 +471,38 @@ class AppState {
         
         // Eine Stufe erhöhen
         this.customDiceClass = diceClasses[currentIndex + 1];
+        
+        // Event auslösen
+        const event = new CustomEvent('diceClassChanged', { 
+            detail: { diceClass: this.customDiceClass } 
+        });
+        document.dispatchEvent(event);
+        
+        return this.customDiceClass;
+    }
+    
+    /**
+     * Verringert die Würfelklasse um eine Stufe
+     * Minimum ist 1W4
+     * @returns {string|null} Die neue Würfelklasse oder null wenn Minimum erreicht
+     */
+    decreaseDiceClass() {
+        // Würfelklassen in aufsteigender Reihenfolge
+        const diceClasses = ["1W4", "1W6", "1W8", "1W10", "1W12", "2W6", "2W8", "2W10", "2W12", "2W100"];
+        
+        // Aktuelle Würfelklasse ermitteln
+        const currentDice = this.customDiceClass || 
+            (this.pokemonData ? this.pokemonData.diceClass : null);
+        
+        if (!currentDice) return null;
+        
+        const currentIndex = diceClasses.indexOf(currentDice);
+        if (currentIndex === -1 || currentIndex <= 0) {
+            return null; // Bereits am Minimum (1W4) oder ungültig
+        }
+        
+        // Eine Stufe verringern
+        this.customDiceClass = diceClasses[currentIndex - 1];
         
         // Event auslösen
         const event = new CustomEvent('diceClassChanged', { 
@@ -989,6 +1265,177 @@ class AppState {
         
         this.skillValues[skill] = numValue;
         return true;
+    }
+    
+    // ==================== NOTIZEN-MANAGEMENT ====================
+    
+    /**
+     * Generiert eine eindeutige ID für Notizen
+     * @returns {string} UUID
+     * @private
+     */
+    _generateNoteId() {
+        return 'note_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    /**
+     * Fügt eine neue Notiz hinzu
+     * @param {string} name - Name der Notiz
+     * @param {string} content - Inhalt der Notiz
+     * @returns {Object} Die neue Notiz
+     */
+    addNote(name = 'Neue Notiz', content = '') {
+        if (!this.notes) {
+            this.notes = [];
+        }
+        
+        const note = {
+            id: this._generateNoteId(),
+            name: name,
+            content: content,
+            isCollapsed: false
+        };
+        
+        this.notes.push(note);
+        return note;
+    }
+    
+    /**
+     * Entfernt eine Notiz anhand ihrer ID
+     * @param {string} noteId - ID der Notiz
+     * @returns {boolean} True bei Erfolg
+     */
+    removeNote(noteId) {
+        if (!this.notes) return false;
+        
+        const index = this.notes.findIndex(n => n.id === noteId);
+        if (index > -1) {
+            this.notes.splice(index, 1);
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Aktualisiert eine Notiz
+     * @param {string} noteId - ID der Notiz
+     * @param {Object} updates - Objekt mit Updates ({name, content, isCollapsed})
+     * @returns {boolean} True bei Erfolg
+     */
+    updateNote(noteId, updates) {
+        if (!this.notes) return false;
+        
+        const note = this.notes.find(n => n.id === noteId);
+        if (!note) return false;
+        
+        if (updates.name !== undefined) {
+            note.name = updates.name;
+        }
+        if (updates.content !== undefined) {
+            note.content = updates.content;
+        }
+        if (updates.isCollapsed !== undefined) {
+            note.isCollapsed = updates.isCollapsed;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Sortiert die Notizen neu (für Drag & Drop)
+     * @param {number} fromIndex - Ursprünglicher Index
+     * @param {number} toIndex - Neuer Index
+     * @returns {boolean} True bei Erfolg
+     */
+    reorderNotes(fromIndex, toIndex) {
+        if (!this.notes || fromIndex < 0 || toIndex < 0) return false;
+        if (fromIndex >= this.notes.length || toIndex >= this.notes.length) return false;
+        
+        const [movedNote] = this.notes.splice(fromIndex, 1);
+        this.notes.splice(toIndex, 0, movedNote);
+        
+        return true;
+    }
+    
+    /**
+     * Gibt alle Notizen zurück
+     * @returns {Array} Liste der Notizen
+     */
+    getNotes() {
+        if (!this.notes) {
+            this.notes = [];
+        }
+        return this.notes;
+    }
+    
+    /**
+     * Setzt die Notizen (für Import)
+     * @param {Array} notes - Liste der Notizen
+     */
+    setNotes(notes) {
+        if (!Array.isArray(notes)) {
+            this.notes = [];
+            return;
+        }
+        this.notes = notes.map(note => ({
+            id: note.id || this._generateNoteId(),
+            name: note.name || 'Notiz',
+            content: note.content || '',
+            isCollapsed: note.isCollapsed || false
+        }));
+    }
+    
+    // ==================== SEKTIONEN-MANAGEMENT ====================
+    
+    /**
+     * Setzt die Reihenfolge der Sektionen
+     * @param {Array} order - Array mit Sektions-IDs
+     */
+    setSectionOrder(order) {
+        if (Array.isArray(order)) {
+            this.sectionOrder = order;
+        }
+    }
+    
+    /**
+     * Gibt die Sektions-Reihenfolge zurück
+     * @returns {Array} Array mit Sektions-IDs
+     */
+    getSectionOrder() {
+        if (!this.sectionOrder || this.sectionOrder.length === 0) {
+            this.sectionOrder = ['info', 'combat', 'moves', 'abilities', 'skills', 'notes'];
+        }
+        return this.sectionOrder;
+    }
+    
+    /**
+     * Setzt den Einklapp-Status einer Sektion
+     * @param {string} sectionId - ID der Sektion
+     * @param {boolean} isCollapsed - Ob eingeklappt
+     */
+    setSectionCollapsed(sectionId, isCollapsed) {
+        if (!this.collapsedSections) {
+            this.collapsedSections = {};
+        }
+        this.collapsedSections[sectionId] = isCollapsed;
+    }
+    
+    /**
+     * Prüft ob eine Sektion eingeklappt ist
+     * @param {string} sectionId - ID der Sektion
+     * @returns {boolean} True wenn eingeklappt
+     */
+    isSectionCollapsed(sectionId) {
+        if (!this.collapsedSections) return false;
+        return this.collapsedSections[sectionId] || false;
+    }
+    
+    /**
+     * Setzt alle eingeklappten Sektionen (für Import)
+     * @param {Object} collapsedSections - Objekt mit Sektions-IDs als Keys
+     */
+    setCollapsedSections(collapsedSections) {
+        this.collapsedSections = collapsedSections || {};
     }
     
     /**

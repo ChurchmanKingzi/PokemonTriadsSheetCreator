@@ -27,7 +27,7 @@ class JSONExportService {
     }
     
     /**
-     * Exportiert nur den aktuellen Trainer (ohne Pokemon)
+     * Exportiert nur den aktuellen Trainer (INKL. vollständiger Pokemon-Daten)
      * @private
      */
     _exportCurrentTrainer() {
@@ -38,12 +38,20 @@ class JSONExportService {
         }
         
         try {
+            // Aktuelles Pokemon speichern, falls im Pokemon-View
+            // Damit die neuesten Änderungen im Storage sind
+            if (window.pokemonStorageService) {
+                window.pokemonStorageService.saveCurrentPokemon();
+            }
+            
             const trainerData = this._gatherTrainerData(trainer);
             const jsonString = JSON.stringify(trainerData, null, 2);
             const fileName = `Trainer_${trainer.name || 'Unbenannt'}_${this._getDateString()}.json`;
             
             this._downloadJSON(jsonString, fileName);
-            this._showToast('Trainer-Sheet erfolgreich exportiert', 'success');
+            
+            const pokemonCount = Object.keys(trainerData.pokemonFullData || {}).length;
+            this._showToast(`Trainer-Sheet mit ${pokemonCount} Pokemon exportiert`, 'success');
         } catch (error) {
             console.error('Fehler beim Exportieren des Trainers:', error);
             this._showToast('Fehler beim Exportieren des Trainers', 'error');
@@ -197,6 +205,7 @@ class JSONExportService {
     
     /**
      * Sammelt alle relevanten Trainer-Daten für den Export
+     * INKL. vollständiger Pokemon-Daten für standalone Import!
      * @param {TrainerState} trainer - Der Trainer
      * @returns {Object} Die Trainer-Daten
      * @private
@@ -207,9 +216,9 @@ class JSONExportService {
         // Export-Metadaten hinzufügen
         data.timestamp = new Date().toISOString();
         data.exportType = 'trainer_single';
-        data.exportVersion = '4.0';
+        data.exportVersion = '5.0'; // Version erhöht wegen eingebetteter Pokemon-Daten
         
-        // Pokemon-Slot-Übersicht (ohne volle Daten, nur Referenzen)
+        // Pokemon-Slot-Übersicht (für Rückwärtskompatibilität)
         data.pokemonSummary = trainer.pokemonSlots.map((slot, index) => ({
             slotIndex: index,
             pokemonId: slot.pokemonId,
@@ -219,6 +228,49 @@ class JSONExportService {
             pokemonUuid: slot.pokemonUuid,
             isEmpty: slot.isEmpty()
         }));
+        
+        // VOLLSTÄNDIGE Pokemon-Daten einbetten (NEU in v5.0)
+        // Dies ermöglicht standalone Import ohne separate Pokemon-JSONs
+        data.pokemonFullData = {};
+        
+        trainer.pokemonSlots.forEach((slot, index) => {
+            if (slot.isEmpty() || !slot.pokemonUuid) return;
+            
+            // Pokemon-Daten aus dem Storage laden
+            let pokemonData = null;
+            
+            if (window.pokemonStorageService) {
+                pokemonData = window.pokemonStorageService.load(trainer.id, slot.pokemonUuid);
+            }
+            
+            if (pokemonData) {
+                // Vollständige Daten unter der UUID speichern
+                data.pokemonFullData[slot.pokemonUuid] = {
+                    ...pokemonData,
+                    slotIndex: index
+                };
+                console.log(`Pokemon-Daten eingebettet: ${pokemonData.pokemonGermanName || pokemonData.pokemonName} (Shiny: ${pokemonData.isShiny}, Exotic: ${pokemonData.isExoticColor})`);
+            } else {
+                // Fallback: Basis-Daten aus dem Slot
+                data.pokemonFullData[slot.pokemonUuid] = {
+                    pokemonId: slot.pokemonId,
+                    pokemonName: slot.pokemonName,
+                    pokemonGermanName: slot.germanName,
+                    nickname: slot.nickname,
+                    types: slot.types,
+                    spriteUrl: slot.spriteUrl,
+                    shinySpriteUrl: slot.shinySpriteUrl,
+                    slotIndex: index,
+                    level: 1,
+                    // Defaults für fehlende Daten
+                    isShiny: false,
+                    isExoticColor: false,
+                    exoticHueRotation: 0,
+                    _incomplete: true // Marker dass nur Basis-Daten vorhanden
+                };
+                console.log(`Pokemon-Basis-Daten eingebettet (keine vollständigen Daten): ${slot.germanName || slot.pokemonName}`);
+            }
+        });
         
         return data;
     }
@@ -265,6 +317,9 @@ class JSONExportService {
             pokemonName: appState.selectedPokemon,
             pokemonGermanName: appState.pokemonData.germanName || '',
             types: appState.pokemonData.types || [],
+            // Sprite-URLs
+            spriteUrl: appState.pokemonData.sprites?.front_default || '',
+            shinySpriteUrl: appState.pokemonData.sprites?.front_shiny || '',
             level: appState.level,
             currentExp: appState.currentExp || 0,
             stats: appState.stats,
@@ -283,6 +338,22 @@ class JSONExportService {
             tallyMarks: appState.tallyMarks || [],
             customSkills: appState.customSkills || { 'KÖ': [], 'WI': [], 'CH': [], 'GL': [] },
             customDiceClass: appState.customDiceClass || null,
+            // Shiny-Modus
+            isShiny: appState.isShiny || false,
+            // Geschlecht des Pokemon
+            gender: appState.gender || GENDER.MALE,
+            // Exotische Färbung
+            isExoticColor: appState.isExoticColor || false,
+            exoticHueRotation: appState.exoticHueRotation || 0,
+            // Notizen
+            notes: appState.notes ? JSON.parse(JSON.stringify(appState.notes)) : [],
+            // Sektionen-Reihenfolge und Einklapp-Zustand
+            sectionOrder: appState.sectionOrder || ['info', 'combat', 'moves', 'abilities', 'skills', 'notes'],
+            collapsedSections: appState.collapsedSections || {},
+            // Benutzerdefinierte physische Werte
+            customHeight: appState.customHeight || null,
+            customWeight: appState.customWeight || null,
+            customRideability: appState.customRideability || null,
             textFields: {
                 trainer: document.getElementById('trainer-input')?.value || '',
                 nickname: document.getElementById('nickname-input')?.value || '',

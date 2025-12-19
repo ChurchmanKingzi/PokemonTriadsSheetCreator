@@ -1,5 +1,6 @@
 /**
  * PdfService zur Verwaltung des PDF-Exports und -Imports
+ * Version 2.0 - Multi-Page Support mit korrekter Skalierung
  */
 class PdfService {
     constructor(appState, uiRenderer) {
@@ -90,6 +91,9 @@ class PdfService {
     
     /**
      * Exportiert den aktuellen Pokemon-Sheet als PDF
+     * - Sektionsbasiertes Rendering für optimale Qualität
+     * - Automatisches Multi-Page Layout
+     * - Eingeklappte Sektionen werden aufgeklappt (außer Notizen)
      */
     async exportPdf() {
         if (!this.appState.pokemonData) {
@@ -97,7 +101,7 @@ class PdfService {
             return;
         }
 
-        this._showLoadingOverlay();
+        this._showLoadingOverlay('Bereite Pokemon-PDF vor...');
         
         try {
             // Warten, bis jsPDF geladen ist
@@ -118,64 +122,295 @@ class PdfService {
                 throw new Error('Pokemon-Sheet nicht gefunden');
             }
             
-            // Das gesamte Sheet-Element (nicht nur firstChild)
             const sheetElement = sheetContainer.firstChild || sheetContainer;
             
-            // Textareas temporär durch Divs ersetzen für korrekte Zeilenumbrüche
-            const textareaReplacements = this._replaceTextareasWithDivs(sheetElement);
+            // ============================================
+            // Sheet-Breite temporär anpassen für besseres Rendering
+            // ============================================
+            const originalContainerWidth = sheetContainer.style.width;
+            const originalContainerMinWidth = sheetContainer.style.minWidth;
+            const originalContainerMaxWidth = sheetContainer.style.maxWidth;
+            const originalWidth = sheetElement.style.width;
+            const originalMinWidth = sheetElement.style.minWidth;
+            const originalMaxWidth = sheetElement.style.maxWidth;
             
-            // Pokémon-Sheet als Canvas rendern mit erweiterten Optionen
-            const canvas = await html2canvas(sheetElement, {
-                scale: 2, // Höhere Auflösung für bessere Qualität
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#FFFFFF',
-                width: sheetElement.scrollWidth,
-                height: sheetElement.scrollHeight,
-                windowWidth: sheetElement.scrollWidth,
-                windowHeight: sheetElement.scrollHeight,
-                x: 0,
-                y: 0,
-                scrollX: 0,
-                scrollY: 0
+            // Mindestbreite erzwingen für bessere PDF-Qualität (1000px für alle Spalten)
+            const minRenderWidth = 1000;
+            
+            // Container anpassen
+            sheetContainer.style.width = minRenderWidth + 'px';
+            sheetContainer.style.minWidth = minRenderWidth + 'px';
+            sheetContainer.style.maxWidth = 'none';
+            
+            // Sheet Element anpassen
+            sheetElement.style.width = '100%';
+            sheetElement.style.minWidth = minRenderWidth + 'px';
+            sheetElement.style.maxWidth = 'none';
+            
+            // Layout-Reflow erzwingen
+            void sheetContainer.offsetHeight;
+            
+            // Kurz warten für vollständigen Reflow
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // ============================================
+            // Sektionen finden und vorbereiten
+            // ============================================
+            const skipIfCollapsedTerms = ['notizen', 'notes'];
+            const collapsedElements = [];
+            
+            // Alle Sektionen im Pokemon-Sheet finden
+            // Pokemon-Sheets haben typischerweise .draggable-section oder direkte Kinder
+            let sections = Array.from(sheetElement.querySelectorAll('.draggable-section, .pokemon-section, .sheet-section'));
+            
+            // Fallback: Wenn keine speziellen Sektionen gefunden, direkte Kinder nehmen
+            if (sections.length === 0) {
+                sections = Array.from(sheetElement.children).filter(child => 
+                    child.tagName !== 'STYLE' && 
+                    child.tagName !== 'SCRIPT' &&
+                    child.offsetHeight > 0
+                );
+            }
+            
+            // Eingeklappte Elemente behandeln
+            const allCollapsible = sheetElement.querySelectorAll('.collapsed, [data-collapsed="true"]');
+            allCollapsible.forEach(element => {
+                const elementId = (element.id || '').toLowerCase();
+                const sectionTitle = element.querySelector('.section-title, .collapsible-title, h3, h4')?.textContent?.toLowerCase() || '';
+                
+                const isNotes = skipIfCollapsedTerms.some(term => 
+                    sectionTitle.includes(term) || elementId.includes(term)
+                );
+                
+                if (isNotes) {
+                    const origDisplay = element.style.display;
+                    element.style.display = 'none';
+                    collapsedElements.push({ element, action: 'hide', origDisplay });
+                } else {
+                    element.classList.remove('collapsed');
+                    if (element.dataset.collapsed) {
+                        element.dataset.collapsed = 'false';
+                    }
+                    collapsedElements.push({ element, action: 'expand' });
+                }
             });
             
-            // Textareas wiederherstellen
-            this._restoreTextareas(textareaReplacements);
+            // Kurz warten für Layout-Update
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Canvas-Dimensionen ermitteln
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-            
-            // PDF-Objekt erstellen mit passender Größe (A4 im Querformat)
+            // PDF-Objekt erstellen (A4 Hochformat)
             const pdf = new jsPDF({
-                orientation: canvasHeight > canvasWidth ? 'portrait' : 'landscape',
+                orientation: 'portrait',
                 unit: 'mm',
                 format: 'a4'
             });
             
-            // PDF-Dimensionen ermitteln
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
+            const margin = 8; // Reduzierter Rand für mehr Platz
+            const usableWidth = pdfWidth - (2 * margin);
+            const usableHeight = pdfHeight - (2 * margin);
+            const sectionGap = 0; // Keine Lücke zwischen Sektionen
+            const fillMultiplier = 1.08; // Multiplikator um horizontalen Weißraum zu füllen
             
-            // Skalierungsfaktor berechnen, um das Bild optimal anzupassen
-            // Reduzierter Rand (0.92 statt 0.95) um mehr Platz für Inhalt zu haben
-            const scale = Math.min(
-                pdfWidth / canvasWidth,
-                pdfHeight / canvasHeight
-            ) * 0.92;
+            this._updateLoadingMessage('Rendere Sektionen...');
             
-            // Neue Dimensionen berechnen
-            const scaledWidth = canvasWidth * scale;
-            const scaledHeight = canvasHeight * scale;
+            // ============================================
+            // Jede Sektion einzeln rendern
+            // ============================================
+            const renderedSections = [];
             
-            // Bild zentrieren
-            const x = (pdfWidth - scaledWidth) / 2;
-            const y = (pdfHeight - scaledHeight) / 2;
+            // UI-Elemente verstecken
+            const hiddenUI = this._hideUiElementsForPdf(sheetElement);
             
-            // Canvas als Bild zum PDF hinzufügen
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
+            // Textareas ersetzen
+            const textareaReplacements = this._replaceTextareasWithDivs(sheetElement);
+            
+            // ============================================
+            // Einheitliche Breite für alle Sektionen ermitteln
+            // ============================================
+            const targetWidth = Math.max(minRenderWidth, sheetElement.scrollWidth);
+            
+            // Wenn wir echte Sektionen haben, diese einzeln rendern
+            if (sections.length > 1) {
+                for (let i = 0; i < sections.length; i++) {
+                    const section = sections[i];
+                    
+                    // Versteckte Sektionen überspringen
+                    if (section.style.display === 'none' || section.offsetHeight === 0) {
+                        continue;
+                    }
+                    
+                    this._updateLoadingMessage(`Rendere Sektion ${i + 1}/${sections.length}...`);
+                    
+                    // Andere Sektionen verstecken
+                    const hiddenOthers = sections.filter(s => s !== section).map(s => {
+                        const orig = s.style.display;
+                        s.style.display = 'none';
+                        return { element: s, originalDisplay: orig };
+                    });
+                    
+                    // Sektion auf einheitliche Breite zwingen
+                    const origSectionWidth = section.style.width;
+                    const origSectionMinWidth = section.style.minWidth;
+                    const origSectionMaxWidth = section.style.maxWidth;
+                    section.style.width = targetWidth + 'px';
+                    section.style.minWidth = targetWidth + 'px';
+                    section.style.maxWidth = targetWidth + 'px';
+                    
+                    // Reflow erzwingen
+                    void section.offsetHeight;
+                    
+                    // Sektion rendern mit einheitlicher Breite
+                    const canvas = await html2canvas(section, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#FFFFFF',
+                        width: targetWidth,
+                        height: section.scrollHeight
+                    });
+                    
+                    // Sektionsbreite wiederherstellen
+                    section.style.width = origSectionWidth;
+                    section.style.minWidth = origSectionMinWidth;
+                    section.style.maxWidth = origSectionMaxWidth;
+                    
+                    // Andere Sektionen wieder anzeigen
+                    hiddenOthers.forEach(({ element, originalDisplay }) => {
+                        element.style.display = originalDisplay || '';
+                    });
+                    
+                    // Skalierung: Volle Breite nutzen mit Multiplikator
+                    const canvasWidth = canvas.width / 2;
+                    const canvasHeight = canvas.height / 2;
+                    const finalWidth = usableWidth * fillMultiplier;
+                    const scale = finalWidth / canvasWidth;
+                    
+                    renderedSections.push({
+                        canvas,
+                        width: finalWidth,
+                        height: canvasHeight * scale,
+                        imgData: canvas.toDataURL('image/png')
+                    });
+                }
+            } else {
+                // Fallback: Gesamtes Sheet rendern und in Streifen aufteilen
+                this._updateLoadingMessage('Rendere komplettes Sheet...');
+                
+                const canvas = await html2canvas(sheetElement, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#FFFFFF',
+                    width: targetWidth,
+                    height: sheetElement.scrollHeight
+                });
+                
+                // Canvas in Streifen aufteilen die auf Seiten passen
+                const canvasWidth = canvas.width / 2;
+                const canvasHeight = canvas.height / 2;
+                const finalWidth = usableWidth * fillMultiplier;
+                const scale = finalWidth / canvasWidth;
+                const scaledHeight = canvasHeight * scale;
+                
+                // Wenn das skalierte Bild höher als eine Seite ist, aufteilen
+                if (scaledHeight > usableHeight) {
+                    const stripHeight = usableHeight; // mm pro Streifen
+                    const stripHeightPx = (stripHeight / scale) * 2; // Pixel im Canvas
+                    const numStrips = Math.ceil(canvas.height / stripHeightPx);
+                    
+                    for (let i = 0; i < numStrips; i++) {
+                        const startY = i * stripHeightPx;
+                        const currentStripHeight = Math.min(stripHeightPx, canvas.height - startY);
+                        
+                        // Temporäres Canvas für diesen Streifen
+                        const stripCanvas = document.createElement('canvas');
+                        stripCanvas.width = canvas.width;
+                        stripCanvas.height = currentStripHeight;
+                        const ctx = stripCanvas.getContext('2d');
+                        
+                        ctx.drawImage(canvas, 0, startY, canvas.width, currentStripHeight, 
+                                            0, 0, canvas.width, currentStripHeight);
+                        
+                        renderedSections.push({
+                            canvas: stripCanvas,
+                            width: finalWidth,
+                            height: (currentStripHeight / 2) * scale,
+                            imgData: stripCanvas.toDataURL('image/png')
+                        });
+                    }
+                } else {
+                    renderedSections.push({
+                        canvas,
+                        width: finalWidth,
+                        height: scaledHeight,
+                        imgData: canvas.toDataURL('image/png')
+                    });
+                }
+            }
+            
+            // ============================================
+            // Wiederherstellen
+            // ============================================
+            this._restoreTextareas(textareaReplacements);
+            this._restoreUiElementsForPdf(hiddenUI);
+            
+            // Ursprüngliche Breiten wiederherstellen
+            sheetContainer.style.width = originalContainerWidth;
+            sheetContainer.style.minWidth = originalContainerMinWidth;
+            sheetContainer.style.maxWidth = originalContainerMaxWidth;
+            sheetElement.style.width = originalWidth;
+            sheetElement.style.minWidth = originalMinWidth;
+            sheetElement.style.maxWidth = originalMaxWidth;
+            
+            collapsedElements.forEach(({ element, action, origDisplay }) => {
+                if (action === 'expand') {
+                    element.classList.add('collapsed');
+                    if (element.dataset.collapsed !== undefined) {
+                        element.dataset.collapsed = 'true';
+                    }
+                } else if (action === 'hide') {
+                    element.style.display = origDisplay || '';
+                }
+            });
+            
+            // ============================================
+            // Sektionen auf PDF-Seiten verteilen
+            // ============================================
+            this._updateLoadingMessage('Erstelle PDF-Seiten...');
+            
+            let currentY = margin;
+            let currentPage = 1;
+            let sectionsOnCurrentPage = 0;
+            
+            for (let i = 0; i < renderedSections.length; i++) {
+                const section = renderedSections[i];
+                
+                // Prüfen ob diese Sektion noch auf die aktuelle Seite passt
+                const neededHeight = section.height + (sectionsOnCurrentPage > 0 ? sectionGap : 0);
+                const remainingHeight = usableHeight - (currentY - margin);
+                
+                if (sectionsOnCurrentPage > 0 && neededHeight > remainingHeight) {
+                    // Neue Seite beginnen
+                    pdf.addPage();
+                    currentPage++;
+                    currentY = margin;
+                    sectionsOnCurrentPage = 0;
+                }
+                
+                // Abstand zwischen Sektionen
+                if (sectionsOnCurrentPage > 0) {
+                    currentY += sectionGap;
+                }
+                
+                // Sektion auf die Seite zeichnen (horizontal zentriert auf der Seite)
+                const x = (pdfWidth - section.width) / 2;
+                pdf.addImage(section.imgData, 'PNG', x, currentY, section.width, section.height);
+                
+                currentY += section.height;
+                sectionsOnCurrentPage++;
+            }
             
             // Metadata hinzufügen
             this._addMetadataToPdf(pdf);
@@ -184,13 +419,61 @@ class PdfService {
             const pokemonName = this.appState.pokemonData.germanName || this.appState.pokemonData.name;
             pdf.save(`Pokemon_${pokemonName}_Lv${this.appState.level}.pdf`);
             
-            this._showToast('Pokémon-Sheet erfolgreich als PDF gespeichert', 'success');
+            this._showToast(`Pokemon-PDF mit ${currentPage} Seite(n) gespeichert`, 'success');
         } catch (error) {
             console.error('Fehler beim Exportieren des PDF:', error);
-            this._showToast('Fehler beim Exportieren des PDF', 'error');
+            this._showToast('Fehler beim Exportieren des PDF: ' + error.message, 'error');
         } finally {
             this._hideLoadingOverlay();
         }
+    }
+    
+    /**
+     * Versteckt UI-Elemente die im PDF nicht erscheinen sollen
+     * @param {HTMLElement} container - Das Container-Element
+     * @returns {Array} Array mit versteckten Elementen
+     * @private
+     */
+    _hideUiElementsForPdf(container) {
+        const hidden = [];
+        
+        const hideSelectors = [
+            '.drag-handle',
+            '.drag-handle-section',
+            '.collapse-toggle',
+            '.section-collapse-btn',
+            '.add-button',
+            '.remove-button',
+            '.edit-button',
+            '.delete-button',
+            '.action-buttons',
+            '.section-actions',
+            '.toggle-btn',
+            '.info-toggle',
+            '.note-remove-btn',
+            '.note-collapse-btn'
+        ];
+        
+        hideSelectors.forEach(selector => {
+            container.querySelectorAll(selector).forEach(el => {
+                const orig = el.style.display;
+                el.style.display = 'none';
+                hidden.push({ element: el, originalDisplay: orig });
+            });
+        });
+        
+        return hidden;
+    }
+    
+    /**
+     * Stellt versteckte UI-Elemente wieder her
+     * @param {Array} hidden - Array mit versteckten Elementen
+     * @private
+     */
+    _restoreUiElementsForPdf(hidden) {
+        hidden.forEach(({ element, originalDisplay }) => {
+            element.style.display = originalDisplay || '';
+        });
     }
     
     /**
@@ -217,7 +500,7 @@ class PdfService {
         
         // Pokemon-Daten als JSON-String in Metadaten speichern
         const metadataString = JSON.stringify({
-            version: '1.1',
+            version: '1.2',
             appState: {
                 pokemonId: this.appState.pokemonData.id,
                 pokemonName: this.appState.selectedPokemon,
@@ -228,13 +511,16 @@ class PdfService {
                 gena: this.appState.gena,
                 pa: this.appState.pa,
                 bw: this.appState.bw,
-                skillValues: this.appState.skillValues, // Basis-Werte
-                displaySkillValues: displaySkillValues, // Angezeigte Werte (je nach Modus)
-                skillDisplayMode: skillDisplayMode, // Aktueller Modus
+                skillValues: this.appState.skillValues,
+                displaySkillValues: displaySkillValues,
+                skillDisplayMode: skillDisplayMode,
                 moves: this.appState.moves.map(move => move ? move.name : null),
-                abilities: this.appState.abilities
+                abilities: this.appState.abilities,
+                isShiny: this.appState.isShiny || false,
+                customHeight: this.appState.customHeight || null,
+                customWeight: this.appState.customWeight || null,
+                customRideability: this.appState.customRideability || null
             },
-            // Textfeld-Werte erfassen
             textFields: {
                 trainer: document.getElementById('trainer-input')?.value || '',
                 nickname: document.getElementById('nickname-input')?.value || '',
@@ -243,7 +529,6 @@ class PdfService {
             timestamp: new Date().toISOString()
         });
         
-        // Metadaten zum PDF hinzufügen
         pdf.setProperties({
             title: `Pokemon Charakterbogen - ${this.appState.pokemonData.germanName || this.appState.pokemonData.name}`,
             subject: 'Pokemon RPG Charakterbogen',
@@ -261,21 +546,17 @@ class PdfService {
      * @private
      */
     _showToast(message, type = 'success') {
-        // Prüfen, ob bereits ein Toast angezeigt wird
         const existingToast = document.querySelector('.toast');
         if (existingToast) {
             existingToast.remove();
         }
         
-        // Toast-Element erstellen
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         toast.textContent = message;
         
-        // Zum Dokument hinzufügen
         document.body.appendChild(toast);
         
-        // Nach einigen Sekunden entfernen
         setTimeout(() => {
             if (document.body.contains(toast)) {
                 document.body.removeChild(toast);
@@ -285,27 +566,42 @@ class PdfService {
 
     /**
      * Zeigt einen Ladeindikator an
+     * @param {string} message - Optionale Nachricht
      * @private
      */
-    _showLoadingOverlay() {
-        // Prüfen, ob bereits ein Overlay angezeigt wird
+    _showLoadingOverlay(message = 'Erstelle Pokemon-PDF...') {
         if (document.querySelector('.loading-overlay')) {
+            this._updateLoadingMessage(message);
             return;
         }
         
-        // Overlay-Element erstellen
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
         
-        // Spinner erstellen
         const spinner = document.createElement('div');
         spinner.className = 'loading-spinner';
         
-        // Zum Overlay hinzufügen
-        overlay.appendChild(spinner);
+        const messageEl = document.createElement('div');
+        messageEl.className = 'loading-message';
+        messageEl.style.color = 'white';
+        messageEl.style.marginTop = '10px';
+        messageEl.textContent = message;
         
-        // Zum Dokument hinzufügen
+        overlay.appendChild(spinner);
+        overlay.appendChild(messageEl);
         document.body.appendChild(overlay);
+    }
+    
+    /**
+     * Aktualisiert die Ladeindikator-Nachricht
+     * @param {string} message - Neue Nachricht
+     * @private
+     */
+    _updateLoadingMessage(message) {
+        const messageEl = document.querySelector('.loading-overlay .loading-message');
+        if (messageEl) {
+            messageEl.textContent = message;
+        }
     }
 
     /**
@@ -313,7 +609,6 @@ class PdfService {
      * @private
      */
     _hideLoadingOverlay() {
-        // Overlay suchen und entfernen
         const overlay = document.querySelector('.loading-overlay');
         if (overlay && document.body.contains(overlay)) {
             document.body.removeChild(overlay);
@@ -331,22 +626,17 @@ class PdfService {
         const textareas = container.querySelectorAll('textarea');
         
         textareas.forEach(textarea => {
-            // Computed styles kopieren
             const computedStyle = window.getComputedStyle(textarea);
             
-            // Div erstellen
             const div = document.createElement('div');
             div.className = textarea.className + ' textarea-pdf-replacement';
             
-            // Text mit Zeilenumbrüchen setzen
-            // Ersetze \n durch <br> für HTML-Darstellung
             const text = textarea.value || '';
             div.innerHTML = text
                 .split('\n')
-                .map(line => line || '&nbsp;') // Leere Zeilen als &nbsp;
+                .map(line => line || '&nbsp;')
                 .join('<br>');
             
-            // Wichtige Styles übernehmen
             div.style.width = computedStyle.width;
             div.style.minHeight = computedStyle.height;
             div.style.padding = computedStyle.padding;
@@ -363,7 +653,6 @@ class PdfService {
             div.style.overflow = 'hidden';
             div.style.boxSizing = 'border-box';
             
-            // Speichere Referenz für Wiederherstellung
             replacements.push({
                 textarea: textarea,
                 div: div,
@@ -371,7 +660,6 @@ class PdfService {
                 nextSibling: textarea.nextSibling
             });
             
-            // Textarea verstecken und Div einfügen
             textarea.style.display = 'none';
             textarea.parentNode.insertBefore(div, textarea.nextSibling);
         });
@@ -386,11 +674,9 @@ class PdfService {
      */
     _restoreTextareas(replacements) {
         replacements.forEach(({ textarea, div }) => {
-            // Div entfernen
             if (div.parentNode) {
                 div.parentNode.removeChild(div);
             }
-            // Textarea wieder anzeigen
             textarea.style.display = '';
         });
     }

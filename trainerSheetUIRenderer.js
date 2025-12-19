@@ -8,11 +8,33 @@ class TrainerUIRenderer {
         
         // Zustandsvariablen für "Alle aufklappen"-Modus
         this.inventoryExpandAll = false;
-        this.notesExpandAll = {
-            personen: false,
-            orte: false,
-            sonstiges: false
-        };
+        this.notesExpandAll = {};
+        
+        // Initialisiere notesExpandAll für alle Kategorien
+        this._initNotesExpandAll();
+        
+        // Aktive Inventar-Kategorie
+        this.activeInventoryCategory = 'items';
+        
+        // Aktive Notizen-Kategorie
+        this.activeNotesCategory = this.trainerState.notes.categories[0] || 'personen';
+        
+        // Letzter bekannter GL-Wert für Glücks-Token-Differenzberechnung
+        this._lastGlForLuck = this.trainerState.skillValues['GL'] || 1;
+    }
+    
+    /**
+     * Initialisiert notesExpandAll für alle Kategorien
+     * @private
+     */
+    _initNotesExpandAll() {
+        this.notesExpandAll = {};
+        const categories = this.trainerState.getNoteCategories ? 
+            this.trainerState.getNoteCategories() : 
+            this.trainerState.notes.categories || ['personen', 'orte', 'sonstiges'];
+        categories.forEach(cat => {
+            this.notesExpandAll[cat] = false;
+        });
     }
     
     /**
@@ -440,17 +462,21 @@ class TrainerUIRenderer {
         section.innerHTML = `
             <div class="trainer-left-column">
                 <div class="trainer-info-grid">
-                    <div class="info-field">
+                    <div class="info-field info-field-name">
                         <label for="trainer-name">Name:</label>
                         <input type="text" id="trainer-name" class="trainer-input" placeholder="Trainer-Name">
                     </div>
-                    <div class="info-field">
+                    <div class="info-field info-field-small">
                         <label for="trainer-age">Alter:</label>
-                        <input type="text" id="trainer-age" class="trainer-input" placeholder="Alter">
+                        <input type="text" id="trainer-age" class="trainer-input" placeholder="Jahre">
                     </div>
-                    <div class="info-field">
-                        <label for="trainer-played-by">Gespielt von:</label>
-                        <input type="text" id="trainer-played-by" class="trainer-input" placeholder="Spielername">
+                    <div class="info-field info-field-small">
+                        <label for="trainer-height">Größe:</label>
+                        <input type="text" id="trainer-height" class="trainer-input" placeholder="1,75m">
+                    </div>
+                    <div class="info-field info-field-small">
+                        <label for="trainer-weight">Gewicht:</label>
+                        <input type="text" id="trainer-weight" class="trainer-input" placeholder="70kg">
                     </div>
                 </div>
                 
@@ -477,12 +503,24 @@ class TrainerUIRenderer {
                     </div>
                 </div>
                 
-                <!-- Separate Beschreibungsboxen -->
+                <!-- Aufklappbare Beschreibungsboxen -->
                 <div class="selection-descriptions">
-                    <div id="klasse-description" class="selection-description"></div>
-                    <div id="vorteil-description" class="selection-description"></div>
-                    <div id="nachteil-description" class="selection-description"></div>
-                    <div id="second-klasse-description" class="selection-description" style="display: none;"></div>
+                    <div id="klasse-description" class="selection-description collapsible-description"></div>
+                    <div id="vorteil-description" class="selection-description collapsible-description"></div>
+                    <div id="nachteil-description" class="selection-description collapsible-description"></div>
+                    <div id="second-klasse-description" class="selection-description collapsible-description" style="display: none;"></div>
+                </div>
+                
+                <!-- Hintergrund-Feld -->
+                <div class="trainer-background-section">
+                    <div class="background-header" id="background-header">
+                        <span class="background-expand-icon">▶</span>
+                        <label>Hintergrund</label>
+                    </div>
+                    <div class="background-content collapsed" id="background-content">
+                        <textarea id="trainer-background" class="trainer-background-textarea" 
+                                  placeholder="Hintergrundgeschichte, Persönlichkeit, Ziele..."></textarea>
+                    </div>
                 </div>
             </div>
             
@@ -780,16 +818,32 @@ class TrainerUIRenderer {
         if (item && id) {
             container.innerHTML = `
                 <div class="description-box ${colorClass}">
-                    <strong>${title}: ${item.name}</strong>
-                    <p>${item.beschreibung}</p>
+                    <div class="description-header">
+                        <span class="description-expand-icon">▶</span>
+                        <strong>${title}: ${item.name}</strong>
+                    </div>
+                    <div class="description-content collapsed">
+                        <p>${item.beschreibung}</p>
+                    </div>
                 </div>
             `;
+            // Event-Listener für das Aufklappen hinzufügen
+            const header = container.querySelector('.description-header');
+            if (header) {
+                header.addEventListener('click', () => {
+                    const content = container.querySelector('.description-content');
+                    const icon = container.querySelector('.description-expand-icon');
+                    const isCollapsed = content.classList.toggle('collapsed');
+                    icon.textContent = isCollapsed ? '▶' : '▼';
+                });
+            }
         } else {
             // Leere Box anzeigen statt leer zu lassen
             container.innerHTML = `
                 <div class="description-box ${colorClass} empty-description">
-                    <strong>${title}: --</strong>
-                    <p class="empty-description-text">Keine Auswahl</p>
+                    <div class="description-header">
+                        <strong>${title}: --</strong>
+                    </div>
                 </div>
             `;
         }
@@ -853,8 +907,42 @@ class TrainerUIRenderer {
             `;
         };
         
+        // Hilfsfunktion für Stat-Feld MIT Icon
+        const createStatFieldWithIcon = (id, label, value, statKey, formula, iconSvg) => {
+            const isOverridden = this.trainerState.isManuallyOverridden(statKey);
+            const overriddenClass = isOverridden ? 'manually-overridden' : '';
+            const tooltipText = formula ? `Formel: ${formula}` : '';
+            const labelClass = formula ? 'stat-label-with-formula' : '';
+            
+            return `
+                <div class="stat-field">
+                    <label class="${labelClass}" title="${tooltipText}">
+                        <span class="stat-icon">${iconSvg}</span>${label}:
+                    </label>
+                    <div class="stat-input-wrapper">
+                        <input type="number" id="${id}" 
+                               class="stat-input editable-stat ${overriddenClass}" 
+                               data-stat="${statKey}"
+                               value="${value}">
+                        <button type="button" class="stat-reset-button" 
+                                data-stat="${statKey}" 
+                                title="Auf berechneten Wert zurücksetzen (${combatValues[statKey]})">↻</button>
+                    </div>
+                </div>
+            `;
+        };
+        
+        // SVG Icons für die Kampfwerte
+        const icons = {
+            hp: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+            gena: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>',
+            pa: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>',
+            initiative: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.5 2 5.5 4 4 7c-.4.8-.7 1.6-.9 2.5-.1.5.3 1 .8 1.1.5.1 1-.3 1.1-.8.1-.7.4-1.4.7-2 1.2-2.4 3.6-4 6.3-4 2.7 0 5.1 1.6 6.3 4 .3.6.6 1.3.7 2 .1.5.6.9 1.1.8.5-.1.9-.6.8-1.1-.2-.9-.5-1.7-.9-2.5-1.5-3-4.5-5-8-5zM7.5 11c-.8 0-1.5.7-1.5 1.5v6c0 .8.7 1.5 1.5 1.5s1.5-.7 1.5-1.5v-6c0-.8-.7-1.5-1.5-1.5zm4.5 0c-.8 0-1.5.7-1.5 1.5v8c0 .8.7 1.5 1.5 1.5s1.5-.7 1.5-1.5v-8c0-.8-.7-1.5-1.5-1.5zm4.5 2c-.8 0-1.5.7-1.5 1.5v4c0 .8.7 1.5 1.5 1.5s1.5-.7 1.5-1.5v-4c0-.8-.7-1.5-1.5-1.5z"/></svg>',
+            bw: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 3c-2.25 0-4.5 1.5-7.5 1.5S7.25 3 4.5 3C3 3 2 4 2 5.5v12c0 1.5 1 2.5 2.5 2.5 2.25 0 4.5-1.5 7.5-1.5s5.25 1.5 7.5 1.5c1.5 0 2.5-1 2.5-2.5v-12C22 4 21 3 19.5 3zM12 17c-2.62 0-5.17.75-7.5 1.5.67-2.5 1.75-5.5 3-7.5 1-1.5 2.5-3.5 4.5-3.5s3.5 2 4.5 3.5c1.25 2 2.33 5 3 7.5-2.33-.75-4.88-1.5-7.5-1.5z"/></svg>'
+        };
+        
         let statsHTML = `
-            <!-- Zeile 1: Level, KP, Initiative, GENA, Glücks-Tokens -->
+            <!-- Zeile 1: Level, KP, GENA, PA, Glücks-Tokens -->
             <div class="trainer-stats-row trainer-stats-row-1">
                 <!-- Level (keine Formel) -->
                 <div class="stat-field">
@@ -863,9 +951,11 @@ class TrainerUIRenderer {
                            value="${this.trainerState.level || 10}" min="1" max="100">
                 </div>
                 
-                <!-- KP mit aktuellem Wert -->
+                <!-- KP mit aktuellem Wert und Icon -->
                 <div class="stat-field hp-field">
-                    <label class="stat-label-with-formula" title="Formel: ${formulas.hp}">KP:</label>
+                    <label class="stat-label-with-formula" title="Formel: ${formulas.hp}">
+                        <span class="stat-icon stat-icon-hp">${icons.hp}</span>KP:
+                    </label>
                     <div class="hp-inputs">
                         <input type="number" id="trainer-current-hp" class="stat-input hp-current" 
                                value="${this.trainerState.currentHp}" min="0">
@@ -882,32 +972,26 @@ class TrainerUIRenderer {
                     </div>
                 </div>
                 
-                ${createStatField('trainer-stat-initiative', 'Initiative', this.trainerState.stats.initiative, 'initiative', formulas.initiative)}
+                ${createStatFieldWithIcon('trainer-gena', 'GENA', this.trainerState.gena, 'gena', formulas.gena, '<span class="stat-icon stat-icon-gena">' + icons.gena + '</span>')}
                 
-                ${createStatField('trainer-gena', 'GENA', this.trainerState.gena, 'gena', formulas.gena)}
+                ${createStatFieldWithIcon('trainer-pa', 'PA', this.trainerState.pa, 'pa', formulas.pa, '<span class="stat-icon stat-icon-pa">' + icons.pa + '</span>')}
                 
-                <!-- Glücks-Tokens mit aktuellem und maximalem Wert -->
+                <!-- Glücks-Tokens als klickbare Leiste -->
                 <div class="stat-field luck-tokens-field">
-                    <label>Glücks-Tokens:</label>
-                    <div class="luck-tokens-inputs">
-                        <input type="number" id="trainer-luck-tokens" class="stat-input luck-current" 
-                               value="${this.trainerState.luckTokens}" min="0">
-                        <span class="luck-separator">/</span>
-                        <div class="stat-input-wrapper luck-max-wrapper">
-                            <input type="number" id="trainer-max-luck-tokens" 
-                                   class="stat-input luck-max editable-stat ${this.trainerState.isManuallyOverridden('luckTokens') ? 'manually-overridden' : ''}" 
-                                   data-stat="luckTokens"
-                                   value="${this.trainerState.maxLuckTokens}" 
-                                   title="Standard: GL = ${gl}">
-                            <button type="button" class="stat-reset-button" 
-                                    data-stat="luckTokens" 
-                                    title="Auf GL zurücksetzen (${gl})">↻</button>
+                    <label>
+                        <span class="stat-icon stat-icon-luck">🍀</span>Glück:
+                    </label>
+                    <div class="luck-tokens-bar-container">
+                        <button type="button" class="luck-max-adjust-btn luck-max-decrease" id="luck-max-decrease" title="Maximum verringern">−</button>
+                        <div class="luck-tokens-bar" id="luck-tokens-bar">
+                            ${this._createLuckTokensHTML()}
                         </div>
+                        <button type="button" class="luck-max-adjust-btn luck-max-increase" id="luck-max-increase" title="Maximum erhöhen">+</button>
                     </div>
                 </div>
             </div>
             
-            <!-- Zeile 2: Wunden, BW, PA -->
+            <!-- Zeile 2: Wunden, Initiative, BW -->
             <div class="trainer-stats-row trainer-stats-row-2">
                 <!-- Wunden inline -->
                 <div class="stat-field wounds-field">
@@ -917,9 +1001,9 @@ class TrainerUIRenderer {
                     </div>
                 </div>
                 
-                ${createStatField('trainer-bw', 'BW', this.trainerState.bw, 'bw', formulas.bw)}
+                ${createStatFieldWithIcon('trainer-stat-initiative', 'Initiative', this.trainerState.stats.initiative, 'initiative', formulas.initiative, '<span class="stat-icon stat-icon-initiative">' + icons.initiative + '</span>')}
                 
-                ${createStatField('trainer-pa', 'PA', this.trainerState.pa, 'pa', formulas.pa)}
+                ${createStatFieldWithIcon('trainer-bw', 'BW', this.trainerState.bw, 'bw', formulas.bw, '<span class="stat-icon stat-icon-bw">' + icons.bw + '</span>')}
             </div>
             
             <!-- Zeile für Statuseffekte -->
@@ -964,23 +1048,13 @@ class TrainerUIRenderer {
             <div class="trainer-attacks-section">
                 <div class="attacks-header-row">
                     <h3 class="section-title attacks-title">Attacken</h3>
-                    <button type="button" class="attack-add-button" id="add-attack-button" title="Attacke hinzufügen">+</button>
+                    <div class="attacks-header-buttons">
+                        <button type="button" class="attack-toggle-all-button" id="toggle-all-attacks-button" title="Alle Beschreibungen ein-/ausblenden">📖</button>
+                        <button type="button" class="attack-add-button" id="add-attack-button" title="Attacke hinzufügen">+</button>
+                    </div>
                 </div>
-                <div class="attacks-table-container" id="attacks-table-container">
-                    <table class="attacks-table">
-                        <thead>
-                            <tr>
-                                <th class="attack-col-name">Name</th>
-                                <th class="attack-col-type">Typ</th>
-                                <th class="attack-col-damage">Schaden</th>
-                                <th class="attack-col-effect">Effekt</th>
-                                <th class="attack-col-actions"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="attacks-table-body">
-                            ${this._createAttackRowsHTML()}
-                        </tbody>
-                    </table>
+                <div class="attacks-list" id="attacks-list">
+                    ${this._createAttackItemsHTML()}
                 </div>
             </div>
         `;
@@ -1022,70 +1096,69 @@ class TrainerUIRenderer {
     }
     
     /**
-     * Aktualisiert die Hintergrundfarbe einer Attacken-Zeile basierend auf dem Typ
-     * @param {HTMLElement} row - Die Tabellenzeile
-     * @param {string} typeName - Der Typ-Name
+     * Erstellt die aufklappbaren Items für alle Attacken
+     * @returns {string} HTML für die Attacken-Items
      * @private
      */
-    _updateAttackRowColor(row, typeName) {
-        const color = this._getTypeColorForAttack(typeName);
-        
-        if (color) {
-            row.classList.add('attack-row-typed');
-            row.style.backgroundColor = color;
-        } else {
-            row.classList.remove('attack-row-typed');
-            row.style.backgroundColor = '';
-        }
-    }
-    
-    /**
-     * Erstellt die Tabellenzeilen für alle Attacken
-     * @returns {string} HTML für die Attacken-Zeilen
-     * @private
-     */
-    _createAttackRowsHTML() {
+    _createAttackItemsHTML() {
         if (!this.trainerState.attacks || this.trainerState.attacks.length === 0) {
             return '';
         }
         
+        const typeOptions = [
+            'Normal', 'Kampf', 'Flug', 'Gift', 'Boden', 'Gestein', 
+            'Stahl', 'Käfer', 'Geist', 'Psycho', 'Unlicht', 
+            'Feuer', 'Wasser', 'Pflanze', 'Elektro', 'Eis', 'Drache', 'Fee'
+        ];
+        
         return this.trainerState.attacks.map((attack, index) => {
             // Typ-Farbe ermitteln
             const typeColor = this._getTypeColorForAttack(attack.type);
-            const colorClass = typeColor ? 'attack-row-typed' : '';
-            const colorStyle = typeColor ? `background-color: ${typeColor};` : '';
+            const colorStyle = typeColor ? `style="background-color: ${typeColor};"` : '';
+            const colorClass = typeColor ? 'attack-item-typed' : '';
+            const hasEffect = attack.effect && attack.effect.trim().length > 0;
+            
+            const typeOptionsHTML = typeOptions.map(type => 
+                `<option value="${type}" ${attack.type === type ? 'selected' : ''}>${type}</option>`
+            ).join('');
             
             return `
-            <tr class="attack-row ${colorClass}" data-attack-index="${index}" style="${colorStyle}">
-                <td class="attack-col-name">
+            <div class="attack-item ${colorClass}" data-attack-index="${index}" ${colorStyle}>
+                <div class="attack-item-header" data-attack-index="${index}">
+                    <span class="attack-expand-icon">▶</span>
                     <input type="text" class="attack-input attack-name" 
-                           data-field="name" 
+                           data-field="name" data-attack-index="${index}"
                            value="${this._escapeHtml(attack.name)}" 
                            placeholder="Name">
-                </td>
-                <td class="attack-col-type">
-                    <input type="text" class="attack-input attack-type" 
-                           data-field="type" 
-                           value="${this._escapeHtml(attack.type)}" 
-                           placeholder="Typ">
-                </td>
-                <td class="attack-col-damage">
+                    <select class="attack-input attack-type" 
+                            data-field="type" data-attack-index="${index}">
+                        ${typeOptionsHTML}
+                    </select>
                     <input type="text" class="attack-input attack-damage" 
-                           data-field="damage" 
+                           data-field="damage" data-attack-index="${index}"
                            value="${this._escapeHtml(attack.damage)}" 
                            placeholder="0W6">
-                </td>
-                <td class="attack-col-effect">
-                    <textarea class="attack-input attack-effect" 
-                              data-field="effect" 
-                              placeholder="Effektbeschreibung...">${this._escapeHtml(attack.effect)}</textarea>
-                </td>
-                <td class="attack-col-actions">
+                    <input type="text" class="attack-input attack-range" 
+                           data-field="range" data-attack-index="${index}"
+                           value="${this._escapeHtml(attack.range || '')}" 
+                           placeholder="Reichweite">
+                    <select class="attack-input attack-category" 
+                            data-field="attackCategory" data-attack-index="${index}">
+                        <option value="Physisch" ${attack.attackCategory === 'Physisch' ? 'selected' : ''}>Physisch</option>
+                        <option value="Speziell" ${attack.attackCategory === 'Speziell' ? 'selected' : ''}>Speziell</option>
+                        <option value="Status" ${attack.attackCategory === 'Status' ? 'selected' : ''}>Status</option>
+                    </select>
+                    <span class="attack-spacer"></span>
                     <button type="button" class="attack-remove-button" 
                             data-attack-index="${index}" 
                             title="Attacke entfernen">×</button>
-                </td>
-            </tr>
+                </div>
+                <div class="attack-item-details collapsed" data-attack-index="${index}">
+                    <textarea class="attack-input attack-effect" 
+                              data-field="effect" data-attack-index="${index}"
+                              placeholder="Effektbeschreibung...">${this._escapeHtml(attack.effect)}</textarea>
+                </div>
+            </div>
         `}).join('');
     }
     
@@ -1134,6 +1207,7 @@ class TrainerUIRenderer {
             return `
                 <div class="perk-item" data-perk-index="${index}">
                     <div class="perk-row">
+                        <span class="perk-expand-icon">${hasBeschreibung ? '▶' : ''}</span>
                         <div class="perk-dropdown-container custom-dropdown-container" data-perk-index="${index}">
                             <div class="custom-dropdown-button perk-dropdown-button" data-perk-index="${index}">
                                 <span class="dropdown-text">${displayName}</span>
@@ -1166,10 +1240,7 @@ class TrainerUIRenderer {
                                 `).join('')}
                             </select>
                         ` : ''}
-                        <button type="button" class="perk-info-toggle ${hasBeschreibung ? '' : 'disabled'}" 
-                                data-perk-index="${index}" 
-                                title="${hasBeschreibung ? 'Beschreibung ein-/ausblenden' : 'Keine Beschreibung verfügbar'}"
-                                ${hasBeschreibung ? '' : 'disabled'}>ℹ️</button>
+                        <span class="perk-spacer"></span>
                         <button type="button" class="perk-remove-button" 
                                 data-perk-index="${index}" 
                                 title="Perk entfernen">×</button>
@@ -1209,14 +1280,18 @@ class TrainerUIRenderer {
             // 4. Expanded-States wiederherstellen
             document.querySelectorAll('.perk-description-container').forEach(container => {
                 const index = parseInt(container.dataset.perkIndex, 10);
-                const infoButton = document.querySelector(`.perk-info-toggle[data-perk-index="${index}"]`);
+                const item = container.closest('.perk-item');
+                const expandIcon = item?.querySelector('.perk-expand-icon');
                 const desc = container.querySelector('.perk-description');
                 const hasBeschreibung = desc && desc.textContent.trim().length > 0;
                 
                 // Öffnen wenn: (war vorher offen ODER Toggle-All aktiv) UND hat Beschreibung
                 if ((expandedIndices.has(index) || isToggleAllActive) && hasBeschreibung) {
                     container.classList.remove('collapsed');
-                    infoButton?.classList.add('active');
+                    item?.classList.add('expanded');
+                    if (expandIcon) {
+                        expandIcon.textContent = '▼';
+                    }
                 }
             });
         }
@@ -1333,16 +1408,26 @@ class TrainerUIRenderer {
             }
         });
         
-        // Info-Toggle-Buttons für einzelne Perks
-        const infoToggleButtons = document.querySelectorAll('.perk-info-toggle');
-        infoToggleButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const index = parseInt(button.dataset.perkIndex, 10);
-                const descContainer = document.querySelector(`.perk-description-container[data-perk-index="${index}"]`);
+        // Expand/Collapse bei Klick auf Row (außer auf interaktive Elemente)
+        document.querySelectorAll('.perk-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                // Ignoriere Klicks auf interaktive Elemente
+                if (e.target.closest('button, select, .custom-dropdown-button, .custom-dropdown-list')) return;
+                
+                const item = row.closest('.perk-item');
+                const index = parseInt(item.dataset.perkIndex, 10);
+                const descContainer = item.querySelector('.perk-description-container');
+                const expandIcon = item.querySelector('.perk-expand-icon');
+                
+                // Nur wenn Beschreibung vorhanden
+                if (!expandIcon || !expandIcon.textContent.trim()) return;
+                
                 if (descContainer) {
                     const isCollapsed = descContainer.classList.toggle('collapsed');
-                    button.classList.toggle('active', !isCollapsed);
+                    item.classList.toggle('expanded', !isCollapsed);
+                    if (expandIcon) {
+                        expandIcon.textContent = isCollapsed ? '▶' : '▼';
+                    }
                 }
             });
         });
@@ -1352,30 +1437,32 @@ class TrainerUIRenderer {
         if (toggleAllPerksButton) {
             toggleAllPerksButton.onclick = () => {
                 const allDescContainers = document.querySelectorAll('.perk-description-container');
-                const allInfoButtons = document.querySelectorAll('.perk-info-toggle');
+                const allExpandIcons = document.querySelectorAll('.perk-expand-icon');
                 
                 // Prüfen ob mindestens einer offen ist
                 const anyOpen = Array.from(allDescContainers).some(c => !c.classList.contains('collapsed'));
                 
                 // Alle umschalten
                 allDescContainers.forEach(container => {
+                    const item = container.closest('.perk-item');
+                    const expandIcon = item?.querySelector('.perk-expand-icon');
+                    
                     if (anyOpen) {
                         container.classList.add('collapsed');
+                        item?.classList.remove('expanded');
+                        if (expandIcon && expandIcon.textContent.trim()) {
+                            expandIcon.textContent = '▶';
+                        }
                     } else {
                         // Nur öffnen wenn Beschreibung vorhanden
                         const desc = container.querySelector('.perk-description');
                         if (desc && desc.textContent.trim().length > 0) {
                             container.classList.remove('collapsed');
+                            item?.classList.add('expanded');
+                            if (expandIcon) {
+                                expandIcon.textContent = '▼';
+                            }
                         }
-                    }
-                });
-                
-                // Button-States aktualisieren
-                allInfoButtons.forEach(btn => {
-                    const index = parseInt(btn.dataset.perkIndex, 10);
-                    const descContainer = document.querySelector(`.perk-description-container[data-perk-index="${index}"]`);
-                    if (descContainer) {
-                        btn.classList.toggle('active', !descContainer.classList.contains('collapsed'));
                     }
                 });
                 
@@ -1526,7 +1613,8 @@ class TrainerUIRenderer {
             if (!row) return;
             
             row.addEventListener('mousedown', (e) => {
-                if (e.target.closest('input, button, textarea, select, .custom-dropdown-button, .custom-dropdown-list')) return;
+                // Ignoriere Klicks auf interaktive Elemente
+                if (e.target.closest('button, select, .custom-dropdown-button, .custom-dropdown-list')) return;
                 
                 e.preventDefault();
                 
@@ -1594,6 +1682,7 @@ class TrainerUIRenderer {
             return `
                 <div class="kommando-item" data-kommando-index="${index}">
                     <div class="kommando-row">
+                        <span class="kommando-expand-icon">${hasBeschreibung ? '▶' : ''}</span>
                         <div class="kommando-dropdown-container custom-dropdown-container" data-kommando-index="${index}">
                             <div class="custom-dropdown-button kommando-dropdown-button" data-kommando-index="${index}">
                                 <span class="dropdown-text">${displayName}</span>
@@ -1626,10 +1715,7 @@ class TrainerUIRenderer {
                                 `).join('')}
                             </select>
                         ` : ''}
-                        <button type="button" class="kommando-info-toggle ${hasBeschreibung ? '' : 'disabled'}" 
-                                data-kommando-index="${index}" 
-                                title="${hasBeschreibung ? 'Beschreibung ein-/ausblenden' : 'Keine Beschreibung verfügbar'}"
-                                ${hasBeschreibung ? '' : 'disabled'}>ℹ️</button>
+                        <span class="kommando-spacer"></span>
                         <button type="button" class="kommando-remove-button" 
                                 data-kommando-index="${index}" 
                                 title="Kommando entfernen">×</button>
@@ -1669,14 +1755,18 @@ class TrainerUIRenderer {
             // 4. Expanded-States wiederherstellen
             document.querySelectorAll('.kommando-description-container').forEach(container => {
                 const index = parseInt(container.dataset.kommandoIndex, 10);
-                const infoButton = document.querySelector(`.kommando-info-toggle[data-kommando-index="${index}"]`);
+                const item = container.closest('.kommando-item');
+                const expandIcon = item?.querySelector('.kommando-expand-icon');
                 const desc = container.querySelector('.kommando-description');
                 const hasBeschreibung = desc && desc.textContent.trim().length > 0;
                 
                 // Öffnen wenn: (war vorher offen ODER Toggle-All aktiv) UND hat Beschreibung
                 if ((expandedIndices.has(index) || isToggleAllActive) && hasBeschreibung) {
                     container.classList.remove('collapsed');
-                    infoButton?.classList.add('active');
+                    item?.classList.add('expanded');
+                    if (expandIcon) {
+                        expandIcon.textContent = '▼';
+                    }
                 }
             });
         }
@@ -1793,16 +1883,26 @@ class TrainerUIRenderer {
             }
         });
         
-        // Info-Toggle-Buttons für einzelne Kommandos
-        const infoToggleButtons = document.querySelectorAll('.kommando-info-toggle');
-        infoToggleButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const index = parseInt(button.dataset.kommandoIndex, 10);
-                const descContainer = document.querySelector(`.kommando-description-container[data-kommando-index="${index}"]`);
+        // Expand/Collapse bei Klick auf Row (außer auf interaktive Elemente)
+        document.querySelectorAll('.kommando-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                // Ignoriere Klicks auf interaktive Elemente
+                if (e.target.closest('button, select, .custom-dropdown-button, .custom-dropdown-list')) return;
+                
+                const item = row.closest('.kommando-item');
+                const index = parseInt(item.dataset.kommandoIndex, 10);
+                const descContainer = item.querySelector('.kommando-description-container');
+                const expandIcon = item.querySelector('.kommando-expand-icon');
+                
+                // Nur wenn Beschreibung vorhanden
+                if (!expandIcon || !expandIcon.textContent.trim()) return;
+                
                 if (descContainer) {
                     const isCollapsed = descContainer.classList.toggle('collapsed');
-                    button.classList.toggle('active', !isCollapsed);
+                    item.classList.toggle('expanded', !isCollapsed);
+                    if (expandIcon) {
+                        expandIcon.textContent = isCollapsed ? '▶' : '▼';
+                    }
                 }
             });
         });
@@ -1812,30 +1912,32 @@ class TrainerUIRenderer {
         if (toggleAllKommandosButton) {
             toggleAllKommandosButton.onclick = () => {
                 const allDescContainers = document.querySelectorAll('.kommando-description-container');
-                const allInfoButtons = document.querySelectorAll('.kommando-info-toggle');
+                const allExpandIcons = document.querySelectorAll('.kommando-expand-icon');
                 
                 // Prüfen ob mindestens einer offen ist
                 const anyOpen = Array.from(allDescContainers).some(c => !c.classList.contains('collapsed'));
                 
                 // Alle umschalten
                 allDescContainers.forEach(container => {
+                    const item = container.closest('.kommando-item');
+                    const expandIcon = item?.querySelector('.kommando-expand-icon');
+                    
                     if (anyOpen) {
                         container.classList.add('collapsed');
+                        item?.classList.remove('expanded');
+                        if (expandIcon && expandIcon.textContent.trim()) {
+                            expandIcon.textContent = '▶';
+                        }
                     } else {
                         // Nur öffnen wenn Beschreibung vorhanden
                         const desc = container.querySelector('.kommando-description');
                         if (desc && desc.textContent.trim().length > 0) {
                             container.classList.remove('collapsed');
+                            item?.classList.add('expanded');
+                            if (expandIcon) {
+                                expandIcon.textContent = '▼';
+                            }
                         }
-                    }
-                });
-                
-                // Button-States aktualisieren
-                allInfoButtons.forEach(btn => {
-                    const index = parseInt(btn.dataset.kommandoIndex, 10);
-                    const descContainer = document.querySelector(`.kommando-description-container[data-kommando-index="${index}"]`);
-                    if (descContainer) {
-                        btn.classList.toggle('active', !descContainer.classList.contains('collapsed'));
                     }
                 });
                 
@@ -1986,7 +2088,8 @@ class TrainerUIRenderer {
             if (!row) return;
             
             row.addEventListener('mousedown', (e) => {
-                if (e.target.closest('input, button, textarea, select, .custom-dropdown-button, .custom-dropdown-list')) return;
+                // Ignoriere Klicks auf interaktive Elemente
+                if (e.target.closest('button, select, .custom-dropdown-button, .custom-dropdown-list')) return;
                 
                 e.preventDefault();
                 
@@ -2023,13 +2126,33 @@ class TrainerUIRenderer {
     }
     
     /**
-     * Aktualisiert die Attacken-Tabelle
+     * Aktualisiert die Attacken-Liste
      */
     updateAttacksTable() {
-        const tbody = document.getElementById('attacks-table-body');
-        if (tbody) {
-            tbody.innerHTML = this._createAttackRowsHTML();
+        const attacksList = document.getElementById('attacks-list');
+        if (attacksList) {
+            // Expanded-Zustand speichern
+            const expandedIndices = new Set();
+            attacksList.querySelectorAll('.attack-item.expanded').forEach(item => {
+                const index = parseInt(item.dataset.attackIndex, 10);
+                expandedIndices.add(index);
+            });
+            
+            // Neu rendern
+            attacksList.innerHTML = this._createAttackItemsHTML();
             this._addAttackEventListeners();
+            
+            // Expanded-Zustand wiederherstellen
+            expandedIndices.forEach(index => {
+                const item = attacksList.querySelector(`.attack-item[data-attack-index="${index}"]`);
+                if (item) {
+                    item.classList.add('expanded');
+                    const details = item.querySelector('.attack-item-details');
+                    if (details) details.classList.remove('collapsed');
+                    const icon = item.querySelector('.attack-expand-icon');
+                    if (icon) icon.textContent = '▼';
+                }
+            });
         }
     }
     
@@ -2042,45 +2165,98 @@ class TrainerUIRenderer {
         const addButton = document.getElementById('add-attack-button');
         if (addButton) {
             addButton.onclick = () => {
+                // Prüfe ob Toggle-All aktiv ist
+                const toggleAllButton = document.getElementById('toggle-all-attacks-button');
+                const isToggleAllActive = toggleAllButton?.classList.contains('active');
+                
                 this.trainerState.addAttack();
                 this.updateAttacksTable();
+                
+                // Wenn Toggle-All aktiv, neue Attacke auch aufklappen
+                if (isToggleAllActive) {
+                    const attacksList = document.getElementById('attacks-list');
+                    const lastItem = attacksList?.querySelector('.attack-item:last-child');
+                    if (lastItem) {
+                        lastItem.classList.add('expanded');
+                        const details = lastItem.querySelector('.attack-item-details');
+                        if (details) details.classList.remove('collapsed');
+                        const icon = lastItem.querySelector('.attack-expand-icon');
+                        if (icon) icon.textContent = '▼';
+                    }
+                }
+            };
+        }
+        
+        // Toggle-All-Button
+        const toggleAllButton = document.getElementById('toggle-all-attacks-button');
+        if (toggleAllButton) {
+            toggleAllButton.onclick = () => {
+                const allItems = document.querySelectorAll('.attack-item');
+                const allDetails = document.querySelectorAll('.attack-item-details');
+                const anyExpanded = Array.from(allItems).some(item => item.classList.contains('expanded'));
+                
+                allItems.forEach(item => {
+                    const details = item.querySelector('.attack-item-details');
+                    const icon = item.querySelector('.attack-expand-icon');
+                    
+                    if (anyExpanded) {
+                        item.classList.remove('expanded');
+                        if (details) details.classList.add('collapsed');
+                        if (icon) icon.textContent = '▶';
+                    } else {
+                        item.classList.add('expanded');
+                        if (details) details.classList.remove('collapsed');
+                        if (icon) icon.textContent = '▼';
+                    }
+                });
+                
+                toggleAllButton.classList.toggle('active', !anyExpanded);
             };
         }
         
         // Drag & Drop initialisieren
-        const tbody = document.getElementById('attacks-table-body');
-        if (tbody) {
-            this._initAttacksDragAndDrop(tbody);
+        const attacksList = document.getElementById('attacks-list');
+        if (attacksList) {
+            this._initAttacksDragAndDrop(attacksList);
         }
+        
+        // Expand/Collapse bei Klick auf Header (außer auf Inputs/Buttons)
+        document.querySelectorAll('.attack-item-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                // Ignoriere Klicks auf interaktive Elemente
+                if (e.target.closest('input, button, select, textarea')) return;
+                
+                const item = header.closest('.attack-item');
+                const details = item.querySelector('.attack-item-details');
+                const icon = item.querySelector('.attack-expand-icon');
+                const isExpanded = item.classList.toggle('expanded');
+                
+                if (details) details.classList.toggle('collapsed', !isExpanded);
+                if (icon) icon.textContent = isExpanded ? '▼' : '▶';
+            });
+        });
         
         // Input-Änderungen
         const attackInputs = document.querySelectorAll('.attack-input');
         attackInputs.forEach(input => {
             input.addEventListener('change', (e) => {
-                const row = e.target.closest('.attack-row');
-                const index = parseInt(row.dataset.attackIndex, 10);
+                const index = parseInt(e.target.dataset.attackIndex, 10);
                 const field = e.target.dataset.field;
-                this.trainerState.updateAttack(index, field, e.target.value);
+                this.trainerState.updateAttack(index, { [field]: e.target.value });
                 
-                // Bei Typ-Änderung: Zeilen-Farbe aktualisieren
+                // Bei Typ-Änderung: Item-Farbe aktualisieren
                 if (field === 'type') {
-                    this._updateAttackRowColor(row, e.target.value);
+                    const item = e.target.closest('.attack-item');
+                    this._updateAttackItemColor(item, e.target.value);
                 }
             });
-            
-            // Live-Aktualisierung bei Typ-Eingabe (für sofortiges Feedback)
-            if (input.dataset.field === 'type') {
-                input.addEventListener('input', (e) => {
-                    const row = e.target.closest('.attack-row');
-                    this._updateAttackRowColor(row, e.target.value);
-                });
-            }
         });
         
         // Remove-Buttons
         const removeButtons = document.querySelectorAll('.attack-remove-button');
         removeButtons.forEach(button => {
             button.onclick = (e) => {
+                e.stopPropagation();
                 const index = parseInt(e.target.dataset.attackIndex, 10);
                 this.trainerState.removeAttack(index);
                 this.updateAttacksTable();
@@ -2089,17 +2265,35 @@ class TrainerUIRenderer {
     }
     
     /**
-     * Initialisiert Custom Drag & Drop für Attacken
-     * @param {HTMLElement} tbody - Der tbody mit den Attacken-Zeilen
+     * Aktualisiert die Farbe eines Attacken-Items basierend auf dem Typ
+     * @param {HTMLElement} item - Das Attacken-Item
+     * @param {string} typeName - Der Typ-Name
      * @private
      */
-    _initAttacksDragAndDrop(tbody) {
+    _updateAttackItemColor(item, typeName) {
+        const color = this._getTypeColorForAttack(typeName);
+        
+        if (color) {
+            item.style.backgroundColor = color;
+            item.classList.add('attack-item-typed');
+        } else {
+            item.style.backgroundColor = '';
+            item.classList.remove('attack-item-typed');
+        }
+    }
+    
+    /**
+     * Initialisiert Custom Drag & Drop für Attacken
+     * @param {HTMLElement} container - Der Container mit den Attacken-Items
+     * @private
+     */
+    _initAttacksDragAndDrop(container) {
         const DRAG_THRESHOLD = 5;
         const self = this;
         
         let isDragging = false;
         let dragStarted = false;
-        let draggedRow = null;
+        let draggedItem = null;
         let dragClone = null;
         let placeholder = null;
         let startX = 0;
@@ -2107,35 +2301,35 @@ class TrainerUIRenderer {
         let offsetX = 0;
         let offsetY = 0;
         
-        const getRowAtPosition = (x, y) => {
+        const getItemAtPosition = (x, y) => {
             const elements = document.elementsFromPoint(x, y);
             for (const el of elements) {
-                if (el.classList.contains('attack-row') && el !== dragClone) {
+                if (el.classList.contains('attack-item') && el !== dragClone) {
                     return el;
                 }
-                const parentRow = el.closest('.attack-row');
-                if (parentRow && parentRow !== dragClone && tbody.contains(parentRow)) {
-                    return parentRow;
+                const parentItem = el.closest('.attack-item');
+                if (parentItem && parentItem !== dragClone && container.contains(parentItem)) {
+                    return parentItem;
                 }
             }
             return null;
         };
         
         const onMouseMove = (e) => {
-            if (!isDragging || !draggedRow) return;
+            if (!isDragging || !draggedItem) return;
             
             const deltaX = Math.abs(e.clientX - startX);
             const deltaY = Math.abs(e.clientY - startY);
             
             if (!dragStarted && (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD)) {
                 dragStarted = true;
-                draggedRow.classList.add('attack-row-dragging');
+                draggedItem.classList.add('attack-item-dragging');
                 
-                dragClone = draggedRow.cloneNode(true);
-                dragClone.classList.remove('attack-row-dragging');
-                dragClone.classList.add('attack-row-drag-clone');
+                dragClone = draggedItem.cloneNode(true);
+                dragClone.classList.remove('attack-item-dragging');
+                dragClone.classList.add('attack-item-drag-clone');
                 
-                const rect = draggedRow.getBoundingClientRect();
+                const rect = draggedItem.getBoundingClientRect();
                 offsetX = startX - rect.left;
                 offsetY = startY - rect.top;
                 
@@ -2148,18 +2342,21 @@ class TrainerUIRenderer {
                     pointer-events: none;
                     box-shadow: 0 8px 24px rgba(0,0,0,0.3);
                     opacity: 0.95;
-                    background: var(--bg-secondary, #2a2a2a);
-                    display: table-row;
+                    border-radius: 6px;
                 `;
                 
                 document.body.appendChild(dragClone);
                 
-                placeholder = document.createElement('tr');
-                placeholder.className = 'attack-row-placeholder';
-                placeholder.innerHTML = `<td colspan="5" style="height: ${rect.height}px; border: 2px dashed var(--accent-color, #4a9eff); background: rgba(74, 158, 255, 0.1);"></td>`;
+                placeholder = document.createElement('div');
+                placeholder.className = 'attack-item-placeholder';
+                placeholder.style.height = rect.height + 'px';
+                placeholder.style.margin = '4px 0';
+                placeholder.style.border = '2px dashed var(--accent-color, #4a9eff)';
+                placeholder.style.borderRadius = '6px';
+                placeholder.style.background = 'rgba(74, 158, 255, 0.1)';
                 
-                draggedRow.parentNode.insertBefore(placeholder, draggedRow);
-                draggedRow.style.display = 'none';
+                draggedItem.parentNode.insertBefore(placeholder, draggedItem);
+                draggedItem.style.display = 'none';
                 
                 document.body.style.cursor = 'grabbing';
             }
@@ -2168,19 +2365,19 @@ class TrainerUIRenderer {
                 dragClone.style.left = (e.clientX - offsetX) + 'px';
                 dragClone.style.top = (e.clientY - offsetY) + 'px';
                 
-                const targetRow = getRowAtPosition(e.clientX, e.clientY);
+                const targetItem = getItemAtPosition(e.clientX, e.clientY);
                 
-                if (targetRow && targetRow !== draggedRow) {
-                    const rect = targetRow.getBoundingClientRect();
+                if (targetItem && targetItem !== draggedItem) {
+                    const rect = targetItem.getBoundingClientRect();
                     const midY = rect.top + rect.height / 2;
                     
                     if (e.clientY < midY) {
-                        if (placeholder.nextSibling !== targetRow) {
-                            targetRow.parentNode.insertBefore(placeholder, targetRow);
+                        if (placeholder.nextSibling !== targetItem) {
+                            targetItem.parentNode.insertBefore(placeholder, targetItem);
                         }
                     } else {
-                        if (placeholder.previousSibling !== targetRow) {
-                            targetRow.parentNode.insertBefore(placeholder, targetRow.nextSibling);
+                        if (placeholder.previousSibling !== targetItem) {
+                            targetItem.parentNode.insertBefore(placeholder, targetItem.nextSibling);
                         }
                     }
                 }
@@ -2193,42 +2390,45 @@ class TrainerUIRenderer {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
             
-            if (dragStarted && draggedRow && placeholder) {
-                const rows = Array.from(tbody.querySelectorAll('.attack-row, .attack-row-placeholder'));
-                const newIndex = rows.indexOf(placeholder);
-                const oldIndex = parseInt(draggedRow.dataset.attackIndex, 10);
+            if (dragStarted && draggedItem && placeholder) {
+                const items = Array.from(container.querySelectorAll('.attack-item, .attack-item-placeholder'));
+                const newIndex = items.indexOf(placeholder);
+                const oldIndex = parseInt(draggedItem.dataset.attackIndex, 10);
                 
                 if (dragClone && dragClone.parentNode) dragClone.remove();
                 if (placeholder && placeholder.parentNode) placeholder.remove();
                 
-                draggedRow.style.display = '';
-                draggedRow.classList.remove('attack-row-dragging');
+                draggedItem.style.display = '';
+                draggedItem.classList.remove('attack-item-dragging');
                 
                 if (newIndex !== -1 && newIndex !== oldIndex) {
                     const adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
                     self._moveAttack(oldIndex, adjustedNewIndex);
                 }
-            } else if (draggedRow) {
-                draggedRow.classList.remove('attack-row-dragging');
+            } else if (draggedItem) {
+                draggedItem.classList.remove('attack-item-dragging');
             }
             
             document.body.style.cursor = '';
             isDragging = false;
             dragStarted = false;
-            draggedRow = null;
+            draggedItem = null;
             dragClone = null;
             placeholder = null;
         };
         
-        tbody.querySelectorAll('.attack-row').forEach(row => {
-            row.addEventListener('mousedown', (e) => {
+        container.querySelectorAll('.attack-item').forEach(item => {
+            const header = item.querySelector('.attack-item-header');
+            if (!header) return;
+            
+            header.addEventListener('mousedown', (e) => {
                 if (e.target.closest('input, button, textarea, select')) return;
                 
                 e.preventDefault();
                 
                 isDragging = true;
                 dragStarted = false;
-                draggedRow = row;
+                draggedItem = item;
                 startX = e.clientX;
                 startY = e.clientY;
                 
@@ -2288,6 +2488,88 @@ class TrainerUIRenderer {
     }
     
     /**
+     * Erstellt die Glücks-Tokens als klickbare Kleeblatt-Leiste
+     * @returns {string} HTML-String für die Glücks-Tokens
+     * @private
+     */
+    _createLuckTokensHTML() {
+        let tokensHTML = '';
+        const maxTokens = this.trainerState.maxLuckTokens || 1;
+        const usedTokens = maxTokens - (this.trainerState.luckTokens || 0);
+        
+        for (let i = 1; i <= maxTokens; i++) {
+            const isUsed = i <= usedTokens;
+            const usedClass = isUsed ? 'used' : '';
+            tokensHTML += `
+                <div class="luck-token ${usedClass}" data-token-index="${i}" title="Glücks-Token ${i}">
+                    <span class="luck-clover-emoji">🍀</span>
+                </div>
+            `;
+        }
+        
+        return tokensHTML;
+    }
+    
+    /**
+     * Aktualisiert die Glücks-Tokens-Anzeige
+     * @param {number} usedCount - Anzahl der verbrauchten Tokens
+     */
+    updateLuckTokensDisplay(usedCount) {
+        const tokensBar = document.getElementById('luck-tokens-bar');
+        if (!tokensBar) return;
+        
+        const tokens = tokensBar.querySelectorAll('.luck-token');
+        tokens.forEach((token, index) => {
+            if (index < usedCount) {
+                token.classList.add('used');
+            } else {
+                token.classList.remove('used');
+            }
+        });
+    }
+    
+    /**
+     * Behandelt Klicks auf Glücks-Tokens
+     * @param {Event} event - Das Klick-Event
+     * @private
+     */
+    _handleLuckTokenClick(event) {
+        const token = event.currentTarget;
+        const tokenIndex = parseInt(token.dataset.tokenIndex, 10);
+        const maxTokens = this.trainerState.maxLuckTokens || 1;
+        
+        // Wenn der angeklickte Token bereits "used" ist
+        if (token.classList.contains('used')) {
+            // Alle Tokens ab diesem Index wieder aktivieren (nicht mehr "used")
+            const newUsedCount = tokenIndex - 1;
+            const newAvailable = maxTokens - newUsedCount;
+            this.trainerState.setLuckTokens(newAvailable);
+        } else {
+            // Alle Tokens bis zu diesem Index als "used" markieren
+            const newAvailable = maxTokens - tokenIndex;
+            this.trainerState.setLuckTokens(newAvailable);
+        }
+        
+        this.updateLuckTokensDisplay(maxTokens - this.trainerState.luckTokens);
+    }
+    
+    /**
+     * Rendert die Glücks-Token-Leiste neu (z.B. nach Änderung des Maximums)
+     * @private
+     */
+    _rerenderLuckTokensBar() {
+        const tokensBar = document.getElementById('luck-tokens-bar');
+        if (!tokensBar) return;
+        
+        tokensBar.innerHTML = this._createLuckTokensHTML();
+        
+        // Event-Listener neu hinzufügen
+        tokensBar.querySelectorAll('.luck-token').forEach(token => {
+            token.addEventListener('click', (e) => this._handleLuckTokenClick(e));
+        });
+    }
+    
+    /**
      * Erstellt das HTML für die Statuseffekt-Icons (Trainer)
      * @returns {string} HTML-String für die Statuseffekte
      * @private
@@ -2324,8 +2606,11 @@ class TrainerUIRenderer {
             const isActive = activeStatuses.includes(status.id);
             const activeClass = isActive ? 'active' : 'inactive';
             
+            // Custom-Tooltip Daten statt title-Attribut
+            const tooltipData = `data-tooltip-name="${status.name}" data-tooltip-description="${status.description || ''}" data-tooltip-color="${status.color}"`;
+            
             return `
-                <div class="status-icon-wrapper" data-status-id="${status.id}" title="${status.name}">
+                <div class="status-icon-wrapper" data-status-id="${status.id}" ${tooltipData}>
                     <div class="status-icon ${activeClass}" 
                          data-status-id="${status.id}"
                          style="--status-color: ${status.color}; --status-border-color: ${status.borderColor};">
@@ -2391,6 +2676,105 @@ class TrainerUIRenderer {
                 .join(' ');
             preview.textContent = emojis;
         }
+    }
+    
+    /**
+     * Zeigt den Custom-Tooltip für Statuseffekte an
+     * @param {MouseEvent} e - Das Mouse-Event
+     * @param {HTMLElement} wrapper - Das Icon-Wrapper-Element
+     * @private
+     */
+    _showStatusTooltip(e, wrapper) {
+        // Existierenden Tooltip entfernen
+        this._hideStatusTooltip();
+        
+        const name = wrapper.dataset.tooltipName;
+        const description = wrapper.dataset.tooltipDescription;
+        const color = wrapper.dataset.tooltipColor;
+        
+        if (!name) return;
+        
+        // Neuen Tooltip erstellen
+        const tooltip = document.createElement('div');
+        tooltip.className = 'status-tooltip';
+        tooltip.id = 'status-effect-tooltip';
+        tooltip.style.backgroundColor = color;
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'status-tooltip-name';
+        nameSpan.textContent = name;
+        tooltip.appendChild(nameSpan);
+        
+        if (description) {
+            const descP = document.createElement('p');
+            descP.className = 'status-tooltip-description';
+            descP.textContent = description;
+            tooltip.appendChild(descP);
+        }
+        
+        document.body.appendChild(tooltip);
+        
+        // Position setzen
+        this._positionStatusTooltip(e, tooltip);
+        
+        // Sichtbar machen (nach kurzer Verzögerung für Animation)
+        requestAnimationFrame(() => {
+            tooltip.classList.add('visible');
+        });
+    }
+    
+    /**
+     * Versteckt den Custom-Tooltip für Statuseffekte
+     * @private
+     */
+    _hideStatusTooltip() {
+        const tooltip = document.getElementById('status-effect-tooltip');
+        if (tooltip) {
+            tooltip.remove();
+        }
+    }
+    
+    /**
+     * Bewegt den Tooltip mit der Maus
+     * @param {MouseEvent} e - Das Mouse-Event
+     * @private
+     */
+    _moveStatusTooltip(e) {
+        const tooltip = document.getElementById('status-effect-tooltip');
+        if (tooltip) {
+            this._positionStatusTooltip(e, tooltip);
+        }
+    }
+    
+    /**
+     * Positioniert den Tooltip relativ zur Maus
+     * @param {MouseEvent} e - Das Mouse-Event
+     * @param {HTMLElement} tooltip - Das Tooltip-Element
+     * @private
+     */
+    _positionStatusTooltip(e, tooltip) {
+        const padding = 12;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        let x = e.clientX + padding;
+        let y = e.clientY + padding;
+        
+        // Tooltip-Dimensionen
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        // Rechten Rand prüfen
+        if (x + tooltipRect.width > viewportWidth - padding) {
+            x = e.clientX - tooltipRect.width - padding;
+        }
+        
+        // Unteren Rand prüfen
+        if (y + tooltipRect.height > viewportHeight - padding) {
+            y = e.clientY - tooltipRect.height - padding;
+        }
+        
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
     }
     
     /**
@@ -2528,10 +2912,21 @@ class TrainerUIRenderer {
             // Typ-Klassen für Hintergrundfarbe ermitteln
             const typeClasses = this._getTypeClasses(slot.types);
             
+            // Sprite-URL bestimmen: Prüfen ob das Pokemon als Shiny gespeichert ist
+            let spriteUrl = slot.spriteUrl;
+            if (slot.pokemonUuid && window.pokemonStorageService) {
+                const trainerId = this.trainerState.id;
+                const savedData = window.pokemonStorageService.load(trainerId, slot.pokemonUuid);
+                if (savedData && savedData.isShiny) {
+                    // Shiny-Sprite verwenden: aus savedData, aus Slot, oder Fallback
+                    spriteUrl = savedData.shinySpriteUrl || slot.shinySpriteUrl || slot.spriteUrl;
+                }
+            }
+            
             return `
                 <div class="pokemon-slot filled-slot ${typeClasses}" data-slot-index="${index}">
                     <div class="slot-content">
-                        <img src="${slot.spriteUrl}" alt="${displayName}" class="pokemon-sprite">
+                        <img src="${spriteUrl}" alt="${displayName}" class="pokemon-sprite">
                         ${showNickname ? `<span class="pokemon-nickname">${slot.nickname}</span>` : ''}
                         <span class="pokemon-species">${slot.germanName || slot.pokemonName}</span>
                     </div>
@@ -2772,6 +3167,9 @@ class TrainerUIRenderer {
                 
                 html += `
                     <div class="skill-row custom-skill-row" data-category="${category}" data-custom-index="${index}">
+                        <button type="button" class="trainer-custom-skill-remove-btn" 
+                                data-category="${category}" data-custom-index="${index}"
+                                title="Fertigkeit entfernen">×</button>
                         <input type="text" class="custom-skill-name trainer-custom-skill-name" 
                                data-category="${category}" data-custom-index="${index}"
                                value="${this._escapeHtml(customSkill.name)}" 
@@ -2782,9 +3180,6 @@ class TrainerUIRenderer {
                                data-is-custom-skill="true"
                                value="${displayInfo.displayValue}"
                                min="-9" max="99">
-                        <button type="button" class="trainer-custom-skill-remove-btn" 
-                                data-category="${category}" data-custom-index="${index}"
-                                title="Fertigkeit entfernen">×</button>
                     </div>
                 `;
             });
@@ -2816,6 +3211,11 @@ class TrainerUIRenderer {
         const section = document.createElement('div');
         section.className = 'trainer-inventory-section';
         
+        // Aktive Kategorie initialisieren
+        if (!this.activeInventoryCategory) {
+            this.activeInventoryCategory = this.trainerState.inventory.categories[0] || 'items';
+        }
+        
         let html = `
             <div class="inventory-header-row">
                 <div class="money-field">
@@ -2825,56 +3225,97 @@ class TrainerUIRenderer {
                            placeholder="0">
                     <span class="money-symbol">₽</span>
                 </div>
-                <div class="inventory-header-buttons">
-                    <button type="button" class="inventory-toggle-all-button" id="inventory-toggle-all" title="Alle auf-/zuklappen">
-                        <span class="toggle-icon">▶</span> Alle
-                    </button>
-                    <button type="button" id="add-inventory-item" class="inventory-add-button" title="Eintrag hinzufügen">+</button>
+            </div>
+            <div class="inventory-tabs-container">
+                <div class="inventory-tabs" id="inventory-tabs">
+                    ${this._renderInventoryTabs()}
                 </div>
+                <button type="button" class="inventory-add-category-button" id="add-inventory-category" title="Neue Kategorie hinzufügen">+</button>
+            </div>
+            <div class="inventory-category-header">
+                <button type="button" class="inventory-toggle-all-button" id="inventory-toggle-all" title="Alle auf-/zuklappen">
+                    <span class="toggle-icon">▶</span> Alle
+                </button>
+                <button type="button" id="add-inventory-item" class="inventory-add-button" title="Eintrag hinzufügen">+</button>
             </div>
             <div class="inventory-list" id="inventory-list">
+                ${this._renderInventoryItems(this.activeInventoryCategory)}
+            </div>
         `;
         
-        // Inventar-Einträge rendern
-        this.trainerState.inventory.forEach((item, index) => {
-            html += this._renderInventoryItem(item, index);
-        });
-        
-        html += '</div>';
         section.innerHTML = html;
         
         return section;
     }
     
     /**
+     * Rendert die Inventar-Tabs
+     * @private
+     */
+    _renderInventoryTabs() {
+        const categories = this.trainerState.inventory.categories;
+        return categories.map((categoryId, index) => {
+            const name = this.trainerState.getInventoryCategoryName(categoryId);
+            const isActive = categoryId === this.activeInventoryCategory;
+            const isProtected = categoryId === 'items';
+            const itemCount = this.trainerState.getInventoryItems(categoryId).length;
+            
+            return `
+                <div class="inventory-tab ${isActive ? 'active' : ''}" 
+                     data-category="${categoryId}" 
+                     data-index="${index}"
+                     draggable="true">
+                    <span class="inventory-tab-name" data-category="${categoryId}">${this._escapeHtml(name)}</span>
+                    <span class="inventory-tab-count">(${itemCount})</span>
+                    ${!isProtected ? `<button type="button" class="inventory-tab-delete" data-category="${categoryId}" title="Kategorie löschen">×</button>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+    
+    /**
+     * Rendert die Items einer Kategorie
+     * @param {string} category - Die Kategorie-ID
+     * @private
+     */
+    _renderInventoryItems(category) {
+        const items = this.trainerState.getInventoryItems(category);
+        if (items.length === 0) {
+            return '<div class="inventory-empty">Keine Items in dieser Kategorie</div>';
+        }
+        return items.map((item, index) => this._renderInventoryItem(item, index, category)).join('');
+    }
+    
+    /**
      * Rendert einen einzelnen Inventar-Eintrag
      * @param {InventoryItem} item - Der Inventar-Eintrag
      * @param {number} index - Der Index des Eintrags
+     * @param {string} category - Die Kategorie-ID
      * @private
      */
-    _renderInventoryItem(item, index) {
+    _renderInventoryItem(item, index, category) {
         const preview = this._getInventoryPreview(item);
         const hasDetails = item.description && item.description.trim();
         
         return `
-            <div class="inventory-item" data-index="${index}">
-                <div class="inventory-item-header" data-index="${index}">
-                    <span class="inventory-drag-handle" title="Ziehen zum Verschieben">⋮⋮</span>
+            <div class="inventory-item" data-index="${index}" data-category="${category}">
+                <div class="inventory-item-header" data-index="${index}" data-category="${category}">
+                    <span class="inventory-drag-handle" title="Ziehen zum Verschieben oder auf Tab ziehen zum Verschieben in andere Kategorie">⋮⋮</span>
                     <span class="inventory-expand-icon">▶</span>
                     <input type="text" class="inventory-name" 
-                           data-index="${index}" data-field="name"
+                           data-index="${index}" data-category="${category}" data-field="name"
                            value="${this._escapeHtml(item.name)}" 
                            placeholder="Gegenstand">
                     <input type="number" class="inventory-quantity" 
-                           data-index="${index}" data-field="quantity"
+                           data-index="${index}" data-category="${category}" data-field="quantity"
                            value="${item.quantity}" min="0" max="999">
                     <span class="inventory-preview ${hasDetails ? '' : 'empty'}">${this._escapeHtml(preview)}</span>
                     <button type="button" class="inventory-remove-button" 
-                            data-index="${index}" title="Eintrag entfernen">×</button>
+                            data-index="${index}" data-category="${category}" title="Eintrag entfernen">×</button>
                 </div>
                 <div class="inventory-item-details">
                     <textarea class="inventory-description" 
-                              data-index="${index}" data-field="description"
+                              data-index="${index}" data-category="${category}" data-field="description"
                               placeholder="Beschreibung, Effekte, Notizen...">${this._escapeHtml(item.description)}</textarea>
                 </div>
             </div>
@@ -2911,114 +3352,131 @@ class TrainerUIRenderer {
     
     /**
      * Aktualisiert die Inventar-Anzeige
+     * @param {boolean} updateTabs - Auch Tabs aktualisieren (default: false)
      */
-    updateInventory() {
+    updateInventory(updateTabs = false) {
         const container = document.getElementById('inventory-list');
         if (!container) return;
         
-        // Expanded-Zustand speichern (nach Position im Array, da sich Inhalte ändern können)
-        const expandedPositions = new Set();
-        const items = container.querySelectorAll('.inventory-item');
-        items.forEach((item, visualIndex) => {
-            if (item.classList.contains('expanded')) {
-                // Speichere den Namen des Items für robusteres Matching
-                const nameInput = item.querySelector('.inventory-name');
-                const name = nameInput?.value || '';
-                expandedPositions.add(name);
-            }
+        // Aktive Kategorie validieren
+        if (!this.activeInventoryCategory || 
+            !this.trainerState.inventory.categories.includes(this.activeInventoryCategory)) {
+            this.activeInventoryCategory = this.trainerState.inventory.categories[0] || 'items';
+        }
+        
+        // Expanded-Zustand speichern
+        const expandedNames = new Set();
+        container.querySelectorAll('.inventory-item.expanded').forEach(item => {
+            const nameInput = item.querySelector('.inventory-name');
+            const name = nameInput?.value || '';
+            expandedNames.add(name);
         });
         
-        let html = '';
-        
-        this.trainerState.inventory.forEach((item, index) => {
-            html += this._renderInventoryItem(item, index);
-        });
-        
-        container.innerHTML = html;
+        // Items neu rendern
+        container.innerHTML = this._renderInventoryItems(this.activeInventoryCategory);
         
         // Expanded-Zustand wiederherstellen
         container.querySelectorAll('.inventory-item').forEach(itemEl => {
             const nameInput = itemEl.querySelector('.inventory-name');
             const name = nameInput?.value || '';
             
-            // Aufklappen wenn: Name war vorher aufgeklappt ODER expandAll aktiv ist
-            if (expandedPositions.has(name) || this.inventoryExpandAll) {
+            if (expandedNames.has(name) || this.inventoryExpandAll) {
                 itemEl.classList.add('expanded');
                 const icon = itemEl.querySelector('.inventory-expand-icon');
                 if (icon) icon.textContent = '▼';
             }
         });
         
+        // Tabs aktualisieren wenn gewünscht
+        if (updateTabs) {
+            this.updateInventoryTabs();
+        } else {
+            // Nur Zähler aktualisieren
+            this._updateInventoryTabCounts();
+        }
+        
         this._addInventoryEventListeners();
+    }
+    
+    /**
+     * Aktualisiert die Inventar-Tabs
+     */
+    updateInventoryTabs() {
+        const tabsContainer = document.getElementById('inventory-tabs');
+        if (!tabsContainer) return;
+        
+        tabsContainer.innerHTML = this._renderInventoryTabs();
+        this._addInventoryTabEventListeners();
+    }
+    
+    /**
+     * Aktualisiert die Zähler in den Tabs
+     * @private
+     */
+    _updateInventoryTabCounts() {
+        document.querySelectorAll('.inventory-tab').forEach(tab => {
+            const categoryId = tab.dataset.category;
+            const count = this.trainerState.getInventoryItems(categoryId).length;
+            const countSpan = tab.querySelector('.inventory-tab-count');
+            if (countSpan) {
+                countSpan.textContent = `(${count})`;
+            }
+        });
+    }
+    
+    /**
+     * Wechselt zur angegebenen Inventar-Kategorie
+     * @param {string} categoryId - Die Kategorie-ID
+     */
+    switchInventoryCategory(categoryId) {
+        if (!this.trainerState.inventory.categories.includes(categoryId)) return;
+        
+        this.activeInventoryCategory = categoryId;
+        this.inventoryExpandAll = false; // Reset beim Tab-Wechsel
+        
+        // Tabs aktualisieren
+        document.querySelectorAll('.inventory-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.category === categoryId);
+        });
+        
+        // Toggle-Button zurücksetzen
+        const toggleBtn = document.getElementById('inventory-toggle-all');
+        if (toggleBtn) {
+            toggleBtn.classList.remove('active');
+            const icon = toggleBtn.querySelector('.toggle-icon');
+            if (icon) icon.textContent = '▶';
+        }
+        
+        // Items neu rendern
+        this.updateInventory();
     }
     
     // ==================== NOTIZEN ====================
     
     /**
-     * Erstellt die Notizen-Sektion mit Tabs
+     * Erstellt die Notizen-Sektion mit dynamischen Tabs
      * @private
      */
     _createNotesSection() {
         const section = document.createElement('div');
         section.className = 'trainer-notes-section';
         
-        // Zähler für Tabs berechnen
-        const countPersonen = (this.trainerState.notes.personen || []).length;
-        const countOrte = (this.trainerState.notes.orte || []).length;
-        const countSonstiges = (this.trainerState.notes.sonstiges || []).length;
+        // Aktive Kategorie initialisieren wenn nötig
+        const categories = this.trainerState.getNoteCategories();
+        if (!this.activeNotesCategory || !categories.includes(this.activeNotesCategory)) {
+            this.activeNotesCategory = categories[0] || 'personen';
+        }
         
         let html = `
-            <div class="notes-tabs">
-                <button type="button" class="notes-tab active" data-tab="personen">
-                    👤 Personen <span class="notes-tab-count">(${countPersonen})</span>
-                </button>
-                <button type="button" class="notes-tab" data-tab="orte">
-                    📍 Orte <span class="notes-tab-count">(${countOrte})</span>
-                </button>
-                <button type="button" class="notes-tab" data-tab="sonstiges">
-                    📝 Sonstiges <span class="notes-tab-count">(${countSonstiges})</span>
-                </button>
+            <div class="notes-tabs-container">
+                <div class="notes-tabs" id="notes-tabs">
+                    ${this._renderNotesTabs()}
+                </div>
+                <button type="button" class="notes-add-category-button" id="add-notes-category" title="Neue Kategorie hinzufügen">+</button>
             </div>
             
             <div class="notes-content">
-                <!-- Personen Tab -->
-                <div class="notes-tab-content active" data-tab-content="personen">
-                    <div class="notes-header-row">
-                        <button type="button" class="notes-toggle-all-button" data-category="personen" title="Alle auf-/zuklappen">
-                            <span class="toggle-icon">▶</span> Alle
-                        </button>
-                        <button type="button" class="notes-add-button" data-category="personen" title="Person hinzufügen">+</button>
-                    </div>
-                    <div class="notes-list" id="notes-list-personen">
-                        ${this._renderNoteEntries('personen')}
-                    </div>
-                </div>
-                
-                <!-- Orte Tab -->
-                <div class="notes-tab-content" data-tab-content="orte">
-                    <div class="notes-header-row">
-                        <button type="button" class="notes-toggle-all-button" data-category="orte" title="Alle auf-/zuklappen">
-                            <span class="toggle-icon">▶</span> Alle
-                        </button>
-                        <button type="button" class="notes-add-button" data-category="orte" title="Ort hinzufügen">+</button>
-                    </div>
-                    <div class="notes-list" id="notes-list-orte">
-                        ${this._renderNoteEntries('orte')}
-                    </div>
-                </div>
-                
-                <!-- Sonstiges Tab -->
-                <div class="notes-tab-content" data-tab-content="sonstiges">
-                    <div class="notes-header-row">
-                        <button type="button" class="notes-toggle-all-button" data-category="sonstiges" title="Alle auf-/zuklappen">
-                            <span class="toggle-icon">▶</span> Alle
-                        </button>
-                        <button type="button" class="notes-add-button" data-category="sonstiges" title="Eintrag hinzufügen">+</button>
-                    </div>
-                    <div class="notes-list" id="notes-list-sonstiges">
-                        ${this._renderNoteEntries('sonstiges')}
-                    </div>
-                </div>
+                ${this._renderNotesTabContents()}
             </div>
         `;
         
@@ -3027,12 +3485,76 @@ class TrainerUIRenderer {
     }
     
     /**
+     * Rendert die Notizen-Tabs
+     * @private
+     */
+    _renderNotesTabs() {
+        const categories = this.trainerState.getNoteCategories();
+        const canDelete = categories.length > 1;
+        
+        return categories.map((categoryId, index) => {
+            const name = this.trainerState.getNoteCategoryName(categoryId);
+            const icon = this.trainerState.getNoteCategoryIcon(categoryId);
+            const isActive = categoryId === this.activeNotesCategory;
+            const entries = this.trainerState.getNoteEntries(categoryId);
+            const count = entries.length;
+            
+            return `
+                <div class="notes-tab ${isActive ? 'active' : ''}" 
+                     data-tab="${categoryId}" 
+                     data-index="${index}">
+                    <span class="notes-tab-icon" data-category="${categoryId}">${icon}</span>
+                    <span class="notes-tab-name" data-category="${categoryId}">${this._escapeHtml(name)}</span>
+                    <span class="notes-tab-count">(${count})</span>
+                    ${canDelete ? `<button type="button" class="notes-tab-delete" data-category="${categoryId}" title="Kategorie löschen">×</button>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+    
+    /**
+     * Rendert alle Tab-Inhalte für Notizen
+     * @private
+     */
+    _renderNotesTabContents() {
+        const categories = this.trainerState.getNoteCategories();
+        
+        return categories.map(categoryId => {
+            const isActive = categoryId === this.activeNotesCategory;
+            const categoryColor = this.trainerState.getNoteCategoryColor(categoryId);
+            const hasColor = categoryColor !== null;
+            
+            return `
+                <div class="notes-tab-content ${isActive ? 'active' : ''}" data-tab-content="${categoryId}">
+                    <div class="notes-header-row">
+                        <button type="button" class="notes-toggle-all-button" data-category="${categoryId}" title="Alle auf-/zuklappen">
+                            <span class="toggle-icon">▶</span> Alle
+                        </button>
+                        <div class="notes-header-right">
+                            <button type="button" class="notes-category-color-button ${hasColor ? 'has-color' : ''}" 
+                                    data-category="${categoryId}" 
+                                    title="Kategoriefarbe ändern"
+                                    ${hasColor ? `style="--preview-hue: ${categoryColor}"` : ''}>
+                                🎨
+                            </button>
+                            <button type="button" class="notes-add-button" data-category="${categoryId}" title="Eintrag hinzufügen">+</button>
+                        </div>
+                    </div>
+                    <div class="notes-list" id="notes-list-${categoryId}">
+                        ${this._renderNoteEntries(categoryId)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    /**
      * Rendert alle Notiz-Einträge einer Kategorie
      * @param {string} category - 'personen', 'orte' oder 'sonstiges'
      * @private
      */
     _renderNoteEntries(category) {
-        const entries = this.trainerState.notes[category] || [];
+        const entries = this.trainerState.getNoteEntries(category) || [];
         return entries.map((entry, index) => this._renderNoteEntry(category, entry, index)).join('');
     }
     
@@ -3062,9 +3584,25 @@ class TrainerUIRenderer {
         const hasContent = (entry.notizen && entry.notizen.trim()) || 
                           (category === 'personen' && entry.rolle && entry.rolle.trim());
         
+        // Effektive Farbe berechnen (Eintrag > Kategorie)
+        const effectiveHue = this.trainerState.getEffectiveNoteColor(category, index);
+        const entryHue = entry.hue;
+        const hasEntryColor = entryHue !== null && entryHue !== undefined;
+        const styleAttr = effectiveHue !== null ? `style="--entry-hue: ${effectiveHue}"` : '';
+        const colorClass = effectiveHue !== null ? 'has-custom-color' : '';
+        
+        // Farbbutton HTML
+        const colorButton = `
+            <button type="button" class="notes-entry-color-button ${hasEntryColor ? 'has-color' : ''}" 
+                    data-category="${category}" data-index="${index}" 
+                    title="Eintragsfarbe ändern"
+                    ${hasEntryColor ? `style="--preview-hue: ${entryHue}"` : ''}>
+                🎨
+            </button>`;
+        
         if (category === 'personen') {
             return `
-                <div class="notes-item notes-personen-item" data-category="${category}" data-index="${index}" draggable="true">
+                <div class="notes-item notes-personen-item ${colorClass}" data-category="${category}" data-index="${index}" draggable="true" ${styleAttr}>
                     <div class="notes-item-header" data-category="${category}" data-index="${index}">
                         <span class="notes-drag-handle" title="Ziehen zum Verschieben">⋮⋮</span>
                         <span class="notes-expand-icon">▶</span>
@@ -3073,6 +3611,7 @@ class TrainerUIRenderer {
                                value="${this._escapeHtml(entry.name || '')}" 
                                placeholder="Name">
                         <span class="notes-preview ${hasContent ? '' : 'empty'}">${this._escapeHtml(preview)}</span>
+                        ${colorButton}
                         <button type="button" class="notes-remove-button" 
                                 data-category="${category}" data-index="${index}" title="Eintrag entfernen">×</button>
                     </div>
@@ -3095,7 +3634,7 @@ class TrainerUIRenderer {
             `;
         } else if (category === 'orte') {
             return `
-                <div class="notes-item notes-orte-item" data-category="${category}" data-index="${index}" draggable="true">
+                <div class="notes-item notes-orte-item ${colorClass}" data-category="${category}" data-index="${index}" draggable="true" ${styleAttr}>
                     <div class="notes-item-header" data-category="${category}" data-index="${index}">
                         <span class="notes-drag-handle" title="Ziehen zum Verschieben">⋮⋮</span>
                         <span class="notes-expand-icon">▶</span>
@@ -3104,6 +3643,7 @@ class TrainerUIRenderer {
                                value="${this._escapeHtml(entry.name || '')}" 
                                placeholder="Ortsname">
                         <span class="notes-preview ${hasContent ? '' : 'empty'}">${this._escapeHtml(preview)}</span>
+                        ${colorButton}
                         <button type="button" class="notes-remove-button" 
                                 data-category="${category}" data-index="${index}" title="Eintrag entfernen">×</button>
                     </div>
@@ -3119,7 +3659,7 @@ class TrainerUIRenderer {
             `;
         } else if (category === 'sonstiges') {
             return `
-                <div class="notes-item notes-sonstiges-item" data-category="${category}" data-index="${index}" draggable="true">
+                <div class="notes-item notes-sonstiges-item ${colorClass}" data-category="${category}" data-index="${index}" draggable="true" ${styleAttr}>
                     <div class="notes-item-header" data-category="${category}" data-index="${index}">
                         <span class="notes-drag-handle" title="Ziehen zum Verschieben">⋮⋮</span>
                         <span class="notes-expand-icon">▶</span>
@@ -3128,6 +3668,34 @@ class TrainerUIRenderer {
                                value="${this._escapeHtml(entry.ueberschrift || '')}" 
                                placeholder="Überschrift">
                         <span class="notes-preview ${hasContent ? '' : 'empty'}">${this._escapeHtml(preview)}</span>
+                        ${colorButton}
+                        <button type="button" class="notes-remove-button" 
+                                data-category="${category}" data-index="${index}" title="Eintrag entfernen">×</button>
+                    </div>
+                    <div class="notes-item-details">
+                        <div class="notes-detail-field">
+                            <label class="notes-detail-label">Notizen</label>
+                            <textarea class="notes-textarea notes-notizen" 
+                                      data-category="${category}" data-index="${index}" data-field="notizen"
+                                      placeholder="Deine Notizen...">${this._escapeHtml(entry.notizen || '')}</textarea>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Generisches Layout für benutzerdefinierte Kategorien
+            const categoryName = this.trainerState.getNoteCategoryName(category);
+            return `
+                <div class="notes-item notes-custom-item ${colorClass}" data-category="${category}" data-index="${index}" draggable="true" ${styleAttr}>
+                    <div class="notes-item-header" data-category="${category}" data-index="${index}">
+                        <span class="notes-drag-handle" title="Ziehen zum Verschieben">⋮⋮</span>
+                        <span class="notes-expand-icon">▶</span>
+                        <input type="text" class="notes-input notes-ueberschrift" 
+                               data-category="${category}" data-index="${index}" data-field="ueberschrift"
+                               value="${this._escapeHtml(entry.ueberschrift || entry.name || '')}" 
+                               placeholder="Titel">
+                        <span class="notes-preview ${hasContent ? '' : 'empty'}">${this._escapeHtml(preview)}</span>
+                        ${colorButton}
                         <button type="button" class="notes-remove-button" 
                                 data-category="${category}" data-index="${index}" title="Eintrag entfernen">×</button>
                     </div>
@@ -3142,7 +3710,6 @@ class TrainerUIRenderer {
                 </div>
             `;
         }
-        return '';
     }
     
     /**
@@ -3238,25 +3805,66 @@ class TrainerUIRenderer {
      * @private
      */
     _addNotesEventListeners() {
-        // Tab-Wechsel - durch Klonen alte Listener entfernen
+        // Tab-Wechsel
         document.querySelectorAll('.notes-tab').forEach(tab => {
             const newTab = tab.cloneNode(true);
             tab.parentNode.replaceChild(newTab, tab);
             
             newTab.addEventListener('click', (e) => {
-                const targetTab = e.target.dataset.tab;
+                // Nicht wechseln wenn auf Delete-Button geklickt
+                if (e.target.classList.contains('notes-tab-delete')) return;
+                // Nicht wechseln wenn Icon oder Name angeklickt
+                if (e.target.classList.contains('notes-tab-icon') || 
+                    e.target.classList.contains('notes-tab-name')) {
+                    // Aber trotzdem den Tab wechseln
+                    const targetTab = newTab.dataset.tab;
+                    if (targetTab) {
+                        this.switchNotesCategory(targetTab);
+                    }
+                    return;
+                }
                 
-                // Alle Tabs und Contents deaktivieren
-                document.querySelectorAll('.notes-tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.notes-tab-content').forEach(c => c.classList.remove('active'));
-                
-                // Gewählten Tab und Content aktivieren
-                e.target.classList.add('active');
-                document.querySelector(`[data-tab-content="${targetTab}"]`)?.classList.add('active');
+                const targetTab = newTab.dataset.tab;
+                if (targetTab) {
+                    this.switchNotesCategory(targetTab);
+                }
+            });
+            
+            // Doppelklick zum Umbenennen
+            const nameSpan = newTab.querySelector('.notes-tab-name');
+            if (nameSpan) {
+                nameSpan.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const categoryId = nameSpan.dataset.category;
+                    this._startNotesTabRename(newTab, categoryId);
+                });
+            }
+        });
+        
+        // Delete-Buttons für Tabs
+        document.querySelectorAll('.notes-tab-delete').forEach(btn => {
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            newBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const categoryId = newBtn.dataset.category;
+                this._showDeleteNotesCategoryDialog(categoryId);
             });
         });
         
-        // Hinzufügen-Buttons - durch Klonen alte Listener entfernen
+        // Add Category Button
+        const addCategoryButton = document.getElementById('add-notes-category');
+        if (addCategoryButton) {
+            const newAddCategoryButton = addCategoryButton.cloneNode(true);
+            addCategoryButton.parentNode.replaceChild(newAddCategoryButton, addCategoryButton);
+            
+            newAddCategoryButton.addEventListener('click', () => {
+                this._showAddNotesCategoryDialog();
+            });
+        }
+        
+        // Hinzufügen-Buttons für Einträge
         document.querySelectorAll('.notes-add-button').forEach(btn => {
             const newBtn = btn.cloneNode(true);
             btn.parentNode.replaceChild(newBtn, btn);
@@ -3285,16 +3893,176 @@ class TrainerUIRenderer {
                 }
                 
                 // Zustand speichern für neue Einträge
+                if (!this.notesExpandAll[category]) {
+                    this.notesExpandAll[category] = false;
+                }
                 this.notesExpandAll[category] = isExpanded;
                 
                 this._toggleAllNotes(category, isExpanded);
             });
         });
         
+        // Kategorie-Farb-Buttons
+        document.querySelectorAll('.notes-category-color-button').forEach(btn => {
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            newBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const categoryId = newBtn.dataset.category;
+                this._showColorPicker(newBtn, 'category', categoryId);
+            });
+        });
+        
         // Entry-spezifische Listener für alle Kategorien
-        ['personen', 'orte', 'sonstiges'].forEach(category => {
+        const categories = this.trainerState.getNoteCategories();
+        categories.forEach(category => {
             this._addNotesEntryEventListeners(category);
         });
+    }
+    
+    /**
+     * Wechselt die aktive Notizen-Kategorie
+     * @param {string} categoryId - Die Kategorie-ID
+     */
+    switchNotesCategory(categoryId) {
+        this.activeNotesCategory = categoryId;
+        
+        // Alle Tabs und Contents deaktivieren
+        document.querySelectorAll('.notes-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.notes-tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Gewählten Tab und Content aktivieren
+        document.querySelector(`.notes-tab[data-tab="${categoryId}"]`)?.classList.add('active');
+        document.querySelector(`[data-tab-content="${categoryId}"]`)?.classList.add('active');
+    }
+    
+    /**
+     * Aktualisiert die Notizen-Tabs
+     */
+    updateNotesTabs() {
+        const tabsContainer = document.getElementById('notes-tabs');
+        if (!tabsContainer) return;
+        
+        tabsContainer.innerHTML = this._renderNotesTabs();
+        
+        // Event-Listener für Tabs neu hinzufügen
+        this._addNotesEventListeners();
+    }
+    
+    /**
+     * Zeigt den Dialog zum Hinzufügen einer neuen Notizen-Kategorie
+     * @private
+     */
+    _showAddNotesCategoryDialog() {
+        const name = prompt('Name der neuen Kategorie:');
+        if (name && name.trim()) {
+            const icon = prompt('Icon für die Kategorie (Emoji, z.B. 📋):', '📋');
+            const categoryId = this.trainerState.addNoteCategory(name.trim(), icon || '📋');
+            if (categoryId) {
+                // notesExpandAll für neue Kategorie initialisieren
+                this.notesExpandAll[categoryId] = false;
+                
+                // UI aktualisieren
+                this._refreshNotesSection();
+                this.switchNotesCategory(categoryId);
+            }
+        }
+    }
+    
+    /**
+     * Zeigt den Dialog zum Löschen einer Notizen-Kategorie
+     * @param {string} categoryId - Die zu löschende Kategorie
+     * @private
+     */
+    _showDeleteNotesCategoryDialog(categoryId) {
+        const categories = this.trainerState.getNoteCategories();
+        
+        // Mindestens eine Kategorie muss bleiben
+        if (categories.length <= 1) {
+            alert('Die letzte Kategorie kann nicht gelöscht werden.');
+            return;
+        }
+        
+        const categoryName = this.trainerState.getNoteCategoryName(categoryId);
+        const entries = this.trainerState.getNoteEntries(categoryId);
+        
+        let message = `Kategorie "${categoryName}" wirklich löschen?`;
+        if (entries.length > 0) {
+            message += `\n\nDiese Kategorie enthält ${entries.length} Eintrag/Einträge.\nAlle Einträge werden gelöscht!`;
+        }
+        
+        if (confirm(message)) {
+            // Kategorie löschen
+            this.trainerState.removeNoteCategory(categoryId);
+            
+            // Zur ersten Kategorie wechseln wenn aktive Kategorie gelöscht wurde
+            if (this.activeNotesCategory === categoryId) {
+                const remainingCategories = this.trainerState.getNoteCategories();
+                this.activeNotesCategory = remainingCategories[0] || 'personen';
+            }
+            
+            // UI aktualisieren
+            this._refreshNotesSection();
+        }
+    }
+    
+    /**
+     * Startet die Umbenennung eines Notizen-Tabs
+     * @param {HTMLElement} tab - Das Tab-Element
+     * @param {string} categoryId - Die Kategorie-ID
+     * @private
+     */
+    _startNotesTabRename(tab, categoryId) {
+        const nameSpan = tab.querySelector('.notes-tab-name');
+        if (!nameSpan) return;
+        
+        const currentName = this.trainerState.getNoteCategoryName(categoryId);
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.className = 'notes-tab-name-input';
+        
+        nameSpan.style.display = 'none';
+        nameSpan.parentNode.insertBefore(input, nameSpan.nextSibling);
+        input.focus();
+        input.select();
+        
+        const finishRename = () => {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+                this.trainerState.renameNoteCategory(categoryId, newName);
+                nameSpan.textContent = newName;
+            }
+            input.remove();
+            nameSpan.style.display = '';
+        };
+        
+        input.addEventListener('blur', finishRename);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                finishRename();
+            } else if (e.key === 'Escape') {
+                input.remove();
+                nameSpan.style.display = '';
+            }
+        });
+    }
+    
+    /**
+     * Aktualisiert die komplette Notizen-Sektion
+     * @private
+     */
+    _refreshNotesSection() {
+        const section = document.querySelector('.trainer-notes-section');
+        if (!section) return;
+        
+        const parent = section.parentNode;
+        const newSection = this._createNotesSection();
+        parent.replaceChild(newSection, section);
+        
+        // Event-Listener neu hinzufügen
+        this._addNotesEventListeners();
     }
     
     /**
@@ -3306,7 +4074,8 @@ class TrainerUIRenderer {
         const tab = document.querySelector(`.notes-tab[data-tab="${category}"]`);
         if (!tab) return;
         
-        const count = (this.trainerState.notes[category] || []).length;
+        const entries = this.trainerState.getNoteEntries(category);
+        const count = entries.length;
         const countSpan = tab.querySelector('.notes-tab-count');
         if (countSpan) {
             countSpan.textContent = `(${count})`;
@@ -3359,6 +4128,19 @@ class TrainerUIRenderer {
                     this.updateNotes(cat);
                     this._updateNotesTabCount(cat);
                 }
+            });
+        });
+        
+        // Eintrag-Farb-Buttons
+        container.querySelectorAll('.notes-entry-color-button').forEach(btn => {
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            newBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const cat = newBtn.dataset.category;
+                const index = parseInt(newBtn.dataset.index, 10);
+                this._showColorPicker(newBtn, 'entry', cat, index);
             });
         });
         
@@ -3606,7 +4388,7 @@ class TrainerUIRenderer {
      */
     _moveNoteEntry(category, fromIndex, toIndex) {
         const container = document.getElementById(`notes-list-${category}`);
-        const notes = this.trainerState.notes[category];
+        const notes = this.trainerState.getNoteEntries(category);
         if (!notes || !container || fromIndex < 0 || fromIndex >= notes.length) return;
         
         // Expanded-Zustände vor dem Verschieben speichern (nach Index)
@@ -3644,8 +4426,7 @@ class TrainerUIRenderer {
         });
         
         // Element entfernen und an neuer Position einfügen
-        const [movedItem] = notes.splice(fromIndex, 1);
-        notes.splice(toIndex, 0, movedItem);
+        this.trainerState.reorderNotes(category, fromIndex, toIndex);
         
         // UI aktualisieren (ohne automatische Zustandswiederherstellung)
         container.innerHTML = this._renderNoteEntries(category);
@@ -3684,6 +4465,181 @@ class TrainerUIRenderer {
             const previewText = this._getNotesPreview(value);
             preview.textContent = previewText;
             preview.classList.toggle('empty', !previewText);
+        }
+    }
+    
+    /**
+     * Zeigt den Farbwähler (Hue-Slider) an
+     * @param {HTMLElement} button - Der Farbbutton
+     * @param {string} type - 'category' oder 'entry'
+     * @param {string} categoryId - Kategorie-ID
+     * @param {number} index - Index des Eintrags (nur bei type='entry')
+     * @private
+     */
+    _showColorPicker(button, type, categoryId, index = null) {
+        // Existierendes Popup entfernen
+        const existingPicker = document.querySelector('.notes-color-picker-popup');
+        if (existingPicker) {
+            existingPicker.remove();
+        }
+        
+        // Aktuellen Hue-Wert ermitteln
+        let currentHue = null;
+        if (type === 'category') {
+            currentHue = this.trainerState.getNoteCategoryColor(categoryId);
+        } else {
+            const entries = this.trainerState.getNoteEntries(categoryId);
+            if (entries[index]) {
+                currentHue = entries[index].hue;
+            }
+        }
+        
+        // Popup erstellen
+        const popup = document.createElement('div');
+        popup.className = 'notes-color-picker-popup';
+        popup.innerHTML = `
+            <div class="color-picker-header">
+                <span>${type === 'category' ? 'Kategoriefarbe' : 'Eintragsfarbe'}</span>
+                <button type="button" class="color-picker-close" title="Schließen">×</button>
+            </div>
+            <div class="color-picker-preview" style="${currentHue !== null ? `background: hsl(${currentHue}, 85%, 92%)` : ''}"></div>
+            <div class="color-picker-slider-container">
+                <input type="range" class="color-picker-hue-slider" min="0" max="360" value="${currentHue ?? 180}">
+            </div>
+            <div class="color-picker-buttons">
+                <button type="button" class="color-picker-reset" title="Farbe zurücksetzen">Zurücksetzen</button>
+            </div>
+        `;
+        
+        // Popup positionieren
+        const buttonRect = button.getBoundingClientRect();
+        popup.style.position = 'fixed';
+        popup.style.top = `${buttonRect.bottom + 5}px`;
+        popup.style.left = `${buttonRect.left}px`;
+        popup.style.zIndex = '10000';
+        
+        document.body.appendChild(popup);
+        
+        // Popup innerhalb des Viewports halten
+        const popupRect = popup.getBoundingClientRect();
+        if (popupRect.right > window.innerWidth) {
+            popup.style.left = `${window.innerWidth - popupRect.width - 10}px`;
+        }
+        if (popupRect.bottom > window.innerHeight) {
+            popup.style.top = `${buttonRect.top - popupRect.height - 5}px`;
+        }
+        
+        // Event-Listener
+        const slider = popup.querySelector('.color-picker-hue-slider');
+        const preview = popup.querySelector('.color-picker-preview');
+        const closeBtn = popup.querySelector('.color-picker-close');
+        const resetBtn = popup.querySelector('.color-picker-reset');
+        
+        // Slider-Änderung
+        slider.addEventListener('input', (e) => {
+            const hue = parseInt(e.target.value, 10);
+            preview.style.background = `hsl(${hue}, 85%, 92%)`;
+            
+            // Live-Update
+            if (type === 'category') {
+                this.trainerState.setNoteCategoryColor(categoryId, hue);
+                this._updateCategoryColors(categoryId);
+                button.classList.add('has-color');
+                button.style.setProperty('--preview-hue', hue);
+            } else {
+                this.trainerState.setNoteEntryColor(categoryId, index, hue);
+                this._updateEntryColor(categoryId, index);
+                button.classList.add('has-color');
+                button.style.setProperty('--preview-hue', hue);
+            }
+        });
+        
+        // Reset-Button
+        resetBtn.addEventListener('click', () => {
+            if (type === 'category') {
+                this.trainerState.setNoteCategoryColor(categoryId, null);
+                this._updateCategoryColors(categoryId);
+                button.classList.remove('has-color');
+                button.style.removeProperty('--preview-hue');
+            } else {
+                this.trainerState.setNoteEntryColor(categoryId, index, null);
+                this._updateEntryColor(categoryId, index);
+                button.classList.remove('has-color');
+                button.style.removeProperty('--preview-hue');
+            }
+            preview.style.background = '';
+            slider.value = 180;
+        });
+        
+        // Schließen-Button
+        closeBtn.addEventListener('click', () => {
+            popup.remove();
+        });
+        
+        // Außerhalb klicken schließt Popup
+        const closeOnOutsideClick = (e) => {
+            if (!popup.contains(e.target) && e.target !== button) {
+                popup.remove();
+                document.removeEventListener('mousedown', closeOnOutsideClick);
+            }
+        };
+        setTimeout(() => {
+            document.addEventListener('mousedown', closeOnOutsideClick);
+        }, 0);
+    }
+    
+    /**
+     * Aktualisiert die Farben aller Einträge einer Kategorie
+     * @param {string} categoryId - Kategorie-ID
+     * @private
+     */
+    _updateCategoryColors(categoryId) {
+        const container = document.getElementById(`notes-list-${categoryId}`);
+        if (!container) return;
+        
+        const categoryColor = this.trainerState.getNoteCategoryColor(categoryId);
+        const entries = this.trainerState.getNoteEntries(categoryId);
+        
+        container.querySelectorAll('.notes-item').forEach((item, i) => {
+            const entry = entries[i];
+            if (!entry) return;
+            
+            // Eintrag-Farbe hat Vorrang vor Kategorie-Farbe
+            const effectiveHue = entry.hue !== null && entry.hue !== undefined 
+                ? entry.hue 
+                : categoryColor;
+            
+            if (effectiveHue !== null) {
+                item.style.setProperty('--entry-hue', effectiveHue);
+                item.classList.add('has-custom-color');
+            } else {
+                item.style.removeProperty('--entry-hue');
+                item.classList.remove('has-custom-color');
+            }
+        });
+    }
+    
+    /**
+     * Aktualisiert die Farbe eines einzelnen Eintrags
+     * @param {string} categoryId - Kategorie-ID
+     * @param {number} index - Index des Eintrags
+     * @private
+     */
+    _updateEntryColor(categoryId, index) {
+        const container = document.getElementById(`notes-list-${categoryId}`);
+        if (!container) return;
+        
+        const item = container.querySelector(`.notes-item[data-index="${index}"]`);
+        if (!item) return;
+        
+        const effectiveHue = this.trainerState.getEffectiveNoteColor(categoryId, index);
+        
+        if (effectiveHue !== null) {
+            item.style.setProperty('--entry-hue', effectiveHue);
+            item.classList.add('has-custom-color');
+        } else {
+            item.style.removeProperty('--entry-hue');
+            item.classList.remove('has-custom-color');
         }
     }
     
@@ -4282,7 +5238,9 @@ class TrainerUIRenderer {
         // Trainer-Info Inputs
         const nameInput = document.getElementById('trainer-name');
         const ageInput = document.getElementById('trainer-age');
-        const playedByInput = document.getElementById('trainer-played-by');
+        const heightInput = document.getElementById('trainer-height');
+        const weightInput = document.getElementById('trainer-weight');
+        const backgroundInput = document.getElementById('trainer-background');
         
         if (nameInput) {
             nameInput.addEventListener('input', (e) => {
@@ -4296,9 +5254,32 @@ class TrainerUIRenderer {
             });
         }
         
-        if (playedByInput) {
-            playedByInput.addEventListener('input', (e) => {
-                this.trainerState.setPlayedBy(e.target.value);
+        if (heightInput) {
+            heightInput.addEventListener('input', (e) => {
+                this.trainerState.setHeight(e.target.value);
+            });
+        }
+        
+        if (weightInput) {
+            weightInput.addEventListener('input', (e) => {
+                this.trainerState.setWeight(e.target.value);
+            });
+        }
+        
+        if (backgroundInput) {
+            backgroundInput.addEventListener('input', (e) => {
+                this.trainerState.setBackground(e.target.value);
+            });
+        }
+        
+        // Hintergrund-Feld ein-/ausklappen
+        const backgroundHeader = document.getElementById('background-header');
+        if (backgroundHeader) {
+            backgroundHeader.addEventListener('click', () => {
+                const content = document.getElementById('background-content');
+                const icon = backgroundHeader.querySelector('.background-expand-icon');
+                const isCollapsed = content.classList.toggle('collapsed');
+                icon.textContent = isCollapsed ? '▶' : '▼';
             });
         }
         
@@ -4351,20 +5332,38 @@ class TrainerUIRenderer {
             });
         }
         
-        // Glücks-Tokens Event-Listener
-        const luckTokensInput = document.getElementById('trainer-luck-tokens');
-        if (luckTokensInput) {
-            luckTokensInput.addEventListener('input', (e) => {
-                let value = parseInt(e.target.value, 10) || 0;
-                const maxLuck = this.trainerState.maxLuckTokens;
-                
-                // Begrenze auf Maximum
-                if (value > maxLuck) {
-                    value = maxLuck;
-                    e.target.value = value;
+        // Glücks-Tokens Event-Listener (klickbare Leiste)
+        document.querySelectorAll('.luck-token').forEach(token => {
+            token.addEventListener('click', (e) => this._handleLuckTokenClick(e));
+        });
+        
+        // Glücks-Token Maximum anpassen Buttons
+        const luckMaxDecrease = document.getElementById('luck-max-decrease');
+        if (luckMaxDecrease) {
+            luckMaxDecrease.addEventListener('click', () => {
+                const currentMax = this.trainerState.maxLuckTokens;
+                if (currentMax > 1) {
+                    this.trainerState.setMaxLuckTokens(currentMax - 1);
+                    // Aktuelle Tokens anpassen falls nötig
+                    if (this.trainerState.luckTokens > currentMax - 1) {
+                        this.trainerState.setLuckTokens(currentMax - 1);
+                    }
+                    this._rerenderLuckTokensBar();
                 }
-                
-                this.trainerState.setLuckTokens(value);
+            });
+        }
+        
+        const luckMaxIncrease = document.getElementById('luck-max-increase');
+        if (luckMaxIncrease) {
+            luckMaxIncrease.addEventListener('click', () => {
+                const currentMax = this.trainerState.maxLuckTokens;
+                if (currentMax < 10) {
+                    // Maximum erhöhen
+                    this.trainerState.setMaxLuckTokens(currentMax + 1);
+                    // Auch verfügbare Tokens erhöhen, damit das neue Token NICHT als "used" markiert ist
+                    this.trainerState.setLuckTokens(this.trainerState.luckTokens + 1);
+                    this._rerenderLuckTokensBar();
+                }
             });
         }
         
@@ -4455,6 +5454,17 @@ class TrainerUIRenderer {
                 // Auto-Save
                 this.trainerState._notifyChange();
             });
+            
+            // Custom-Tooltip Event-Handler
+            wrapper.addEventListener('mouseenter', (e) => {
+                this._showStatusTooltip(e, wrapper);
+            });
+            wrapper.addEventListener('mouseleave', () => {
+                this._hideStatusTooltip();
+            });
+            wrapper.addEventListener('mousemove', (e) => {
+                this._moveStatusTooltip(e);
+            });
         });
         
         // Skill-Inputs - NUR im Trainer-Sheet-Container, nicht im Pokemon-Sheet!
@@ -4506,6 +5516,7 @@ class TrainerUIRenderer {
         
         // Inventar Event-Listener
         this._addInventoryEventListeners();
+        this._addInventoryTabEventListeners();
         
         // Notizen Event-Listener
         this._addNotesEventListeners();
@@ -4807,16 +5818,29 @@ class TrainerUIRenderer {
      * @private
      */
     _addInventoryEventListeners() {
-        // Add-Button
+        // HINWEIS: Tab-Listener werden in updateInventoryTabs() separat hinzugefügt
+        // um doppelte Listener zu vermeiden
+        
+        // Add Item Button
         const addButton = document.getElementById('add-inventory-item');
         if (addButton) {
-            // Alten Listener entfernen durch Klonen
             const newAddButton = addButton.cloneNode(true);
             addButton.parentNode.replaceChild(newAddButton, addButton);
             
             newAddButton.addEventListener('click', () => {
-                this.trainerState.addInventoryItem();
+                this.trainerState.addInventoryItem(this.activeInventoryCategory);
                 this.updateInventory();
+            });
+        }
+        
+        // Add Category Button
+        const addCategoryButton = document.getElementById('add-inventory-category');
+        if (addCategoryButton) {
+            const newAddCategoryButton = addCategoryButton.cloneNode(true);
+            addCategoryButton.parentNode.replaceChild(newAddCategoryButton, addCategoryButton);
+            
+            newAddCategoryButton.addEventListener('click', () => {
+                this._showAddCategoryDialog();
             });
         }
         
@@ -4831,10 +5855,8 @@ class TrainerUIRenderer {
                 const expandedItems = document.querySelectorAll('.inventory-item.expanded');
                 const shouldExpand = expandedItems.length < items.length / 2;
                 
-                // Zustand speichern für neue Einträge
                 this.inventoryExpandAll = shouldExpand;
                 
-                // Button-Zustand und Icon aktualisieren
                 newToggleAllButton.classList.toggle('active', shouldExpand);
                 const buttonIcon = newToggleAllButton.querySelector('.toggle-icon');
                 if (buttonIcon) {
@@ -4857,7 +5879,6 @@ class TrainerUIRenderer {
         // Einklappen/Ausklappen per Klick auf Header
         document.querySelectorAll('.inventory-item-header').forEach(header => {
             header.addEventListener('click', (e) => {
-                // Nicht auslösen wenn auf Input, Button oder Drag-Handle geklickt
                 if (e.target.matches('input, button, textarea, .inventory-drag-handle')) {
                     return;
                 }
@@ -4872,10 +5893,8 @@ class TrainerUIRenderer {
                         icon.textContent = item.classList.contains('expanded') ? '▼' : '▶';
                     }
                     
-                    // Wenn manuell zugeklappt wird, expandAll deaktivieren
                     if (wasExpanded) {
                         this.inventoryExpandAll = false;
-                        // Auch den Button-Zustand aktualisieren
                         const toggleBtn = document.getElementById('inventory-toggle-all');
                         if (toggleBtn) {
                             toggleBtn.classList.remove('active');
@@ -4897,10 +5916,9 @@ class TrainerUIRenderer {
         document.querySelectorAll('.inventory-remove-button').forEach(button => {
             button.addEventListener('click', (e) => {
                 const index = parseInt(e.target.dataset.index, 10);
-                if (this.trainerState.inventory.length > 1) {
-                    this.trainerState.removeInventoryItem(index);
-                    this.updateInventory();
-                }
+                const category = e.target.dataset.category || this.activeInventoryCategory;
+                this.trainerState.removeInventoryItem(category, index);
+                this.updateInventory();
             });
         });
         
@@ -4908,10 +5926,10 @@ class TrainerUIRenderer {
         document.querySelectorAll('.inventory-name, .inventory-quantity, .inventory-description').forEach(input => {
             input.addEventListener('input', (e) => {
                 const index = parseInt(e.target.dataset.index, 10);
+                const category = e.target.dataset.category || this.activeInventoryCategory;
                 const field = e.target.dataset.field;
-                this.trainerState.updateInventoryItem(index, { [field]: e.target.value });
+                this.trainerState.updateInventoryItem(category, index, { [field]: e.target.value });
                 
-                // Vorschau aktualisieren wenn Beschreibung geändert wird
                 if (field === 'description') {
                     const item = e.target.closest('.inventory-item');
                     const preview = item?.querySelector('.inventory-preview');
@@ -4920,6 +5938,200 @@ class TrainerUIRenderer {
                         preview.textContent = previewText;
                         preview.classList.toggle('empty', !previewText);
                     }
+                }
+            });
+        });
+    }
+    
+    /**
+     * Fügt Event-Listener für Inventar-Tabs hinzu
+     * @private
+     */
+    _addInventoryTabEventListeners() {
+        // Tab-Klick zum Wechseln
+        document.querySelectorAll('.inventory-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                // Nicht wechseln wenn auf Delete-Button geklickt
+                if (e.target.classList.contains('inventory-tab-delete')) return;
+                // Nicht wechseln wenn Name editiert wird
+                if (e.target.classList.contains('inventory-tab-name-input')) return;
+                
+                const categoryId = tab.dataset.category;
+                this.switchInventoryCategory(categoryId);
+            });
+            
+            // Doppelklick zum Umbenennen
+            const nameSpan = tab.querySelector('.inventory-tab-name');
+            if (nameSpan) {
+                nameSpan.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    this._startTabRename(tab);
+                });
+            }
+        });
+        
+        // Delete-Buttons
+        document.querySelectorAll('.inventory-tab-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const categoryId = btn.dataset.category;
+                this._showDeleteCategoryDialog(categoryId);
+            });
+        });
+        
+        // Tab Drag & Drop
+        this._initInventoryTabDragAndDrop();
+    }
+    
+    /**
+     * Zeigt den Dialog zum Hinzufügen einer neuen Kategorie
+     * @private
+     */
+    _showAddCategoryDialog() {
+        const name = prompt('Name der neuen Kategorie:');
+        if (name && name.trim()) {
+            const categoryId = this.trainerState.addInventoryCategory(name.trim());
+            if (categoryId) {
+                this.updateInventoryTabs();
+                this.switchInventoryCategory(categoryId);
+            }
+        }
+    }
+    
+    /**
+     * Zeigt den Dialog zum Löschen einer Kategorie
+     * @param {string} categoryId - Die zu löschende Kategorie
+     * @private
+     */
+    _showDeleteCategoryDialog(categoryId) {
+        const categoryName = this.trainerState.getInventoryCategoryName(categoryId);
+        const items = this.trainerState.getInventoryItems(categoryId);
+        
+        let message = `Kategorie "${categoryName}" wirklich löschen?`;
+        if (items.length > 0) {
+            message += `\n\nDiese Kategorie enthält ${items.length} Item(s).\n`;
+            message += `Klicke OK um die Items nach "Items" zu verschieben,\n`;
+            message += `oder Abbrechen um den Vorgang abzubrechen.`;
+            
+            if (confirm(message)) {
+                // Erst fragen ob Items gelöscht werden sollen
+                const deleteItems = confirm('Sollen die Items gelöscht werden?\n\nOK = Items löschen\nAbbrechen = Items nach "Items" verschieben');
+                this.trainerState.removeInventoryCategory(categoryId, !deleteItems);
+                
+                // Zur Items-Kategorie wechseln wenn aktive Kategorie gelöscht wurde
+                if (this.activeInventoryCategory === categoryId) {
+                    this.activeInventoryCategory = 'items';
+                }
+                
+                this.updateInventoryTabs();
+                this.updateInventory();
+            }
+        } else {
+            if (confirm(message)) {
+                this.trainerState.removeInventoryCategory(categoryId, false);
+                
+                if (this.activeInventoryCategory === categoryId) {
+                    this.activeInventoryCategory = 'items';
+                }
+                
+                this.updateInventoryTabs();
+                this.updateInventory();
+            }
+        }
+    }
+    
+    /**
+     * Startet das Umbenennen eines Tabs
+     * @param {HTMLElement} tab - Das Tab-Element
+     * @private
+     */
+    _startTabRename(tab) {
+        const categoryId = tab.dataset.category;
+        const nameSpan = tab.querySelector('.inventory-tab-name');
+        if (!nameSpan) return;
+        
+        const currentName = nameSpan.textContent;
+        
+        // Input-Feld erstellen
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'inventory-tab-name-input';
+        input.value = currentName;
+        
+        nameSpan.style.display = 'none';
+        nameSpan.parentNode.insertBefore(input, nameSpan);
+        input.focus();
+        input.select();
+        
+        const finishRename = () => {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+                this.trainerState.renameInventoryCategory(categoryId, newName);
+                nameSpan.textContent = newName;
+            }
+            input.remove();
+            nameSpan.style.display = '';
+        };
+        
+        input.addEventListener('blur', finishRename);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                input.blur();
+            } else if (e.key === 'Escape') {
+                input.value = currentName;
+                input.blur();
+            }
+        });
+    }
+    
+    /**
+     * Initialisiert Drag & Drop für Tab-Reihenfolge
+     * @private
+     */
+    _initInventoryTabDragAndDrop() {
+        const tabsContainer = document.getElementById('inventory-tabs');
+        if (!tabsContainer) return;
+        
+        let draggedTab = null;
+        
+        tabsContainer.querySelectorAll('.inventory-tab').forEach(tab => {
+            tab.addEventListener('dragstart', (e) => {
+                draggedTab = tab;
+                tab.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', tab.dataset.category);
+            });
+            
+            tab.addEventListener('dragend', () => {
+                tab.classList.remove('dragging');
+                draggedTab = null;
+                tabsContainer.querySelectorAll('.inventory-tab').forEach(t => {
+                    t.classList.remove('drag-over');
+                });
+            });
+            
+            tab.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedTab && draggedTab !== tab) {
+                    tab.classList.add('drag-over');
+                }
+            });
+            
+            tab.addEventListener('dragleave', () => {
+                tab.classList.remove('drag-over');
+            });
+            
+            tab.addEventListener('drop', (e) => {
+                e.preventDefault();
+                tab.classList.remove('drag-over');
+                
+                if (draggedTab && draggedTab !== tab) {
+                    const fromIndex = parseInt(draggedTab.dataset.index, 10);
+                    const toIndex = parseInt(tab.dataset.index, 10);
+                    
+                    this.trainerState.reorderInventoryCategories(fromIndex, toIndex);
+                    this.updateInventoryTabs();
                 }
             });
         });
@@ -4943,6 +6155,7 @@ class TrainerUIRenderer {
         let startY = 0;
         let offsetX = 0;
         let offsetY = 0;
+        let hoveredTab = null;
         
         const getItemAtPosition = (x, y) => {
             const elements = document.elementsFromPoint(x, y);
@@ -4953,6 +6166,20 @@ class TrainerUIRenderer {
                 const parentItem = el.closest('.inventory-item');
                 if (parentItem && parentItem !== dragClone && container.contains(parentItem)) {
                     return parentItem;
+                }
+            }
+            return null;
+        };
+        
+        const getTabAtPosition = (x, y) => {
+            const elements = document.elementsFromPoint(x, y);
+            for (const el of elements) {
+                if (el.classList.contains('inventory-tab')) {
+                    return el;
+                }
+                const parentTab = el.closest('.inventory-tab');
+                if (parentTab) {
+                    return parentTab;
                 }
             }
             return null;
@@ -4985,10 +6212,9 @@ class TrainerUIRenderer {
                     pointer-events: none;
                     box-shadow: 0 8px 24px rgba(0,0,0,0.2);
                     opacity: 0.95;
-                    background: var(--bg-secondary, #2a2a2a);
+                    background: var(--bg-secondary, #f8f9fa);
                     border-radius: 4px;
-                    display: flex;
-                    align-items: center;
+                    flex-direction: column;
                 `;
                 
                 document.body.appendChild(dragClone);
@@ -5011,20 +6237,60 @@ class TrainerUIRenderer {
                 dragClone.style.left = (e.clientX - offsetX) + 'px';
                 dragClone.style.top = (e.clientY - offsetY) + 'px';
                 
-                const targetItem = getItemAtPosition(e.clientX, e.clientY);
-                
-                if (targetItem && targetItem !== draggedItem) {
-                    const rect = targetItem.getBoundingClientRect();
-                    const midY = rect.top + rect.height / 2;
+                // Prüfen ob über einem Tab (aber nicht dem aktiven)
+                const tab = getTabAtPosition(e.clientX, e.clientY);
+                if (tab && tab.dataset.category !== self.activeInventoryCategory) {
+                    if (hoveredTab !== tab) {
+                        // Alten Tab-Hover entfernen
+                        document.querySelectorAll('.inventory-tab.item-drag-over').forEach(t => {
+                            t.classList.remove('item-drag-over');
+                        });
+                        tab.classList.add('item-drag-over');
+                        hoveredTab = tab;
+                    }
+                    // Placeholder verstecken wenn über Tab
+                    if (placeholder) placeholder.style.display = 'none';
+                } else {
+                    // Tab-Hover entfernen (immer wenn nicht über einem gültigen Tab)
+                    if (hoveredTab) {
+                        hoveredTab.classList.remove('item-drag-over');
+                        hoveredTab = null;
+                    }
+                    document.querySelectorAll('.inventory-tab.item-drag-over').forEach(t => {
+                        t.classList.remove('item-drag-over');
+                    });
                     
-                    if (e.clientY < midY) {
-                        if (placeholder.nextSibling !== targetItem) {
-                            targetItem.parentNode.insertBefore(placeholder, targetItem);
+                    // Prüfen ob die Maus innerhalb der inventory-list ist
+                    const containerRect = container.getBoundingClientRect();
+                    const isInsideContainer = 
+                        e.clientX >= containerRect.left && 
+                        e.clientX <= containerRect.right && 
+                        e.clientY >= containerRect.top && 
+                        e.clientY <= containerRect.bottom;
+                    
+                    if (isInsideContainer) {
+                        // Placeholder wieder zeigen
+                        if (placeholder) placeholder.style.display = '';
+                        
+                        const targetItem = getItemAtPosition(e.clientX, e.clientY);
+                        
+                        if (targetItem && targetItem !== draggedItem) {
+                            const rect = targetItem.getBoundingClientRect();
+                            const midY = rect.top + rect.height / 2;
+                            
+                            if (e.clientY < midY) {
+                                if (placeholder.nextSibling !== targetItem) {
+                                    targetItem.parentNode.insertBefore(placeholder, targetItem);
+                                }
+                            } else {
+                                if (placeholder.previousSibling !== targetItem) {
+                                    targetItem.parentNode.insertBefore(placeholder, targetItem.nextSibling);
+                                }
+                            }
                         }
                     } else {
-                        if (placeholder.previousSibling !== targetItem) {
-                            targetItem.parentNode.insertBefore(placeholder, targetItem.nextSibling);
-                        }
+                        // Außerhalb der Liste und nicht über Tab - Placeholder verstecken
+                        if (placeholder) placeholder.style.display = 'none';
                     }
                 }
             }
@@ -5036,20 +6302,44 @@ class TrainerUIRenderer {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
             
+            // Tab-Hover entfernen
+            document.querySelectorAll('.inventory-tab.item-drag-over').forEach(t => {
+                t.classList.remove('item-drag-over');
+            });
+            
             if (dragStarted && draggedItem && placeholder) {
-                const items = Array.from(container.querySelectorAll('.inventory-item, .inventory-item-placeholder'));
-                const newIndex = items.indexOf(placeholder);
+                const fromCategory = draggedItem.dataset.category || self.activeInventoryCategory;
                 const oldIndex = parseInt(draggedItem.dataset.index, 10);
                 
-                if (dragClone && dragClone.parentNode) dragClone.remove();
-                if (placeholder && placeholder.parentNode) placeholder.remove();
-                
-                draggedItem.style.display = '';
-                draggedItem.classList.remove('inventory-item-dragging');
-                
-                if (newIndex !== -1 && newIndex !== oldIndex) {
-                    const adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
-                    self._moveInventoryItem(oldIndex, adjustedNewIndex);
+                // Prüfen ob auf Tab gedroppt
+                if (hoveredTab) {
+                    const toCategory = hoveredTab.dataset.category;
+                    
+                    if (dragClone && dragClone.parentNode) dragClone.remove();
+                    if (placeholder && placeholder.parentNode) placeholder.remove();
+                    
+                    draggedItem.style.display = '';
+                    draggedItem.classList.remove('inventory-item-dragging');
+                    
+                    // Item in andere Kategorie verschieben
+                    self.trainerState.moveInventoryItem(fromCategory, oldIndex, toCategory);
+                    self.updateInventory();
+                    self._updateInventoryTabCounts();
+                } else {
+                    // Innerhalb der Kategorie verschieben
+                    const items = Array.from(container.querySelectorAll('.inventory-item, .inventory-item-placeholder'));
+                    const newIndex = items.indexOf(placeholder);
+                    
+                    if (dragClone && dragClone.parentNode) dragClone.remove();
+                    if (placeholder && placeholder.parentNode) placeholder.remove();
+                    
+                    draggedItem.style.display = '';
+                    draggedItem.classList.remove('inventory-item-dragging');
+                    
+                    if (newIndex !== -1 && newIndex !== oldIndex) {
+                        const adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+                        self._moveInventoryItemInCategory(fromCategory, oldIndex, adjustedNewIndex);
+                    }
                 }
             } else if (draggedItem) {
                 draggedItem.classList.remove('inventory-item-dragging');
@@ -5061,13 +6351,14 @@ class TrainerUIRenderer {
             draggedItem = null;
             dragClone = null;
             placeholder = null;
+            hoveredTab = null;
         };
         
         // Drag nur über den Drag-Handle aktivieren
         container.querySelectorAll('.inventory-drag-handle').forEach(handle => {
             handle.addEventListener('mousedown', (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // Verhindere, dass der Header-Click-Event ausgelöst wird
+                e.stopPropagation();
                 
                 const item = handle.closest('.inventory-item');
                 if (!item) return;
@@ -5085,17 +6376,18 @@ class TrainerUIRenderer {
     }
     
     /**
-     * Verschiebt ein Inventar-Item an eine neue Position
+     * Verschiebt ein Inventar-Item innerhalb einer Kategorie
+     * @param {string} category - Die Kategorie
      * @param {number} fromIndex - Ursprünglicher Index
      * @param {number} toIndex - Ziel-Index
      * @private
      */
-    _moveInventoryItem(fromIndex, toIndex) {
-        const inventory = this.trainerState.inventory;
-        if (!inventory || fromIndex < 0 || fromIndex >= inventory.length) return;
+    _moveInventoryItemInCategory(category, fromIndex, toIndex) {
+        const items = this.trainerState.inventory.items[category];
+        if (!items || fromIndex < 0 || fromIndex >= items.length) return;
         
-        const [movedItem] = inventory.splice(fromIndex, 1);
-        inventory.splice(toIndex, 0, movedItem);
+        const [movedItem] = items.splice(fromIndex, 1);
+        items.splice(toIndex, 0, movedItem);
         
         this.updateInventory();
         
@@ -5204,12 +6496,10 @@ class TrainerUIRenderer {
                     }
                 }
                 
-                // Falls luckTokens zurückgesetzt wurde, aktuelle Tokens auf GL setzen
+                // Falls luckTokens zurückgesetzt wurde, Glücks-Token-Leiste aktualisieren
                 if (statKey === 'luckTokens') {
-                    const currentLuckInput = document.getElementById('trainer-luck-tokens');
-                    if (currentLuckInput) {
-                        currentLuckInput.value = gl;
-                    }
+                    this.trainerState.setLuckTokens(gl);
+                    this._rerenderLuckTokensBar();
                 }
                 
                 // Tooltips aktualisieren
@@ -5228,8 +6518,7 @@ class TrainerUIRenderer {
             'initiative': 'trainer-stat-initiative',
             'gena': 'trainer-gena',
             'pa': 'trainer-pa',
-            'bw': 'trainer-bw',
-            'luckTokens': 'trainer-max-luck-tokens'
+            'bw': 'trainer-bw'
         };
         return mapping[statKey];
     }
@@ -5257,10 +6546,7 @@ class TrainerUIRenderer {
         const maxLuck = this.trainerState.maxLuckTokens;
         if (this.trainerState.luckTokens > maxLuck) {
             this.trainerState.setLuckTokens(maxLuck);
-            const currentLuckInput = document.getElementById('trainer-luck-tokens');
-            if (currentLuckInput) {
-                currentLuckInput.value = maxLuck;
-            }
+            this._rerenderLuckTokensBar();
         }
     }
     
@@ -5288,16 +6574,8 @@ class TrainerUIRenderer {
             }
         });
         
-        // Glücks-Tokens Tooltip
-        const luckInput = document.getElementById('trainer-max-luck-tokens');
-        if (luckInput) {
-            luckInput.title = `Standard: GL = ${gl}`;
-        }
-        
-        const luckResetButton = document.querySelector('.stat-reset-button[data-stat="luckTokens"]');
-        if (luckResetButton) {
-            luckResetButton.title = `Auf GL zurücksetzen (${gl})`;
-        }
+        // Glücks-Tokens - kein separates Input-Feld mehr, daher nur noch Hinweis im Container
+        // Der Reset-Button existiert auch nicht mehr in der neuen UI
     }
     
     /**
@@ -5658,19 +6936,18 @@ class TrainerUIRenderer {
             }
         }
         
-        // Glücks-Tokens aktualisieren (nur wenn nicht manuell überschrieben)
-        if (!this.trainerState.isManuallyOverridden('luckTokens')) {
-            const maxLuckInput = document.getElementById('trainer-max-luck-tokens');
-            if (maxLuckInput) {
-                maxLuckInput.value = gl;
-                this.trainerState.maxLuckTokens = gl;
-            }
-            // Auch aktuelle Tokens auf GL setzen (da sie nicht überschrieben sind)
-            const currentLuckInput = document.getElementById('trainer-luck-tokens');
-            if (currentLuckInput) {
-                currentLuckInput.value = gl;
-                this.trainerState.luckTokens = gl;
-            }
+        // Glücks-Tokens aktualisieren basierend auf GL-Differenz
+        // (unabhängig von manueller Überschreibung - die +/- Buttons setzen kein Override)
+        const glDifference = gl - this._lastGlForLuck;
+        if (glDifference !== 0) {
+            // Differenz auf Maximum und aktuelle Tokens anwenden
+            const newMax = Math.max(1, Math.min(10, this.trainerState.maxLuckTokens + glDifference));
+            const newCurrent = Math.max(0, Math.min(newMax, this.trainerState.luckTokens + glDifference));
+            
+            this.trainerState.maxLuckTokens = newMax;
+            this.trainerState.luckTokens = newCurrent;
+            this._lastGlForLuck = gl;
+            this._rerenderLuckTokensBar();
         }
         
         // Aktuelle KP begrenzen, falls nötig
@@ -5726,11 +7003,15 @@ class TrainerUIRenderer {
         // Trainer-Info
         const nameInput = document.getElementById('trainer-name');
         const ageInput = document.getElementById('trainer-age');
-        const playedByInput = document.getElementById('trainer-played-by');
+        const heightInput = document.getElementById('trainer-height');
+        const weightInput = document.getElementById('trainer-weight');
+        const backgroundInput = document.getElementById('trainer-background');
         
         if (nameInput) nameInput.value = this.trainerState.name || '';
         if (ageInput) ageInput.value = this.trainerState.age || '';
-        if (playedByInput) playedByInput.value = this.trainerState.playedBy || '';
+        if (heightInput) heightInput.value = this.trainerState.height || '';
+        if (weightInput) weightInput.value = this.trainerState.weight || '';
+        if (backgroundInput) backgroundInput.value = this.trainerState.background || '';
         
         // Custom-Dropdowns setzen (mit kurzer Verzögerung, da sie async initialisiert werden)
         setTimeout(() => {
@@ -5831,24 +7112,20 @@ class TrainerUIRenderer {
             currentHpInput.value = this.trainerState.currentHp;
         }
         
-        // Glücks-Tokens (max und aktuell)
-        const maxLuckInput = document.getElementById('trainer-max-luck-tokens');
-        if (maxLuckInput) {
-            maxLuckInput.value = this.trainerState.maxLuckTokens;
-            if (this.trainerState.isManuallyOverridden('luckTokens')) {
-                maxLuckInput.classList.add('manually-overridden');
-            }
-        }
-        
-        const currentLuckInput = document.getElementById('trainer-luck-tokens');
-        if (currentLuckInput) {
+        // Glücks-Tokens (klickbare Leiste)
+        const tokensBar = document.getElementById('luck-tokens-bar');
+        if (tokensBar) {
             // Begrenze auf Maximum falls nötig
             const maxLuck = this.trainerState.maxLuckTokens;
             if (this.trainerState.luckTokens > maxLuck) {
                 this.trainerState.setLuckTokens(maxLuck);
             }
-            currentLuckInput.value = this.trainerState.luckTokens;
+            // Die Leiste neu rendern um den korrekten Zustand anzuzeigen
+            this._rerenderLuckTokensBar();
         }
+        
+        // Letzten GL-Wert für Differenzberechnung aktualisieren
+        this._lastGlForLuck = this.trainerState.skillValues['GL'] || 1;
         
         // Geld
         const moneyInput = document.getElementById('trainer-money');

@@ -1,4 +1,30 @@
 /* Grundlegende Stile */
+
+/* ==================== FINETUNING VARIABLEN ==================== */
+/* Diese Werte können einfach angepasst werden */
+:root {
+    /* Attacken */
+    --moves-grid-gap: 1rem;           /* Gap zwischen den Attacken-Slots */
+    --moves-slot-width: 97%;          /* Breite der Attacken-Slots */
+    
+    /* Fertigkeiten */
+    --skills-column-gap: 1rem;        /* Gap zwischen den Fertigkeiten-Spalten (KÖ, WI, CH, GL) */
+    --skills-label-value-gap: 1rem;   /* Abstand zwischen Fertigkeits-Label und Wert */
+    --skills-column-min-width: 252px; /* Mindestbreite jeder Spalte */
+    
+    /* Fähigkeiten */
+    --abilities-width: 95%;           /* Breite der Fähigkeiten-Container */
+    
+    /* Notizen */
+    --notes-width: 95%;               /* Breite der Notizen-Container */
+    
+    /* Kampfwerte */
+    --gena-pa-bw-input-width: 70px;   /* Breite der GENA/PA/BW Eingabefelder */
+    
+    /* Weitere Finetuning-Variablen können hier hinzugefügt werden */
+}
+/* ============================================================== */
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -8,7 +34,7 @@ body {
 
 .container {
     padding: 0.75rem;
-    max-width: 72rem;
+    max-width: 60%;
     margin: 0 auto;
     background-color: #f9fafb;
     border-radius: 0.5rem;
@@ -135,39 +161,295 @@ body {
 
 /* Pokemon Übersicht - Grid-Layout */
 .pokemon-overview {
-    display: grid !important;
-    grid-template-columns: 60% 40% !important;
-    grid-template-rows: auto auto auto auto !important;
-    grid-template-areas: 
-        "basic-info pokemon-image-area"
-        "level-container moves-section"
-        "abilities-section abilities-section"
-        "skills-table skills-table" !important;
-    gap: 0.5rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 0 !important;
     position: relative !important;
 }
 
-/* Bildbereich und Grundlegende Info */
+/* Alte Grid-Areas werden nicht mehr verwendet */
+
+/* Bildbereich */
 .pokemon-image-area {
-    grid-area: pokemon-image-area !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
     align-items: center !important;
     padding: 1rem !important;
+    position: relative !important;
     background-color: #f8f9fa;
     border: 1px solid #e2e8f0;
     border-radius: 0.5rem;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    min-width: 150px;
+    flex-shrink: 0;
+    overflow: visible !important;
 }
 
-/* Basic info mit Zwei-Spalten-Layout */
+/* Shiny-Toggle Button */
+.shiny-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 4px 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+    font-family: inherit;
+    border: 2px solid #cbd5e0;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.shiny-toggle-btn:hover {
+    border-color: #a0aec0;
+    background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+    transform: translateY(-1px);
+}
+
+.shiny-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.shiny-toggle-btn .shiny-icon {
+    font-size: 1.1em;
+}
+
+/* Shiny-aktiver Zustand */
+.shiny-toggle-btn.shiny-active {
+    border-color: #d69e2e;
+    background: linear-gradient(135deg, #fefcbf 0%, #faf089 100%);
+    color: #744210;
+    box-shadow: 0 0 8px rgba(214, 158, 46, 0.4);
+}
+
+.shiny-toggle-btn.shiny-active:hover {
+    border-color: #b7791f;
+    background: linear-gradient(135deg, #faf089 0%, #f6e05e 100%);
+    box-shadow: 0 0 12px rgba(214, 158, 46, 0.5);
+}
+
+.shiny-toggle-btn.shiny-active .shiny-icon {
+    animation: sparkle-spin 1.5s ease-in-out infinite;
+}
+
+@keyframes sparkle-spin {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(15deg) scale(1.1); }
+}
+
+/* Dark Mode für Shiny-Toggle */
+.dark-mode .shiny-toggle-btn {
+    border-color: #4a5568;
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    color: #a0aec0;
+}
+
+.dark-mode .shiny-toggle-btn:hover {
+    border-color: #718096;
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+}
+
+.dark-mode .shiny-toggle-btn.shiny-active {
+    border-color: #d69e2e;
+    background: linear-gradient(135deg, #744210 0%, #975a16 100%);
+    color: #fefcbf;
+    box-shadow: 0 0 8px rgba(214, 158, 46, 0.3);
+}
+
+.dark-mode .shiny-toggle-btn.shiny-active:hover {
+    background: linear-gradient(135deg, #975a16 0%, #b7791f 100%);
+}
+
+/* ============================================
+   EXOTISCHE FÄRBUNG TOGGLE & SLIDER
+   ============================================ */
+
+/* Exotische Färbung Toggle Button */
+.exotic-color-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 4px 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+    font-family: inherit;
+    border: 2px solid #cbd5e0;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.exotic-color-toggle-btn:hover {
+    border-color: #a0aec0;
+    background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+    transform: translateY(-1px);
+}
+
+.exotic-color-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.exotic-color-toggle-btn .exotic-icon {
+    font-size: 1.1em;
+}
+
+/* Exotisch-aktiver Zustand - Regenbogen-Stil */
+.exotic-color-toggle-btn.exotic-active {
+    border-color: #805ad5;
+    background: linear-gradient(135deg, #e9d8fd 0%, #d6bcfa 100%);
+    color: #553c9a;
+    box-shadow: 0 0 8px rgba(128, 90, 213, 0.4);
+}
+
+.exotic-color-toggle-btn.exotic-active:hover {
+    border-color: #6b46c1;
+    background: linear-gradient(135deg, #d6bcfa 0%, #b794f4 100%);
+    box-shadow: 0 0 12px rgba(128, 90, 213, 0.5);
+}
+
+.exotic-color-toggle-btn.exotic-active .exotic-icon {
+    animation: rainbow-rotate 2s linear infinite;
+}
+
+@keyframes rainbow-rotate {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+/* Hue-Slider Container */
+.exotic-hue-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 180px;
+    /* Normale Flow-Position */
+    position: relative;
+    margin-top: 0.5rem;
+    z-index: 10;
+}
+
+/* Der eigentliche Slider */
+.exotic-hue-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    /* Regenbogen-Gradient für den Track */
+    background: linear-gradient(to right, 
+        hsl(0, 100%, 50%),
+        hsl(60, 100%, 50%),
+        hsl(120, 100%, 50%),
+        hsl(180, 100%, 50%),
+        hsl(240, 100%, 50%),
+        hsl(300, 100%, 50%),
+        hsl(360, 100%, 50%)
+    );
+    outline: none;
+    cursor: pointer;
+}
+
+/* Slider Thumb - Webkit (Chrome, Safari, Edge) */
+.exotic-hue-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #4a5568;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s ease;
+}
+
+.exotic-hue-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+/* Slider Thumb - Firefox */
+.exotic-hue-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #4a5568;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Hue-Wert Anzeige */
+.exotic-hue-value {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #4a5568;
+    min-width: 35px;
+    text-align: right;
+}
+
+/* Dark Mode Anpassungen */
+.dark-mode .exotic-color-toggle-btn {
+    border-color: #4a5568;
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    color: #a0aec0;
+}
+
+.dark-mode .exotic-color-toggle-btn:hover {
+    border-color: #718096;
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+}
+
+.dark-mode .exotic-color-toggle-btn.exotic-active {
+    border-color: #9f7aea;
+    background: linear-gradient(135deg, #44337a 0%, #553c9a 100%);
+    color: #e9d8fd;
+    box-shadow: 0 0 8px rgba(159, 122, 234, 0.3);
+}
+
+.dark-mode .exotic-color-toggle-btn.exotic-active:hover {
+    background: linear-gradient(135deg, #553c9a 0%, #6b46c1 100%);
+}
+
+.dark-mode .exotic-hue-slider-container {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    border-color: #4a5568;
+}
+
+.dark-mode .exotic-hue-slider::-webkit-slider-thumb {
+    background: #e2e8f0;
+    border-color: #718096;
+}
+
+.dark-mode .exotic-hue-slider::-moz-range-thumb {
+    background: #e2e8f0;
+    border-color: #718096;
+}
+
+.dark-mode .exotic-hue-value {
+    color: #e2e8f0;
+}
+
+/* Basic info - jetzt in Info-Sektion */
 .basic-info {
-    grid-area: basic-info !important;
     display: flex !important;
     flex-direction: row !important;
     align-items: flex-start !important;
     justify-content: flex-start !important;
+    gap: 1rem !important;
     width: 100% !important;
     padding: 0.75rem !important;
     background-color: #f8f9fa;
@@ -183,25 +465,23 @@ body {
     flex-direction: column;
     align-items: stretch;
     width: 165px;
-    margin-left: 20px;
     align-self: flex-start;
     margin-top: 1.10rem;
 }
 
 .pokemon-info-container {
-    flex: 0 0 auto;
-    margin-right: 0;
+    flex: 1;
+    min-width: 0;
 }
 
 .pokemon-info {
     display: flex;
     flex-direction: column;
-    width: auto;
+    width: 100%;
 }
 
 /* Level-Container und Statuswerte */
 .level-container {
-    grid-area: level-container !important;
     width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
@@ -211,32 +491,6 @@ body {
     border-radius: 0.5rem;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     padding: 0.75rem !important;
-}
-
-/* Moves-Bereich */
-.moves-selection {
-    grid-area: moves-section !important;
-    width: 100% !important;
-    position: static !important;
-    padding: 0.75rem !important;
-    background-color: #f8f9fa;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.moves-selection h3.section-title {
-    padding-bottom: 0.25rem;
-    margin-bottom: 0.5rem;
-    width: 100%;
-    font-size: 0.9rem;
-}
-
-/* Moves Grid Layout */
-.moves-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
 }
 
 /* Statuswerte-Bereich */
@@ -250,25 +504,24 @@ body {
 }
 
 /* Sektions-Bereiche mit einheitlichem Stil */
-.abilities-section, .skills-table {
-    width: 100% !important;
-    margin-top: 0.5rem !important;
+.abilities-section, .skills-table, .trainer-skills-section {
+    width: 90% !important;
+    max-width: 90%;
+    margin-top: 0 !important;
     position: static !important;
-    background-color: #f8f9fa;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    padding: 1rem !important;
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0 !important;
 }
 
 .abilities-section {
-    grid-area: abilities-section !important;
     margin-left: 0 !important;
 }
 
-.skills-table {
-    grid-area: skills-table !important;
-    margin-bottom: 0.5rem !important;
+.skills-table, .trainer-skills-section {
+    margin-bottom: 0 !important;
 }
 
 .abilities-section h3.section-title,
@@ -305,11 +558,19 @@ body {
 }
 
 .sprite {
-    width: 120px !important;
-    height: 120px !important;
+    /* === SPRITE-GRÖSSE HIER ANPASSEN === */
+    /* Container (.pokemon-image) ist 180x180px */
+    /* Sprite etwas kleiner lassen für Animation-Puffer (Squash/Stretch skaliert bis 1.04) */
+    width: 160px !important;
+    height: 160px !important;
+    /* ================================== */
     object-fit: contain !important;
     position: relative !important;
     z-index: 2 !important;
+    /* Squash & Stretch Animation - gleich wie bei pokemon-sprite in der Trainer-Ansicht */
+    animation: pokemonBreathe 3s ease-in-out infinite;
+    transform-origin: bottom center;
+    image-rendering: pixelated;
 }
 
 /* Pokemon-Info und Header */
@@ -579,7 +840,7 @@ body {
     flex-direction: column;
     gap: 0.35rem;
     margin-bottom: 0.5rem;
-    width: 100%;
+    width: auto; /* Geändert von 100% */
     max-width: 280px;
 }
 
@@ -691,15 +952,22 @@ body {
     color: #4a5568;
 }
 
-/* GENA, PA und BW Container */
+/* GENA, PA und BW Container - mit Utility-Buttons in einer Zeile */
 .gena-pa-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
     width: 100%;
     max-width: 98%;
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.gena-pa-stats {
+    display: flex;
+    gap: 0.5rem;
+    flex: 0 0 auto;
 }
 
 .gena-item, .pa-item, .bw-item {
@@ -710,12 +978,134 @@ body {
     padding: 0.4rem 0.5rem;
     border-radius: 0.25rem;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    min-width: auto;
 }
 
 .gena-item label, .pa-item label, .bw-item label {
     font-weight: 600;
     color: #4a5568;
+    white-space: nowrap;
 }
+
+/* Schmalere Inputs für GENA/PA/BW */
+.gena-input, .pa-input, .bw-input {
+    width: var(--gena-pa-bw-input-width, 70px) !important;
+    min-width: var(--gena-pa-bw-input-width, 70px);
+    text-align: center;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.95rem;
+}
+
+/* Utility-Buttons neben GENA/PA/BW */
+.gena-pa-utility-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.gena-pa-utility-buttons .stat-utility-btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+/* Icons für GENA, PA, BW */
+.gena-item .stat-icon,
+.pa-item .stat-icon,
+.bw-item .stat-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+.gena-item .stat-icon svg,
+.pa-item .stat-icon svg,
+.bw-item .stat-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Icon-spezifische Farben */
+.stat-icon-gena { color: #dc2626; } /* Rot - Fadenkreuz */
+.stat-icon-pa { color: #2563eb; }   /* Blau - Schild */
+.stat-icon-bw { color: #16a34a; }   /* Grün - Bewegung */
+
+/* KP-Buttons für +/-10% */
+.hp-percent-buttons {
+    display: flex;
+    gap: 3px;
+    margin-left: 4px;
+}
+
+.hp-percent-btn {
+    width: 32px;
+    height: 22px;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    color: #4a5568;
+    font-size: 0.65rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    padding: 0 2px;
+}
+
+.hp-percent-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hp-percent-btn.hp-heal {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border-color: #34d399;
+    color: #065f46;
+}
+
+.hp-percent-btn.hp-heal:hover {
+    background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
+}
+
+.hp-percent-btn.hp-damage {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border-color: #f87171;
+    color: #991b1b;
+}
+
+.hp-percent-btn.hp-damage:hover {
+    background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+}
+
+/* Dark Mode für HP-Buttons */
+body.dark-mode .hp-percent-btn {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+    border-color: #4b5563;
+    color: #d1d5db;
+}
+
+body.dark-mode .hp-percent-btn.hp-heal {
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+    border-color: #10b981;
+    color: #a7f3d0;
+}
+
+body.dark-mode .hp-percent-btn.hp-damage {
+    background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+    border-color: #ef4444;
+    color: #fecaca;
+}
+
+/* Dark Mode für GENA/PA/BW Icons */
+body.dark-mode .stat-icon-gena { color: #f87171; }
+body.dark-mode .stat-icon-pa { color: #60a5fa; }
+body.dark-mode .stat-icon-bw { color: #4ade80; }
 
 /* Stat-Auswahl */
 .stat-selection {
@@ -814,13 +1204,13 @@ body {
     font-size: 0.9rem;
 }
 
-/* Grid-Bereiche für alle Statuswerte */
-.hp-item { grid-area: hp; background-color: rgba(72, 187, 120, 0.2); }
-.speed-item { grid-area: speed; background-color: rgba(255, 193, 7, 0.2); }
-.attack-item { grid-area: attack; background-color: rgba(245, 101, 101, 0.2); }
-.defense-item { grid-area: defense; background-color: rgba(160, 174, 192, 0.2); }
-.sp-attack-item { grid-area: spAttack; background-color: rgba(237, 137, 54, 0.2); }
-.sp-defense-item { grid-area: spDefense; background-color: rgba(159, 122, 234, 0.2); }
+/* Grid-Bereiche für alle Statuswerte mit korrekten Hintergrundfarben */
+.hp-item { grid-area: hp; background-color: rgba(220, 38, 38, 0.15) !important; } /* Rot für KP */
+.speed-item { grid-area: speed; background-color: rgba(34, 197, 94, 0.2) !important; } /* Grün für Initiative */
+.stat-item.attack-item { grid-area: attack; background-color: rgba(249, 115, 22, 0.2) !important; } /* Orange für Angriff */
+.stat-item.defense-item { grid-area: defense; background-color: rgba(59, 130, 246, 0.2) !important; } /* Blau für Verteidigung */
+.stat-item.sp-attack-item { grid-area: spAttack; background-color: rgba(168, 85, 247, 0.2) !important; } /* Lila für Spezial-Angriff */
+.stat-item.sp-defense-item { grid-area: spDefense; background-color: rgba(234, 179, 8, 0.2) !important; } /* Gelb für Spezial-Verteidigung */
 .stat-utility-buttons { grid-area: utility; }
 
 /* HP Anzeige */
@@ -840,6 +1230,71 @@ body {
     font-weight: bold;
 }
 
+/* KP bei 0 - rot und durchgestrichen */
+.current-hp-input.hp-zero {
+    color: #dc2626 !important;
+    text-decoration: line-through;
+    text-decoration-color: #dc2626;
+    text-decoration-thickness: 2px;
+}
+
+body.dark-mode .current-hp-input.hp-zero {
+    color: #f87171 !important;
+    text-decoration-color: #f87171;
+}
+
+/* Status-Tooltips mit farbigen Namen */
+.status-icon-wrapper {
+    position: relative;
+}
+
+.status-icon-wrapper[title] {
+    cursor: help;
+}
+
+/* Custom Status-Tooltip */
+.status-tooltip {
+    position: fixed;
+    z-index: 10000;
+    max-width: 320px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.status-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.status-tooltip-name {
+    display: block;
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 6px;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.status-tooltip-description {
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0;
+    font-size: 0.8rem;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode adjustments */
+body.dark-mode .status-tooltip {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 .hp-separator {
     margin: 0 2px;
 }
@@ -848,8 +1303,8 @@ body {
 .moves-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    width: 100%;
+    gap: var(--moves-grid-gap, 1rem);
+    width: var(--moves-slot-width, 90%);
 }
 
 .move-slot {
@@ -948,6 +1403,7 @@ body {
     gap: 0.5rem;
     margin-top: 0.5rem;
     padding: 0.5rem;
+    width: var(--abilities-width, 95%);
 }
 
 .ability-item {
@@ -957,6 +1413,11 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     border-left: 4px solid #4a5568;
     transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* Mittlere Fähigkeit mit hellerem Hintergrund */
+.ability-item.ability-middle {
+    background-color: #f8fafc;
 }
 
 .ability-item:hover {
@@ -987,32 +1448,29 @@ body {
     border-top: 1px solid #edf2f7;
 }
 
-/* Fertigkeiten */
-.skills-grid {
+/* Fertigkeiten - für Pokemon UND Trainer identisch */
+.skills-grid,
+.skills-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    column-gap: 0.5rem;
+    grid-template-columns: repeat(4, minmax(var(--skills-column-min-width, 140px), 1fr));
+    column-gap: var(--skills-column-gap, 1rem);
+    row-gap: var(--skills-column-gap, 1rem);
     position: relative;
 }
 
-.skills-grid::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 2.2rem;
-    height: 1px;
-    background-color: #718096;
-    z-index: 1;
+.skills-grid::before,
+.skills-container::before {
+    /* Keine horizontale Linie mehr nötig */
+    display: none;
 }
 
-.skills-grid > div:not(:last-child) {
-    border-right: 1px solid #cbd5e0;
-    margin-right: -0.5rem;
-    padding-right: 0.5rem;
+.skills-grid > div:not(:last-child),
+.skills-container > div:not(:last-child) {
+    /* Keine Border mehr nötig - Spalten haben eigene Hintergrundfarben */
 }
 
-.skills-grid .skill-item:first-of-type {
+.skills-grid .skill-item:first-of-type,
+.skills-container .skill-item:first-of-type {
     margin-top: 8px;
 }
 
@@ -1022,6 +1480,7 @@ body {
     justify-content: space-between;
     margin-bottom: 0.1rem;
     padding-right: 0;
+    gap: var(--skills-label-value-gap, 1rem);
 }
 
 .skill-header {
@@ -1032,6 +1491,7 @@ body {
     font-weight: bold;
     flex: 1;
     font-size: 0.9rem;
+    white-space: nowrap; /* Verhindert Zeilenumbruch bei mehrteiligen Namen */
 }
 
 .category-name {
@@ -1151,11 +1611,48 @@ body {
 .wounds-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
 }
 
 .wound-checkbox {
-    margin: 0 0.5rem;
+    width: 24px;
+    height: 24px;
+    border: 2px solid #dc2626;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: transparent;
+    transition: all 0.15s ease;
+}
+
+.wound-checkbox:hover {
+    background-color: rgba(220, 38, 38, 0.1);
+}
+
+.wound-checkbox.checked,
+.wound-checkbox.active,
+.wound-checkbox[data-checked="true"] {
+    background-color: #fecaca;
+    color: #dc2626;
+}
+
+/* X-Symbol für aktivierte Wunden */
+.wound-checkbox.checked::after,
+.wound-checkbox.active::after,
+.wound-checkbox[data-checked="true"]::after {
+    content: '✕';
+    font-weight: 900;
+    font-size: 1.1rem;
+    color: #dc2626;
+    text-shadow: 0 0 1px #dc2626;
 }
 
 .compact-friendship-tracker {
@@ -1292,20 +1789,17 @@ body {
         margin-bottom: 1rem;
     }
     
-    .moves-grid, .skills-grid {
+    .moves-grid, .skills-grid, .skills-container {
         grid-template-columns: 1fr;
     }
     
-    .skills-grid > div:not(:last-child) {
-        border-right: none;
-        border-bottom: 2px solid #cbd5e0;
-        margin-right: 0;
-        padding-right: 0;
-        padding-bottom: 1rem;
-        margin-bottom: 1rem;
+    .skills-grid > div:not(:last-child),
+    .skills-container > div:not(:last-child) {
+        /* Keine Border mehr zwischen Spalten */
     }
     
-    .skills-grid::before {
+    .skills-grid::before,
+    .skills-container::before {
         display: none;
     }
     
@@ -1368,7 +1862,19 @@ body {
 
 @media (max-width: 480px) {
     .gena-pa-container {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .gena-pa-stats {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .gena-pa-utility-buttons {
+        margin-left: 0;
+        justify-content: center;
+        margin-top: 0.5rem;
     }
 }
 
@@ -1602,12 +2108,12 @@ body.dark-mode .bw-input {
     border-color: #4a5568;
 }
 
-/* Moves Section - FIXED */
-body.dark-mode .moves-selection {
-    background-color: #1e3a5f;
-    border-color: #4a5568;
+/* HP-Separator im Dark Mode */
+body.dark-mode .hp-separator {
+    color: #e0e0e0;
 }
 
+/* Moves Section - Dark Mode */
 body.dark-mode .move-slot {
     background-color: transparent;
 }
@@ -1676,26 +2182,30 @@ body.dark-mode .move-description {
 }
 
 /* Skills Section */
-body.dark-mode .skills-table {
-    background-color: #1e3a5f;
-    border-color: #4a5568;
+body.dark-mode .skills-table,
+body.dark-mode .trainer-skills-section {
+    background-color: transparent;
+    border-color: transparent;
 }
 
-body.dark-mode .skills-grid {
+body.dark-mode .skills-grid,
+body.dark-mode .skills-container {
     background-color: transparent;
 }
 
-body.dark-mode .skills-grid::before {
-    background-color: #4a5568;
+body.dark-mode .skills-grid::before,
+body.dark-mode .skills-container::before {
+    display: none;
 }
 
-body.dark-mode .skills-grid > div:not(:last-child) {
-    border-right-color: #4a5568;
+body.dark-mode .skills-grid > div:not(:last-child),
+body.dark-mode .skills-container > div:not(:last-child) {
+    /* Keine Border nötig */
 }
 
 body.dark-mode .skill-category {
-    background-color: transparent;
     border-color: #4a5568;
+    /* Hintergrundfarbe kommt von den kategorienspezifischen Regeln */
 }
 
 body.dark-mode .skill-header {
@@ -1731,6 +2241,11 @@ body.dark-mode .abilities-container {
 body.dark-mode .ability-item {
     background-color: #16213e;
     border-left-color: #4ade80;
+}
+
+/* Mittlere Fähigkeit mit hellerem Hintergrund im Dark Mode */
+body.dark-mode .ability-item.ability-middle {
+    background-color: #1e2a4a;
 }
 
 body.dark-mode .ability-name {
@@ -1788,7 +2303,13 @@ body.dark-mode .tally-mark {
 }
 
 body.dark-mode .tally-container {
-    background-color: #1e3a5f;
+    background-color: #374151;
+    border-color: #4a5568;
+}
+
+/* Dark Mode: Compact-Tally-Container grauer Hintergrund */
+body.dark-mode .compact-tally-container {
+    background-color: #374151;
     border-color: #4a5568;
 }
 
@@ -1798,7 +2319,9 @@ body.dark-mode .wounds-section {
 }
 
 body.dark-mode .wounds-container {
-    background-color: transparent;
+    background-color: #374151;
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
     gap: 1rem;
 }
 
@@ -1808,14 +2331,26 @@ body.dark-mode .wounds-label {
 }
 
 body.dark-mode .wound-checkbox {
-    background-color: #16213e;
-    border-color: #4a5568;
-    margin: 0 0.5rem;
+    background-color: #374151;
+    border-color: #ef4444;
+}
+
+body.dark-mode .wound-checkbox:hover {
+    background-color: rgba(239, 68, 68, 0.2);
 }
 
 body.dark-mode .wound-checkbox.checked,
-body.dark-mode .wound-checkbox.active {
-    background-color: #ef4444;
+body.dark-mode .wound-checkbox.active,
+body.dark-mode .wound-checkbox[data-checked="true"] {
+    background-color: #7f1d1d;
+    color: #f87171;
+}
+
+body.dark-mode .wound-checkbox.checked::after,
+body.dark-mode .wound-checkbox.active::after,
+body.dark-mode .wound-checkbox[data-checked="true"]::after {
+    color: #f87171;
+    text-shadow: 0 0 1px #f87171;
 }
 
 /* HP Section */
@@ -1843,6 +2378,14 @@ body.dark-mode .hp-input {
 body.dark-mode .stats {
     background-color: transparent;
 }
+
+/* Dark Mode Stat-Item Hintergrundfarben */
+body.dark-mode .hp-item { background-color: rgba(220, 38, 38, 0.25) !important; }
+body.dark-mode .speed-item { background-color: rgba(34, 197, 94, 0.25) !important; }
+body.dark-mode .stat-item.attack-item { background-color: rgba(249, 115, 22, 0.25) !important; }
+body.dark-mode .stat-item.defense-item { background-color: rgba(59, 130, 246, 0.25) !important; }
+body.dark-mode .stat-item.sp-attack-item { background-color: rgba(168, 85, 247, 0.25) !important; }
+body.dark-mode .stat-item.sp-defense-item { background-color: rgba(234, 179, 8, 0.25) !important; }
 
 body.dark-mode .stat-row {
     background-color: transparent;
@@ -2072,19 +2615,16 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 }
 
 .trainer-info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    align-items: flex-end;
 }
 
 .info-field {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-}
-
-.info-field.full-width {
-    grid-column: span 2;
 }
 
 .info-field label {
@@ -2612,14 +3152,16 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 
 /* Animation pausieren wenn reduzierte Bewegung bevorzugt wird */
 @media (prefers-reduced-motion: reduce) {
-    .pokemon-sprite {
+    .pokemon-sprite,
+    .sprite {
         animation: none;
     }
 }
 
 /* Animation pausieren beim Drucken */
 @media print {
-    .pokemon-sprite {
+    .pokemon-sprite,
+    .sprite {
         animation: none !important;
     }
 }
@@ -2807,19 +3349,13 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
     background-color: #38a169;
 }
 
-/* Trainer Skills Section */
+/* Trainer Skills Section - verwendet jetzt identisches CSS wie Pokemon */
 .trainer-skills-section {
     /* Kein eigener Hintergrund/Border - das macht der collapsible Wrapper */
 }
 
-.skills-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-}
-
 .skill-category {
-    background-color: white;
+    background-color: transparent;
     border: 1px solid #e2e8f0;
     border-radius: 0.375rem;
     padding: 0.75rem;
@@ -2857,11 +3393,13 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
     justify-content: space-between;
     align-items: center;
     padding: 0.25rem 0;
+    gap: var(--skills-label-value-gap, 1rem);
 }
 
 .skill-name {
     font-size: 0.85rem;
     color: #4a5568;
+    white-space: nowrap; /* Verhindert Zeilenumbruch */
 }
 
 .skill-value {
@@ -3072,10 +3610,22 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 
 /* Trainer Info Grid */
 .trainer-info-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
     gap: 0.75rem;
     margin-bottom: 1rem;
+    align-items: flex-end;
+}
+
+/* Name-Feld nimmt den meisten Platz ein */
+.trainer-info-grid .info-field-name {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* Kleine Felder (Alter, Größe, Gewicht) */
+.trainer-info-grid .info-field-small {
+    width: 80px;
+    flex-shrink: 0;
 }
 
 .info-field {
@@ -3175,6 +3725,167 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 .desc-nachteil {
     background-color: #fff5f5;
     border-left: 4px solid #fc8181;
+}
+
+/* Aufklappbare Beschreibungen */
+.description-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.description-header:hover {
+    opacity: 0.8;
+}
+
+.description-expand-icon {
+    font-size: 0.75rem;
+    color: #ffffff;
+    text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+    flex-shrink: 0;
+    width: 14px;
+}
+
+.description-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+    max-height: 500px;
+    opacity: 1;
+    margin-top: 0.5rem;
+}
+
+.description-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+}
+
+.description-content p {
+    margin: 0;
+}
+
+/* Leere Beschreibung ohne Pfeil */
+.empty-description .description-header {
+    cursor: default;
+}
+
+.empty-description .description-header:hover {
+    opacity: 1;
+}
+
+/* Hintergrund-Feld */
+.trainer-background-section {
+    margin-top: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.background-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background-color: #f7fafc;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.background-header:hover {
+    background-color: #edf2f7;
+}
+
+.background-header label {
+    font-weight: 600;
+    color: #4a5568;
+    cursor: pointer;
+    margin: 0;
+}
+
+.background-expand-icon {
+    font-size: 0.75rem;
+    color: #718096;
+    flex-shrink: 0;
+    width: 14px;
+}
+
+.background-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    max-height: 500px;
+    opacity: 1;
+}
+
+.background-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+.trainer-background-textarea {
+    width: 100%;
+    min-height: 120px;
+    max-height: 300px;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    font-family: inherit;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    resize: vertical;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.trainer-background-textarea:focus {
+    outline: none;
+    background-color: #fffff0;
+}
+
+.trainer-background-textarea::placeholder {
+    color: #a0aec0;
+    font-style: italic;
+}
+
+/* Dark Mode für Beschreibungen und Hintergrund */
+body.dark-mode .description-expand-icon {
+    color: #ffffff;
+}
+
+body.dark-mode .trainer-background-section {
+    border-color: #4a5568;
+}
+
+body.dark-mode .background-header {
+    background-color: #2d3748;
+}
+
+body.dark-mode .background-header:hover {
+    background-color: #4a5568;
+}
+
+body.dark-mode .background-header label {
+    color: #e2e8f0;
+}
+
+body.dark-mode .background-expand-icon {
+    color: #a0aec0;
+}
+
+body.dark-mode .trainer-background-textarea {
+    background-color: #1a202c;
+    border-top-color: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .trainer-background-textarea:focus {
+    background-color: #2d3748;
 }
 
 /* Character Image Container */
@@ -3502,10 +4213,22 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 
 /* Dropdown-Breiten-Angleichung - Identisches Grid für beide Reihen */
 .trainer-info-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
     gap: 0.75rem;
     margin-bottom: 1rem;
+    align-items: flex-end;
+}
+
+/* Name-Feld nimmt den meisten Platz ein */
+.trainer-info-grid .info-field-name {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* Kleine Felder (Alter, Größe, Gewicht) */
+.trainer-info-grid .info-field-small {
+    width: 80px;
+    flex-shrink: 0;
 }
 
 .trainer-dropdowns-grid {
@@ -3535,6 +4258,7 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 /* KÖ - Rot */
 .skill-category[data-category="KÖ"] {
     border-top: 3px solid #e53e3e;
+    background-color: rgba(229, 62, 62, 0.08);
 }
 
 .skill-category[data-category="KÖ"] .category-name {
@@ -3548,6 +4272,7 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 /* WI - Blau */
 .skill-category[data-category="WI"] {
     border-top: 3px solid #3182ce;
+    background-color: rgba(49, 130, 206, 0.08);
 }
 
 .skill-category[data-category="WI"] .category-name {
@@ -3561,6 +4286,7 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 /* CH - Gelb/Gold */
 .skill-category[data-category="CH"] {
     border-top: 3px solid #d69e2e;
+    background-color: rgba(214, 158, 46, 0.1);
 }
 
 .skill-category[data-category="CH"] .category-name {
@@ -3574,6 +4300,7 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 /* GL - Grün */
 .skill-category[data-category="GL"] {
     border-top: 3px solid #38a169;
+    background-color: rgba(56, 161, 105, 0.08);
 }
 
 .skill-category[data-category="GL"] .category-name {
@@ -3678,46 +4405,138 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
     color: #4a5568;
 }
 
-/* Glücks-Tokens Feld: ähnlich wie HP */
+/* Glücks-Tokens Feld: Klickbare Kleeblatt-Leiste */
 .trainer-stats-row .luck-tokens-field {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
 }
 
-.trainer-stats-row .luck-tokens-inputs {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.trainer-stats-row .luck-tokens-inputs input {
-    width: 50px;
-    text-align: center;
-    padding: 0.4rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.25rem;
-    font-size: 0.9rem;
-}
-
-.trainer-stats-row .luck-tokens-inputs span.luck-separator {
-    font-weight: bold;
-    color: #4a5568;
-}
-
 .trainer-stats-row .luck-tokens-field label {
     color: #38a169; /* Grün für Glück */
-}
-
-/* Luck Max Wrapper */
-.luck-max-wrapper {
     display: flex;
     align-items: center;
     gap: 0.25rem;
 }
 
-.luck-max-wrapper .stat-reset-button {
-    margin-left: 0.25rem;
+/* Stat Icons */
+.stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+}
+
+.stat-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.stat-icon-hp {
+    color: #e53e3e;
+}
+
+.stat-icon-gena {
+    color: #d69e2e;
+}
+
+.stat-icon-pa {
+    color: #3182ce;
+}
+
+.stat-icon-initiative {
+    color: #805ad5;
+}
+
+.stat-icon-bw {
+    color: #718096;
+}
+
+.stat-icon-luck {
+    font-size: 14px;
+}
+
+/* Glücks-Token-Leiste Container */
+.luck-tokens-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.luck-tokens-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background-color: #f0fff4;
+    border: 1px solid #9ae6b4;
+    border-radius: 0.5rem;
+}
+
+/* Einzelnes Glücks-Token (Kleeblatt-Emoji) */
+.luck-token {
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.luck-token .luck-clover-emoji {
+    font-size: 22px;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.luck-token:hover {
+    transform: scale(1.2);
+}
+
+/* Verbrauchtes Token (ausgegraut und durchgekreuzt) */
+.luck-token.used .luck-clover-emoji {
+    filter: grayscale(100%) opacity(0.4);
+}
+
+.luck-token.used::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 3px;
+    background-color: #e53e3e;
+    transform: rotate(-45deg);
+    border-radius: 2px;
+    box-shadow: 0 0 2px rgba(0,0,0,0.3);
+}
+
+/* Buttons zum Anpassen des Maximums */
+.luck-max-adjust-btn {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #9ae6b4;
+    background-color: #f0fff4;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    color: #38a169;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.luck-max-adjust-btn:hover {
+    background-color: #c6f6d5;
+    border-color: #68d391;
+}
+
+.luck-max-adjust-btn:active {
+    transform: scale(0.95);
 }
 
 /* Wunden-Feld in Zeile 2 */
@@ -3907,7 +4726,20 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 }
 
 @media (max-width: 768px) {
-    .trainer-info-grid,
+    .trainer-info-grid {
+        flex-wrap: wrap;
+    }
+    
+    .trainer-info-grid .info-field-name {
+        flex: 1 1 100%;
+    }
+    
+    .trainer-info-grid .info-field-small {
+        flex: 1;
+        width: auto;
+        min-width: 60px;
+    }
+    
     .trainer-dropdowns-grid {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -3927,7 +4759,16 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 }
 
 @media (max-width: 480px) {
-    .trainer-info-grid,
+    .trainer-info-grid {
+        flex-direction: column;
+    }
+    
+    .trainer-info-grid .info-field-name,
+    .trainer-info-grid .info-field-small {
+        width: 100%;
+        flex: none;
+    }
+    
     .trainer-dropdowns-grid {
         grid-template-columns: 1fr;
     }
@@ -3959,6 +4800,7 @@ body.dark-mode .pokemon-slot.type-fairy { background: linear-gradient(135deg, rg
 /* Dark Mode: Color-Coding für Grundwerte (hellere Farben) */
 body.dark-mode .skill-category[data-category="KÖ"] {
     border-top-color: #fc8181;
+    background-color: rgba(252, 129, 129, 0.1);
 }
 
 body.dark-mode .skill-category[data-category="KÖ"] .category-name {
@@ -3971,6 +4813,7 @@ body.dark-mode .skill-category[data-category="KÖ"] .category-header {
 
 body.dark-mode .skill-category[data-category="WI"] {
     border-top-color: #63b3ed;
+    background-color: rgba(99, 179, 237, 0.1);
 }
 
 body.dark-mode .skill-category[data-category="WI"] .category-name {
@@ -3983,6 +4826,7 @@ body.dark-mode .skill-category[data-category="WI"] .category-header {
 
 body.dark-mode .skill-category[data-category="CH"] {
     border-top-color: #fbd38d;
+    background-color: rgba(251, 211, 141, 0.1);
 }
 
 body.dark-mode .skill-category[data-category="CH"] .category-name {
@@ -3995,6 +4839,7 @@ body.dark-mode .skill-category[data-category="CH"] .category-header {
 
 body.dark-mode .skill-category[data-category="GL"] {
     border-top-color: #68d391;
+    background-color: rgba(104, 211, 145, 0.1);
 }
 
 body.dark-mode .skill-category[data-category="GL"] .category-name {
@@ -4642,6 +5487,154 @@ body.dark-mode .kommando-remove-button:hover {
     color: #d69e2e; /* Gold/Gelb für Währung */
 }
 
+/* Inventar-Tabs Container */
+.inventory-tabs-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.5rem;
+}
+
+.inventory-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    flex: 1;
+}
+
+.inventory-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem 0.375rem 0 0;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #4a5568;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.inventory-tab:hover {
+    background: #edf2f7;
+    border-color: #cbd5e0;
+}
+
+.inventory-tab.active {
+    background: #ffffff;
+    border-color: #4a90d9;
+    border-bottom-color: #ffffff;
+    color: #2d3748;
+    margin-bottom: -1px;
+    z-index: 1;
+}
+
+.inventory-tab.dragging {
+    opacity: 0.5;
+}
+
+.inventory-tab.drag-over {
+    border-color: #4a90d9;
+    background: #ebf4ff;
+}
+
+.inventory-tab.item-drag-over {
+    border-color: #48bb78;
+    background: #f0fff4;
+    box-shadow: 0 0 0 2px rgba(72, 187, 120, 0.3);
+}
+
+.inventory-tab-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.inventory-tab-name-input {
+    width: 100px;
+    padding: 0.15rem 0.35rem;
+    font-size: 0.8rem;
+    border: 1px solid #4a90d9;
+    border-radius: 0.25rem;
+    outline: none;
+}
+
+.inventory-tab-count {
+    font-size: 0.7rem;
+    color: #718096;
+    font-weight: 400;
+}
+
+.inventory-tab-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: #a0aec0;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.inventory-tab-delete:hover {
+    background: #fed7d7;
+    color: #c53030;
+}
+
+.inventory-add-category-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    background: #f7fafc;
+    border: 1px dashed #cbd5e0;
+    border-radius: 0.375rem;
+    color: #718096;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.inventory-add-category-button:hover {
+    background: #edf2f7;
+    border-color: #4a90d9;
+    color: #4a90d9;
+}
+
+/* Kategorie-Header mit Buttons */
+.inventory-category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+/* Leere Kategorie Nachricht */
+.inventory-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #a0aec0;
+    font-style: italic;
+    background: #f7fafc;
+    border: 1px dashed #e2e8f0;
+    border-radius: 0.375rem;
+}
+
 .inventory-list {
     display: flex;
     flex-direction: column;
@@ -4770,7 +5763,7 @@ body.dark-mode .kommando-remove-button:hover {
 }
 
 .inventory-item.expanded .inventory-expand-icon {
-    transform: rotate(90deg);
+    /* Pfeil wird durch JS von ▶ zu ▼ geändert */
 }
 
 .inventory-description {
@@ -4850,6 +5843,72 @@ body.dark-mode .inventory-header-row {
     border-bottom-color: #4a5568;
 }
 
+/* Dark Mode: Inventar-Tabs */
+body.dark-mode .inventory-tabs-container {
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .inventory-tab {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #a0aec0;
+}
+
+body.dark-mode .inventory-tab:hover {
+    background: #374151;
+    border-color: #718096;
+}
+
+body.dark-mode .inventory-tab.active {
+    background: #1a202c;
+    border-color: #63b3ed;
+    border-bottom-color: #1a202c;
+    color: #e2e8f0;
+}
+
+body.dark-mode .inventory-tab.drag-over {
+    border-color: #63b3ed;
+    background: #2c5282;
+}
+
+body.dark-mode .inventory-tab.item-drag-over {
+    border-color: #48bb78;
+    background: #276749;
+}
+
+body.dark-mode .inventory-tab-count {
+    color: #718096;
+}
+
+body.dark-mode .inventory-tab-delete:hover {
+    background: #742a2a;
+    color: #feb2b2;
+}
+
+body.dark-mode .inventory-tab-name-input {
+    background: #2d3748;
+    border-color: #63b3ed;
+    color: #e2e8f0;
+}
+
+body.dark-mode .inventory-add-category-button {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #718096;
+}
+
+body.dark-mode .inventory-add-category-button:hover {
+    background: #374151;
+    border-color: #63b3ed;
+    color: #63b3ed;
+}
+
+body.dark-mode .inventory-empty {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #718096;
+}
+
 /* Dark Mode: Geld-Feld */
 body.dark-mode .money-field label {
     color: #cbd5e0;
@@ -4870,24 +5929,54 @@ body.dark-mode .money-symbol {
     color: #ecc94b;
 }
 
-/* Dark Mode: Glücks-Tokens */
+/* Dark Mode: Glücks-Tokens (Kleeblatt-Leiste) */
 body.dark-mode .trainer-stats-row .luck-tokens-field label {
     color: #68d391;
 }
 
-body.dark-mode .trainer-stats-row .luck-tokens-inputs input {
-    background-color: #4a5568;
-    border-color: #718096;
-    color: #e2e8f0;
+body.dark-mode .luck-tokens-bar {
+    background-color: #1a3a2a;
+    border-color: #276749;
 }
 
-body.dark-mode .trainer-stats-row .luck-tokens-inputs input:focus {
-    background-color: #374151;
-    border-color: #63b3ed;
+body.dark-mode .luck-token.used .luck-clover-emoji {
+    filter: grayscale(100%) opacity(0.3);
 }
 
-body.dark-mode .trainer-stats-row .luck-tokens-inputs span.luck-separator {
-    color: #cbd5e0;
+body.dark-mode .luck-token.used::after {
+    background-color: #fc8181;
+}
+
+body.dark-mode .luck-max-adjust-btn {
+    background-color: #1a3a2a;
+    border-color: #276749;
+    color: #68d391;
+}
+
+body.dark-mode .luck-max-adjust-btn:hover {
+    background-color: #22543d;
+    border-color: #48bb78;
+}
+
+/* Dark Mode: Stat Icons */
+body.dark-mode .stat-icon-hp {
+    color: #fc8181;
+}
+
+body.dark-mode .stat-icon-gena {
+    color: #f6e05e;
+}
+
+body.dark-mode .stat-icon-pa {
+    color: #63b3ed;
+}
+
+body.dark-mode .stat-icon-initiative {
+    color: #b794f4;
+}
+
+body.dark-mode .stat-icon-bw {
+    color: #a0aec0;
 }
 
 body.dark-mode .inventory-item {
@@ -5047,17 +6136,28 @@ body.dark-mode .inventory-toggle-all-button.active {
 }
 
 /* Tabs */
-.notes-tabs {
+/* Notizen-Tabs Container (analog zu Inventar) */
+.notes-tabs-container {
     display: flex;
-    gap: 0.25rem;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 0.75rem;
     border-bottom: 2px solid #e2e8f0;
     padding-bottom: 0;
 }
 
+.notes-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    flex: 1;
+}
+
 .notes-tab {
-    padding: 0.5rem 1rem;
-    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.75rem;
     background: #f7fafc;
     color: #4a5568;
     cursor: pointer;
@@ -5068,6 +6168,7 @@ body.dark-mode .inventory-toggle-all-button.active {
     border: 1px solid #e2e8f0;
     border-bottom: none;
     margin-bottom: -2px;
+    user-select: none;
 }
 
 .notes-tab:hover {
@@ -5081,6 +6182,84 @@ body.dark-mode .inventory-toggle-all-button.active {
     border-color: #e2e8f0;
     border-bottom: 2px solid white;
     font-weight: 600;
+}
+
+/* Notizen Tab Icon */
+.notes-tab-icon {
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+/* Notizen Tab Name */
+.notes-tab-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Notizen Tab Name Input (beim Umbenennen) */
+.notes-tab-name-input {
+    width: 100px;
+    padding: 0.15rem 0.35rem;
+    font-size: 0.8rem;
+    border: 1px solid #4a90d9;
+    border-radius: 0.25rem;
+    outline: none;
+}
+
+/* Notizen Tab Delete Button */
+.notes-tab-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: #a0aec0;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    line-height: 1;
+    margin-left: 0.25rem;
+}
+
+.notes-tab-delete:hover {
+    background: #fed7d7;
+    color: #c53030;
+}
+
+/* Notizen Add Category Button */
+.notes-add-category-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    background: #f7fafc;
+    border: 1px dashed #cbd5e0;
+    border-radius: 0.375rem;
+    color: #718096;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-bottom: -2px;
+}
+
+.notes-add-category-button:hover {
+    background: #edf2f7;
+    border-color: #4a90d9;
+    color: #4a90d9;
+}
+
+/* Custom Notes Item (für benutzerdefinierte Kategorien) */
+.notes-custom-item {
+    border-left: 3px solid #718096;
 }
 
 /* Tab Content */
@@ -5106,6 +6285,196 @@ body.dark-mode .inventory-toggle-all-button.active {
     align-items: center;
     margin-bottom: 0.5rem;
     gap: 0.5rem;
+}
+
+/* Rechte Seite der Header Row */
+.notes-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* Kategorie-Farbbutton */
+.notes-category-color-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    padding: 0;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.25rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+}
+
+.notes-category-color-button:hover {
+    opacity: 1;
+    border-color: #cbd5e0;
+    background: #edf2f7;
+}
+
+.notes-category-color-button.has-color {
+    opacity: 1;
+    background: hsl(var(--preview-hue, 180), 85%, 92%);
+    border-color: hsl(var(--preview-hue, 180), 60%, 70%);
+}
+
+/* Eintrag-Farbbutton */
+.notes-entry-color-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    padding: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+.notes-entry-color-button:hover {
+    opacity: 1;
+    background: #f7fafc;
+    border-color: #e2e8f0;
+}
+
+.notes-entry-color-button.has-color {
+    opacity: 1;
+    background: hsl(var(--preview-hue, 180), 85%, 92%);
+    border-color: hsl(var(--preview-hue, 180), 60%, 70%);
+}
+
+/* Color Picker Popup */
+.notes-color-picker-popup {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 0.75rem;
+    width: 200px;
+}
+
+.color-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.color-picker-close {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    color: #a0aec0;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.color-picker-close:hover {
+    color: #4a5568;
+}
+
+.color-picker-preview {
+    height: 30px;
+    border-radius: 0.375rem;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+}
+
+.color-picker-slider-container {
+    margin-bottom: 0.5rem;
+}
+
+.color-picker-hue-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(to right, 
+        hsl(0, 85%, 92%),
+        hsl(60, 85%, 92%),
+        hsl(120, 85%, 92%),
+        hsl(180, 85%, 92%),
+        hsl(240, 85%, 92%),
+        hsl(300, 85%, 92%),
+        hsl(360, 85%, 92%)
+    );
+    outline: none;
+    cursor: pointer;
+}
+
+.color-picker-hue-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #4a5568;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.color-picker-hue-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #4a5568;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.color-picker-buttons {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.color-picker-reset {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.25rem;
+    color: #718096;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.color-picker-reset:hover {
+    background: #edf2f7;
+    border-color: #cbd5e0;
+    color: #4a5568;
+}
+
+/* Einträge mit benutzerdefinierter Farbe */
+.notes-item.has-custom-color {
+    background: hsl(var(--entry-hue, 0), 85%, 97%) !important;
+}
+
+.notes-item.has-custom-color .notes-item-header {
+    background: linear-gradient(135deg, 
+        hsl(var(--entry-hue, 0), 85%, 95%) 0%, 
+        hsl(var(--entry-hue, 0), 75%, 92%) 100%) !important;
+}
+
+.notes-item.has-custom-color .notes-item-details {
+    background: hsl(var(--entry-hue, 0), 85%, 98%) !important;
 }
 
 /* Toggle-All Button */
@@ -5209,7 +6578,7 @@ body.dark-mode .inventory-toggle-all-button.active {
 }
 
 .notes-item.expanded .notes-expand-icon {
-    transform: rotate(90deg);
+    /* Pfeil wird durch JS von ▶ zu ▼ geändert */
 }
 
 /* Drag Handle */
@@ -5391,6 +6760,136 @@ body.dark-mode .notes-tab.active .notes-tab-count {
     color: #a0aec0;
 }
 
+body.dark-mode .notes-tabs-container {
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .notes-tab-delete {
+    color: #718096;
+}
+
+body.dark-mode .notes-tab-delete:hover {
+    background: #742a2a;
+    color: #fc8181;
+}
+
+body.dark-mode .notes-add-category-button {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #718096;
+}
+
+body.dark-mode .notes-add-category-button:hover {
+    background: #3a4a5a;
+    border-color: #63b3ed;
+    color: #63b3ed;
+}
+
+body.dark-mode .notes-tab-name-input {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #63b3ed;
+}
+
+/* Dark Mode für Farbbuttons */
+body.dark-mode .notes-category-color-button {
+    background: #2d3748;
+    border-color: #4a5568;
+}
+
+body.dark-mode .notes-category-color-button:hover {
+    background: #3a4a5a;
+    border-color: #718096;
+}
+
+body.dark-mode .notes-category-color-button.has-color {
+    background: hsl(var(--preview-hue, 180), 40%, 25%);
+    border-color: hsl(var(--preview-hue, 180), 50%, 40%);
+}
+
+body.dark-mode .notes-entry-color-button:hover {
+    background: #2d3748;
+    border-color: #4a5568;
+}
+
+body.dark-mode .notes-entry-color-button.has-color {
+    background: hsl(var(--preview-hue, 180), 40%, 25%);
+    border-color: hsl(var(--preview-hue, 180), 50%, 40%);
+}
+
+/* Dark Mode für Color Picker Popup */
+body.dark-mode .notes-color-picker-popup {
+    background: #2d3748;
+    border-color: #4a5568;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .color-picker-header {
+    color: #e2e8f0;
+}
+
+body.dark-mode .color-picker-close {
+    color: #718096;
+}
+
+body.dark-mode .color-picker-close:hover {
+    color: #e2e8f0;
+}
+
+body.dark-mode .color-picker-preview {
+    border-color: #4a5568;
+    background: linear-gradient(135deg, #3a4a5a 0%, #2d3748 100%);
+}
+
+body.dark-mode .color-picker-hue-slider {
+    background: linear-gradient(to right, 
+        hsl(0, 40%, 30%),
+        hsl(60, 40%, 30%),
+        hsl(120, 40%, 30%),
+        hsl(180, 40%, 30%),
+        hsl(240, 40%, 30%),
+        hsl(300, 40%, 30%),
+        hsl(360, 40%, 30%)
+    );
+}
+
+body.dark-mode .color-picker-hue-slider::-webkit-slider-thumb {
+    background: #e2e8f0;
+    border-color: #4a5568;
+}
+
+body.dark-mode .color-picker-hue-slider::-moz-range-thumb {
+    background: #e2e8f0;
+    border-color: #4a5568;
+}
+
+body.dark-mode .color-picker-reset {
+    background: #1a202c;
+    border-color: #4a5568;
+    color: #a0aec0;
+}
+
+body.dark-mode .color-picker-reset:hover {
+    background: #2d3748;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+/* Dark Mode für Einträge mit benutzerdefinierter Farbe */
+body.dark-mode .notes-item.has-custom-color {
+    background: hsl(var(--entry-hue, 0), 35%, 18%) !important;
+}
+
+body.dark-mode .notes-item.has-custom-color .notes-item-header {
+    background: linear-gradient(135deg, 
+        hsl(var(--entry-hue, 0), 40%, 22%) 0%, 
+        hsl(var(--entry-hue, 0), 35%, 18%) 100%) !important;
+}
+
+body.dark-mode .notes-item.has-custom-color .notes-item-details {
+    background: hsl(var(--entry-hue, 0), 30%, 15%) !important;
+}
+
 body.dark-mode .notes-content {
     background: #1a202c;
     border-color: #4a5568;
@@ -5555,82 +7054,83 @@ body.dark-mode .notes-textarea::placeholder {
     padding-bottom: 0 !important;
 }
 
-.attacks-table-container {
-    /* Kein max-height/overflow - Liste wächst dynamisch wie Perks/Kommandos */
+.attacks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Attacken-Item (aufklappbar wie Inventar) */
+.attack-item {
     border: 1px solid #e2e8f0;
-    border-radius: 0.375rem;
+    border-radius: 6px;
+    background: #f9fafb;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
 }
 
-.attacks-table {
+.attack-item:hover {
+    border-color: #cbd5e0;
+}
+
+/* Farbige Attacken basierend auf Typ */
+.attack-item-typed {
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+.attack-item-typed .attack-input {
+    background-color: rgba(255, 255, 255, 0.85);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.attack-item-typed .attack-input:focus {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.3);
+}
+
+.attack-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 6px 8px;
+    cursor: grab;
+    transition: background-color 0.15s ease;
     width: 100%;
-    border-collapse: collapse;
-    font-size: 0.875rem;
+    box-sizing: border-box;
 }
 
-.attacks-table thead {
-    position: sticky;
-    top: 0;
-    background-color: #edf2f7;
-    z-index: 1;
+.attack-item-header:hover {
+    background-color: rgba(0, 0, 0, 0.03);
 }
 
-.attacks-table th {
-    padding: 0.5rem 0.5rem;
-    text-align: left;
-    font-weight: 600;
-    color: #4a5568;
-    border-bottom: 2px solid #cbd5e0;
-    white-space: nowrap;
+.attack-item-typed .attack-item-header:hover {
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
-.attacks-table td {
-    padding: 0.25rem 0.25rem;
-    vertical-align: top;
-    border-bottom: 1px solid #e2e8f0;
+.attack-expand-icon {
+    font-size: 0.75rem;
+    color: #ffffff;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    width: 14px;
+    text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
 }
 
-.attacks-table tr:last-child td {
-    border-bottom: none;
+.attack-item.expanded .attack-expand-icon {
+    /* Pfeil wird durch JS von ▶ zu ▼ geändert */
 }
 
-.attacks-table tr:hover {
-    background-color: #f7fafc;
-}
-
-/* Spaltenbreiten */
-.attack-col-name {
-    width: 15%;
-    min-width: 100px;
-}
-
-.attack-col-type {
-    width: 10%;
-    min-width: 70px;
-}
-
-.attack-col-damage {
-    width: 10%;
-    min-width: 60px;
-}
-
-.attack-col-effect {
-    width: 60%;
-}
-
-.attack-col-actions {
-    width: 5%;
-    min-width: 36px;
-    text-align: center;
-}
-
-/* Input-Felder in der Tabelle */
+/* Input-Felder in der Header-Zeile */
 .attack-input {
-    width: 100%;
-    padding: 0.35rem 0.5rem;
+    padding: 0.3rem 0.5rem;
     border: 1px solid #d1d5db;
     border-radius: 0.25rem;
     font-size: 0.8rem;
-    background-color: #f9fafb;
+    background-color: #ffffff;
     transition: border-color 0.2s ease, background-color 0.2s ease;
     box-sizing: border-box;
 }
@@ -5646,147 +7146,222 @@ body.dark-mode .notes-textarea::placeholder {
     font-style: italic;
 }
 
-/* Effekt-Textarea - scrollt bei langen Beschreibungen (analog zu Perks/Kommandos) */
+.attack-name {
+    flex: 1.5;
+    min-width: 80px;
+    max-width: 150px;
+}
+
+.attack-type {
+    width: 85px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.attack-damage {
+    width: 55px;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+.attack-range {
+    width: 90px;
+    flex-shrink: 0;
+}
+
+.attack-category {
+    width: 90px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.attack-spacer {
+    flex: 1;
+}
+
+/* Details-Bereich (aufklappbar) */
+.attack-item-details {
+    padding: 8px 12px 12px 28px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.attack-item-details.collapsed {
+    display: none;
+}
+
 .attack-effect {
     width: 100%;
-    min-height: 3.6em;
-    max-height: 3.6em;
-    resize: none;
-    line-height: 1.2;
+    min-height: 60px;
+    resize: vertical;
+    line-height: 1.3;
     font-family: inherit;
-    overflow-y: auto;
+    font-size: 0.85rem;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #ffffff;
 }
 
-/* Farbige Attacken-Zeilen basierend auf Typ */
-.attack-row-typed {
-    transition: background-color 0.2s ease;
-}
-
-.attack-row-typed .attack-input {
-    background-color: rgba(255, 255, 255, 0.85);
-    border-color: rgba(255, 255, 255, 0.5);
-}
-
-.attack-row-typed .attack-input:focus {
-    background-color: rgba(255, 255, 255, 0.95);
-    border-color: rgba(0, 0, 0, 0.3);
-}
-
-.attack-row-typed:hover {
-    filter: brightness(1.05);
-}
-
-/* Dark Mode: Attacken */
-body.dark-mode .trainer-attacks-section {
-    border-top-color: #4a5568;
-}
-
-body.dark-mode .attacks-table-container {
+.attack-effect:focus {
+    outline: none;
     border-color: #4a5568;
 }
 
-body.dark-mode .attacks-table thead {
-    background-color: #374151;
+/* Dragging-Stile */
+.attack-item-dragging {
+    opacity: 0.4;
 }
 
-body.dark-mode .attacks-table th {
-    color: #cbd5e0;
-    border-bottom-color: #4a5568;
+/* Header-Buttons */
+.attacks-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
 }
 
-body.dark-mode .attacks-table td {
-    border-bottom-color: #4a5568;
+.attacks-header-buttons {
+    display: flex;
+    gap: 0.5rem;
 }
 
-body.dark-mode .attacks-table tr:hover {
-    background-color: #374151;
+.attack-toggle-all-button {
+    background: #f0f4f8;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.attack-toggle-all-button:hover {
+    background: #e2e8f0;
+    border-color: #a0aec0;
+}
+
+.attack-toggle-all-button.active {
+    background: #4a9eff;
+    border-color: #3182ce;
+    color: white;
+}
+
+/* Dark Mode */
+body.dark-mode .attack-item {
+    background: #2d3748;
+    border-color: #4a5568;
+}
+
+body.dark-mode .attack-item:hover {
+    border-color: #718096;
+}
+
+body.dark-mode .attack-item-typed {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .attack-item-typed .attack-input {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: rgba(0, 0, 0, 0.3);
+    color: #fff;
+}
+
+body.dark-mode .attack-item-typed .attack-input:focus {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+body.dark-mode .attack-item-header:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .attack-expand-icon {
+    color: #ffffff;
 }
 
 body.dark-mode .attack-input {
-    background-color: #4a5568;
-    border-color: #718096;
+    background-color: #1a202c;
+    border-color: #4a5568;
     color: #e2e8f0;
 }
 
 body.dark-mode .attack-input:focus {
-    background-color: #374151;
     border-color: #63b3ed;
+    background-color: #2d3748;
 }
 
-body.dark-mode .attack-input::placeholder {
-    color: #718096;
+body.dark-mode .attack-item-details {
+    border-top-color: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
 }
 
-/* Dark Mode: Farbige Attacken-Zeilen */
-body.dark-mode .attack-row-typed {
-    /* Typ-Farbe wird beibehalten */
-}
-
-body.dark-mode .attack-row-typed .attack-input {
-    background-color: rgba(45, 55, 72, 0.85);
-    border-color: rgba(255, 255, 255, 0.3);
+body.dark-mode .attack-effect {
+    background: #1a202c;
+    border-color: #4a5568;
     color: #e2e8f0;
 }
 
-body.dark-mode .attack-row-typed .attack-input:focus {
-    background-color: rgba(45, 55, 72, 0.95);
-    border-color: rgba(255, 255, 255, 0.5);
+body.dark-mode .attack-effect:focus {
+    border-color: #63b3ed;
 }
 
-body.dark-mode .attack-row-typed:hover {
-    filter: brightness(1.1);
+body.dark-mode .attack-toggle-all-button {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
 }
 
-/* Responsive: Attacken auf kleineren Bildschirmen */
-@media (max-width: 768px) {
-    .attack-col-name {
-        min-width: 80px;
+body.dark-mode .attack-toggle-all-button:hover {
+    background: #4a5568;
+    border-color: #718096;
+}
+
+body.dark-mode .attack-toggle-all-button.active {
+    background: #3182ce;
+    border-color: #2b6cb0;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .attack-item-header {
+        flex-wrap: wrap;
     }
     
-    .attack-col-type {
+    .attack-name {
+        flex: 1 1 100%;
+        max-width: none;
+        order: 1;
+    }
+    
+    .attack-type,
+    .attack-damage,
+    .attack-range,
+    .attack-category {
+        flex: 1;
         min-width: 60px;
-    }
-    
-    .attack-col-damage {
-        min-width: 50px;
-    }
-}
-
-@media (max-width: 480px) {
-    .attacks-table {
-        font-size: 0.75rem;
-    }
-    
-    .attacks-table th,
-    .attacks-table td {
-        padding: 0.25rem 0.2rem;
-    }
-    
-    .attack-input {
-        padding: 0.25rem 0.35rem;
-        font-size: 0.75rem;
-    }
-    
-    .attack-effect {
-        min-height: 32px;
-    }
-    
-    .attack-remove-button {
-        width: 20px;
-        height: 20px;
-        font-size: 0.9rem;
+        order: 2;
     }
 }
 
 /* PDF-Modus für Attacken */
 @media print {
     .attack-add-button,
-    .attack-remove-button {
+    .attack-remove-button,
+    .attack-toggle-all-button {
         display: none !important;
     }
     
-    .attack-row {
+    .attack-item {
         page-break-inside: avoid;
+    }
+    
+    .attack-item-details {
+        display: block !important;
+    }
+    
+    .attack-item-details.collapsed {
+        display: block !important;
     }
     
     .attack-effect {
@@ -5798,8 +7373,14 @@ body.dark-mode .attack-row-typed:hover {
 }
 
 .pdf-mode .attack-add-button,
-.pdf-mode .attack-remove-button {
+.pdf-mode .attack-remove-button,
+.pdf-mode .attack-toggle-all-button {
     display: none !important;
+}
+
+.pdf-mode .attack-item-details,
+.pdf-mode .attack-item-details.collapsed {
+    display: block !important;
 }
 
 .pdf-mode .attack-effect {
@@ -5916,41 +7497,6 @@ body.dark-mode .attack-row-typed:hover {
     border-radius: 0.25rem;
     font-size: 0.875rem;
     background-color: white;
-}
-
-/* Info-Toggle Button für einzelne Perks */
-.perk-info-toggle {
-    width: 26px;
-    height: 26px;
-    border: 2px solid #805ad5;
-    border-radius: 50%;
-    background-color: transparent;
-    font-size: 0.8rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
-    flex-shrink: 0;
-    opacity: 0.7;
-}
-
-.perk-info-toggle:hover:not(.disabled) {
-    background-color: #805ad5;
-    opacity: 1;
-    transform: scale(1.05);
-}
-
-.perk-info-toggle.active {
-    background-color: #805ad5;
-    opacity: 1;
-}
-
-.perk-info-toggle.disabled {
-    border-color: #ccc;
-    opacity: 0.3;
-    cursor: not-allowed;
 }
 
 /* Description Container mit Toggle-Animation */
@@ -6084,41 +7630,6 @@ body.dark-mode .attack-row-typed:hover {
     background-color: white;
 }
 
-/* Info-Toggle Button für einzelne Kommandos */
-.kommando-info-toggle {
-    width: 26px;
-    height: 26px;
-    border: 2px solid #dd6b20;
-    border-radius: 50%;
-    background-color: transparent;
-    font-size: 0.8rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    line-height: 1;
-    flex-shrink: 0;
-    opacity: 0.7;
-}
-
-.kommando-info-toggle:hover:not(.disabled) {
-    background-color: #dd6b20;
-    opacity: 1;
-    transform: scale(1.05);
-}
-
-.kommando-info-toggle.active {
-    background-color: #dd6b20;
-    opacity: 1;
-}
-
-.kommando-info-toggle.disabled {
-    border-color: #ccc;
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
 /* Description Container mit Toggle-Animation */
 .kommando-description-container {
     width: 100%;
@@ -6202,15 +7713,6 @@ body.dark-mode .perk-toggle-all-button.active {
     color: white;
 }
 
-body.dark-mode .perk-info-toggle {
-    border-color: #9f7aea;
-}
-
-body.dark-mode .perk-info-toggle:hover:not(.disabled),
-body.dark-mode .perk-info-toggle.active {
-    background-color: #9f7aea;
-}
-
 body.dark-mode .kommando-toggle-all-button {
     border-color: #ed8936;
     color: #ed8936;
@@ -6220,20 +7722,6 @@ body.dark-mode .kommando-toggle-all-button:hover,
 body.dark-mode .kommando-toggle-all-button.active {
     background-color: #ed8936;
     color: white;
-}
-
-body.dark-mode .kommando-info-toggle {
-    border-color: #ed8936;
-}
-
-body.dark-mode .kommando-info-toggle:hover:not(.disabled),
-body.dark-mode .kommando-info-toggle.active {
-    background-color: #ed8936;
-}
-
-body.dark-mode .perk-info-toggle.disabled,
-body.dark-mode .kommando-info-toggle.disabled {
-    border-color: #4a5568;
 }
 
 /* ==================== PDF/PRINT STYLES FÜR PERKS & KOMMANDOS ==================== */
@@ -6344,13 +7832,21 @@ body.dark-mode .kommando-info-toggle.disabled {
 
 .perk-dropdown-container .custom-dropdown-button,
 .kommando-dropdown-container .custom-dropdown-button {
-    min-height: 36px;
+    min-height: 28px;
+    padding: 0.25rem 0.5rem;
 }
 
 .perk-dropdown-list,
 .kommando-dropdown-list {
-    max-height: 350px;
+    max-height: 300px;
     overflow-y: auto;
+}
+
+/* Kompaktere Dropdown-Optionen für Perks und Kommandos */
+.perk-dropdown-list .custom-dropdown-option,
+.kommando-dropdown-list .custom-dropdown-option {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
 }
 
 /* Deaktivierte Optionen (bereits gewählt) */
@@ -9595,7 +11091,7 @@ body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name
     display: flex;
     gap: 12px;
     margin-top: 10px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
 }
 
@@ -9626,6 +11122,31 @@ body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name
     color: #333;
 }
 
+/* Editierbare Eingabefelder für Größe/Gewicht */
+.physical-info-input {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9em;
+    font-family: inherit;
+    border: none;
+    background: transparent;
+    width: 60px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.physical-info-input:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.physical-info-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
+}
+
 /* Reitbarkeit-spezifische Styles */
 .rideability-badge {
     display: inline-flex;
@@ -9636,6 +11157,19 @@ body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name
     font-size: 0.9em;
     font-weight: 600;
     transition: all 0.2s ease;
+    /* Feste Breite damit alle Modi gleich groß sind */
+    min-width: 120px;
+    justify-content: center;
+}
+
+/* Klickbares Badge */
+.rideability-clickable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.rideability-clickable:active {
+    transform: scale(0.95);
 }
 
 .rideability-none {
@@ -9660,7 +11194,8 @@ body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name
     box-shadow: 0 2px 4px rgba(79, 172, 254, 0.3);
 }
 
-.rideability-flying {
+.rideability-flying,
+.rideability-fly {
     background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
     color: white;
     border: 1px solid #9079c0;
@@ -9690,6 +11225,19 @@ body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name
 
 .dark-mode .physical-info-item .info-value {
     color: #eee;
+}
+
+.dark-mode .physical-info-input {
+    color: #eee;
+}
+
+.dark-mode .physical-info-input:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .physical-info-input:focus {
+    background: rgba(40, 40, 40, 0.9);
+    box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.5);
 }
 
 .dark-mode .rideability-none {
@@ -9772,17 +11320,41 @@ body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name
     background-color: #9ae6b4;
 }
 
-/* Skill Input im Total Mode - Grüne Farbe */
+/* Skill Input im Total Mode - Kategorie-spezifische Farben */
 .skill-input.skill-total-mode {
-    color: #276749 !important;
     font-weight: 600;
-    background-color: rgba(198, 246, 213, 0.3) !important;
+}
+
+/* KÖ = Rot */
+.skill-category[data-category="KÖ"] .skill-input.skill-total-mode {
+    color: #c53030 !important;
+    background-color: rgba(229, 62, 62, 0.15) !important;
+    border-color: #fc8181 !important;
+}
+
+/* WI = Blau */
+.skill-category[data-category="WI"] .skill-input.skill-total-mode {
+    color: #2b6cb0 !important;
+    background-color: rgba(49, 130, 206, 0.15) !important;
+    border-color: #63b3ed !important;
+}
+
+/* CH = Gelb/Orange */
+.skill-category[data-category="CH"] .skill-input.skill-total-mode {
+    color: #b7791f !important;
+    background-color: rgba(214, 158, 46, 0.15) !important;
+    border-color: #f6c550 !important;
+}
+
+/* GL = Grün */
+.skill-category[data-category="GL"] .skill-input.skill-total-mode {
+    color: #276749 !important;
+    background-color: rgba(56, 161, 105, 0.15) !important;
     border-color: #68d391 !important;
 }
 
 .skill-input.skill-total-mode:focus {
-    outline-color: #38a169;
-    box-shadow: 0 0 0 2px rgba(56, 161, 105, 0.3);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15);
 }
 
 /* Skill Input beim Editieren - Normal */
@@ -9821,9 +11393,28 @@ body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name
     background-color: #2f855a;
 }
 
-.dark-mode .skill-input.skill-total-mode {
+/* Dark Mode - Kategorie-spezifische Farben im Total Mode */
+.dark-mode .skill-category[data-category="KÖ"] .skill-input.skill-total-mode {
+    color: #fc8181 !important;
+    background-color: rgba(229, 62, 62, 0.25) !important;
+    border-color: #e53e3e !important;
+}
+
+.dark-mode .skill-category[data-category="WI"] .skill-input.skill-total-mode {
+    color: #90cdf4 !important;
+    background-color: rgba(49, 130, 206, 0.25) !important;
+    border-color: #3182ce !important;
+}
+
+.dark-mode .skill-category[data-category="CH"] .skill-input.skill-total-mode {
+    color: #faf089 !important;
+    background-color: rgba(214, 158, 46, 0.25) !important;
+    border-color: #d69e2e !important;
+}
+
+.dark-mode .skill-category[data-category="GL"] .skill-input.skill-total-mode {
     color: #9ae6b4 !important;
-    background-color: rgba(39, 103, 73, 0.3) !important;
+    background-color: rgba(56, 161, 105, 0.25) !important;
     border-color: #48bb78 !important;
 }
 
@@ -9900,21 +11491,749 @@ body.dark-mode .pokemon-sheet .skill-category[data-category="GL"] .category-name
 }
 
 /* Attacken */
-.attack-row { cursor: grab; }
-.attack-row-dragging { opacity: 0.4; }
-.attack-row input, .attack-row button, .attack-row textarea { cursor: auto; }
+/* Attacken */
+.attack-item-header { cursor: grab; }
+.attack-item-dragging { opacity: 0.4; }
+.attack-item-header input, .attack-item-header button, .attack-item-header textarea, .attack-item-header select { cursor: auto; }
 
 /* Perks */
-.perk-row { cursor: grab; }
+.perk-row { 
+    cursor: grab; 
+    display: flex; 
+    align-items: center; 
+    gap: 0.5rem;
+    padding: 6px 8px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.perk-row:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
 .perk-item-dragging { opacity: 0.4; }
 .perk-row button, .perk-row select, .perk-dropdown-button { cursor: pointer; }
 
+.perk-expand-icon {
+    font-size: 0.75rem;
+    color: #ffffff;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    width: 14px;
+    text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+}
+
+.perk-spacer {
+    flex: 1;
+}
+
 /* Kommandos */
-.kommando-row { cursor: grab; }
+.kommando-row { 
+    cursor: grab; 
+    display: flex; 
+    align-items: center; 
+    gap: 0.5rem;
+    padding: 6px 8px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.kommando-row:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
 .kommando-item-dragging { opacity: 0.4; }
 .kommando-row button, .kommando-row select, .kommando-dropdown-button { cursor: pointer; }
+
+.kommando-expand-icon {
+    font-size: 0.75rem;
+    color: #ffffff;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    width: 14px;
+    text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+}
+
+.kommando-spacer {
+    flex: 1;
+}
+
+/* Dark Mode für Perk/Kommando Rows */
+body.dark-mode .perk-row:hover,
+body.dark-mode .kommando-row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
 
 /* Inventar */
 .inventory-item { cursor: grab; }
 .inventory-item-dragging { opacity: 0.4; }
 .inventory-item input, .inventory-item button, .inventory-item textarea { cursor: auto; }
+/* ==================== EINKLAPPBARE SEKTIONEN ==================== */
+
+.pokemon-section {
+    position: relative;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    background: #fff;
+    overflow: visible;
+    transition: box-shadow 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.pokemon-section:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pokemon-section-header {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #e0e0e0;
+    cursor: grab;
+    user-select: none;
+}
+
+.pokemon-section-header:active {
+    cursor: grabbing;
+}
+
+.pokemon-section-toggle {
+    background: none;
+    border: none;
+    font-size: 0.8rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0.25rem;
+    margin-right: 0.5rem;
+    transition: transform 0.2s ease;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pokemon-section-toggle:hover {
+    color: #333;
+}
+
+.pokemon-section.collapsed .pokemon-section-toggle {
+    transform: rotate(-90deg);
+}
+
+.pokemon-section-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+    flex: 1;
+}
+
+.pokemon-section-drag-handle {
+    color: #999;
+    font-size: 1rem;
+    padding: 0 0.25rem;
+    cursor: grab;
+}
+
+.pokemon-section-drag-handle:active {
+    cursor: grabbing;
+}
+
+.pokemon-section-content {
+    padding: 0.75rem;
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+    overflow: visible;
+}
+
+.pokemon-section.collapsed .pokemon-section-content {
+    max-height: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    border-top: none;
+    overflow: hidden;
+}
+
+/* Drag & Drop States */
+.pokemon-section.dragging {
+    opacity: 0.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pokemon-section.drag-ready {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.pokemon-section-drag-clone {
+    transition: none !important;
+}
+
+.pokemon-section-placeholder {
+    transition: height 0.15s ease;
+}
+
+.pokemon-section.drag-over {
+    border-color: #3b82f6;
+    border-style: dashed;
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+/* Dark Mode für Sektionen */
+body.dark-mode .pokemon-section {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+body.dark-mode .pokemon-section-header {
+    background: linear-gradient(135deg, #3d3d3d 0%, #2d2d2d 100%);
+    border-bottom-color: #444;
+}
+
+body.dark-mode .pokemon-section-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .pokemon-section-toggle {
+    color: #aaa;
+}
+
+body.dark-mode .pokemon-section-toggle:hover {
+    color: #fff;
+}
+
+body.dark-mode .pokemon-section-drag-handle {
+    color: #666;
+}
+
+body.dark-mode .pokemon-section.drag-over {
+    border-color: #60a5fa;
+    background-color: rgba(96, 165, 250, 0.1);
+}
+
+body.dark-mode .pokemon-section.drag-ready {
+    outline-color: #60a5fa;
+}
+
+body.dark-mode .pokemon-section-drag-clone {
+    background: #2d2d2d !important;
+}
+
+/* ==================== NOTIZEN-SEKTION ==================== */
+
+.notes-section-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: var(--notes-width, 95%);
+    max-width: var(--notes-width, 95%);
+}
+
+.notes-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.notes-add-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: all 0.2s ease;
+}
+
+.notes-add-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+}
+
+.notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.note-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fafafa;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.note-item:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.note-item.dragging {
+    opacity: 0.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.note-item.drag-over {
+    border-color: #3b82f6;
+    border-style: dashed;
+}
+
+.note-header {
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 0.6rem;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    border-bottom: 1px solid #e0e0e0;
+    gap: 0.4rem;
+    cursor: grab;
+}
+
+.note-header:active {
+    cursor: grabbing;
+}
+
+.note-drag-handle {
+    color: #999;
+    font-size: 0.9rem;
+    cursor: grab;
+    padding: 0 0.2rem;
+}
+
+.note-toggle {
+    background: none;
+    border: none;
+    font-size: 0.7rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0.2rem;
+    transition: transform 0.2s ease;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.note-item.collapsed .note-toggle {
+    transform: rotate(-90deg);
+}
+
+.note-name-input {
+    flex: 1;
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.note-name-input:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.note-name-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: #fff;
+}
+
+.note-remove-btn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.9rem;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.note-remove-btn:hover {
+    opacity: 1;
+}
+
+.note-content {
+    padding: 0.5rem;
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+    overflow: hidden;
+}
+
+.note-item.collapsed .note-content {
+    max-height: 0 !important;
+    padding: 0 0.5rem;
+    opacity: 0;
+}
+
+.note-textarea {
+    width: 100%;
+    min-height: 80px;
+    max-height: 200px;
+    resize: vertical;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    line-height: 1.4;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.note-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Dark Mode für Notizen */
+body.dark-mode .note-item {
+    background: #333;
+    border-color: #444;
+}
+
+body.dark-mode .note-header {
+    background: linear-gradient(135deg, #3d3d3d 0%, #333 100%);
+    border-bottom-color: #444;
+}
+
+body.dark-mode .note-name-input {
+    color: #e0e0e0;
+}
+
+body.dark-mode .note-name-input:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .note-name-input:focus {
+    background: #2d2d2d;
+    border-color: #60a5fa;
+}
+
+body.dark-mode .note-textarea {
+    background: #2d2d2d;
+    border-color: #444;
+    color: #e0e0e0;
+}
+
+body.dark-mode .note-textarea:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+body.dark-mode .note-toggle {
+    color: #aaa;
+}
+
+body.dark-mode .note-drag-handle {
+    color: #666;
+}
+
+/* Leere Notizen-Liste */
+.notes-empty-message {
+    text-align: center;
+    color: #999;
+    font-style: italic;
+    padding: 1rem;
+    font-size: 0.85rem;
+}
+
+body.dark-mode .notes-empty-message {
+    color: #666;
+}
+
+/* ==================== SORTIERBARE SEKTIONEN-CONTAINER ==================== */
+
+.pokemon-sections-container {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header-Sektion ohne Einklappen (immer sichtbar) */
+.pokemon-section.section-header .pokemon-section-toggle {
+    visibility: hidden;
+}
+
+/* ==================== SEKTIONEN-LAYOUTS (100% BREITE) ==================== */
+
+/* Basis-Container */
+.pokemon-sections-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.pokemon-section {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.pokemon-section-content {
+    padding: 1rem;
+    overflow: visible;
+}
+
+/* Kein overflow:hidden auf collapsed state für bessere Animation */
+.pokemon-section.collapsed .pokemon-section-content {
+    max-height: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+
+/* ==================== INFO-SEKTION LAYOUT ==================== */
+.info-section-layout {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.5rem;
+    align-items: start;
+    width: 100%;
+}
+
+.info-section-layout .pokemon-info-container {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Trainer-Felder und Freundschaft nebeneinander */
+.trainer-friendship-row {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.trainer-friendship-row .trainer-fields {
+    flex: 1;
+    min-width: 0;
+}
+
+.trainer-friendship-row .friendship-column {
+    flex-shrink: 0;
+    width: 165px;
+    margin-top: 0;
+}
+
+/* ==================== GESCHLECHTS-BADGE ==================== */
+.gender-badge-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: 0;
+    padding: 0 0.5rem;
+}
+
+.gender-badge-title {
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 0.25rem;
+    text-align: center;
+    font-weight: 500;
+}
+
+.gender-badge {
+    font-size: 2rem;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s ease, text-shadow 0.15s ease;
+    line-height: 1;
+    padding: 0.25rem;
+    border-radius: 4px;
+}
+
+.gender-badge:hover {
+    transform: scale(1.15);
+    text-shadow: 0 0 8px currentColor;
+}
+
+.gender-badge:active {
+    transform: scale(0.95);
+}
+
+/* Geschlechts-spezifische Stile */
+.gender-badge.gender-male {
+    color: #3498db;
+}
+
+.gender-badge.gender-female {
+    color: #e91e63;
+}
+
+.gender-badge.gender-neutral {
+    color: #9e9e9e;
+}
+
+/* Dark Mode Anpassungen */
+body.dark-mode .gender-badge-title {
+    color: #aaa;
+}
+
+body.dark-mode .gender-badge.gender-male {
+    color: #5dade2;
+}
+
+body.dark-mode .gender-badge.gender-female {
+    color: #f48fb1;
+}
+
+body.dark-mode .gender-badge.gender-neutral {
+    color: #bdbdbd;
+}
+
+/* Sprite-Buttons nebeneinander */
+.sprite-buttons-row {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.sprite-buttons-row .shiny-toggle-btn,
+.sprite-buttons-row .exotic-color-toggle-btn {
+    margin-top: 0;
+    padding: 4px 10px;
+    font-size: 0.8em;
+}
+
+.info-section-layout .pokemon-image-area {
+    min-width: 150px;
+    padding-bottom: 1rem;
+}
+
+/* ==================== KAMPF-SEKTION LAYOUT ==================== */
+.combat-section-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+.combat-section-layout .level-container {
+    width: 100%;
+}
+
+/* ==================== ATTACKEN-SEKTION ==================== */
+.pokemon-section.section-moves .pokemon-section-content {
+    width: 100%;
+}
+
+.pokemon-section.section-moves .moves-grid {
+    width: var(--moves-slot-width, 90%);
+}
+
+/* ==================== FÄHIGKEITEN-SEKTION ==================== */
+.pokemon-section.section-abilities .pokemon-section-content {
+    width: 100%;
+}
+
+.pokemon-section.section-abilities .abilities-container {
+    width: var(--abilities-width, 95%);
+}
+
+/* ==================== FERTIGKEITEN-SEKTION ==================== */
+.pokemon-section.section-skills .pokemon-section-content {
+    width: 100%;
+}
+
+.pokemon-section.section-skills .skills-table {
+    width: 100%;
+}
+
+/* Verstecke doppelte Titel */
+.pokemon-section.section-skills .skills-header-container .skills-title {
+    display: none;
+}
+
+/* ==================== NOTIZEN-SEKTION ==================== */
+.pokemon-section.section-notes .pokemon-section-content {
+    width: 100%;
+}
+
+.pokemon-section.section-notes .notes-section-container {
+    width: var(--notes-width, 95%);
+}
+
+/* ==================== RESPONSIVE ANPASSUNGEN ==================== */
+@media (max-width: 768px) {
+    .info-section-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .info-section-layout .pokemon-image-area {
+        order: -1;
+        justify-self: center;
+    }
+    
+    .trainer-friendship-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .trainer-friendship-row .friendship-column {
+        width: 100%;
+    }
+    
+    .trainer-friendship-row .gender-badge-container {
+        flex-direction: row;
+        gap: 0.5rem;
+        padding: 0;
+    }
+    
+    .trainer-friendship-row .gender-badge {
+        font-size: 1.5rem;
+    }
+    
+    .sprite-buttons-row {
+        flex-wrap: wrap;
+    }
+    
+    .pokemon-section-header {
+        padding: 0.4rem 0.5rem;
+    }
+    
+    .pokemon-section-title {
+        font-size: 0.85rem;
+    }
+    
+    .pokemon-section-content {
+        padding: 0.75rem;
+    }
+    
+    .note-header {
+        flex-wrap: wrap;
+    }
+    
+    .note-name-input {
+        min-width: 120px;
+    }
+    
+    .physical-info-row {
+        flex-wrap: wrap;
+    }
+}

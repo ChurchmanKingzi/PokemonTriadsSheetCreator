@@ -222,45 +222,62 @@ class UiRenderer {
     _createGenaPaContainer() {
         const { gena, pa, bw } = this.appState;
         
+        // Hilfsfunktion zum Erstellen eines Stat-Items mit Icon
+        const createStatItemWithIcon = (itemClass, iconClass, iconSvg, label, inputId, inputClass, value, min, max, title = '') => {
+            const item = createElement('div', { className: `stat-item ${itemClass}` });
+            
+            // Label mit Icon
+            const nameSpan = createElement('span', { className: 'stat-name' });
+            const iconSpan = document.createElement('span');
+            iconSpan.className = `stat-icon ${iconClass}`;
+            iconSpan.innerHTML = iconSvg;
+            nameSpan.appendChild(iconSpan);
+            nameSpan.appendChild(document.createTextNode(label));
+            
+            // Input
+            const input = createElement('input', {
+                type: 'number',
+                min: min.toString(),
+                max: max.toString(),
+                value: value.toString(),
+                className: `stat-input ${inputClass}`,
+                id: inputId,
+                title: title
+            });
+            
+            item.appendChild(nameSpan);
+            item.appendChild(input);
+            return item;
+        };
+        
+        // SVG-Icons (gleiche wie im Trainer-Interface)
+        const icons = {
+            gena: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>',
+            pa: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>',
+            bw: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 3c-2.25 0-4.5 1.5-7.5 1.5S7.25 3 4.5 3C3 3 2 4 2 5.5v12c0 1.5 1 2.5 2.5 2.5 2.25 0 4.5-1.5 7.5-1.5s5.25 1.5 7.5 1.5c1.5 0 2.5-1 2.5-2.5v-12C22 4 21 3 19.5 3zM12 17c-2.62 0-5.17.75-7.5 1.5.67-2.5 1.75-5.5 3-7.5 1-1.5 2.5-3.5 4.5-3.5s3.5 2 4.5 3.5c1.25 2 2.33 5 3 7.5-2.33-.75-4.88-1.5-7.5-1.5z"/></svg>'
+        };
+        
         return createElement('div', { className: 'gena-pa-container' }, [
-            // GENA
-            createElement('div', { className: 'stat-item gena-item' }, [
-                createElement('span', { className: 'stat-name' }, 'GENA:'),
-                createElement('input', {
-                    type: 'number',
-                    min: DEFAULT_VALUES.MIN_GENA_PA,
-                    max: DEFAULT_VALUES.MAX_GENA_PA,
-                    value: gena.toString(),
-                    className: 'stat-input gena-input',
-                    id: 'gena-input'
-                })
+            // GENA/PA/BW Stats
+            createElement('div', { className: 'gena-pa-stats' }, [
+                createStatItemWithIcon('gena-item', 'stat-icon-gena', icons.gena, 'GENA:', 'gena-input', 'gena-input', gena, DEFAULT_VALUES.MIN_GENA_PA, DEFAULT_VALUES.MAX_GENA_PA),
+                createStatItemWithIcon('pa-item', 'stat-icon-pa', icons.pa, 'PA:', 'pa-input', 'pa-input', pa, DEFAULT_VALUES.MIN_GENA_PA, DEFAULT_VALUES.MAX_GENA_PA),
+                createStatItemWithIcon('bw-item', 'stat-icon-bw', icons.bw, 'BW:', 'bw-input', 'bw-input', bw, 0, 999, this.appState.getBwTooltip ? this.appState.getBwTooltip() : '')
             ]),
-            
-            // PA
-            createElement('div', { className: 'stat-item pa-item' }, [
-                createElement('span', { className: 'stat-name' }, 'PA:'),
-                createElement('input', {
-                    type: 'number',
-                    min: DEFAULT_VALUES.MIN_GENA_PA,
-                    max: DEFAULT_VALUES.MAX_GENA_PA,
-                    value: pa.toString(),
-                    className: 'stat-input pa-input',
-                    id: 'pa-input'
-                })
-            ]),
-            
-            // BW (neu)
-            createElement('div', { className: 'stat-item bw-item' }, [
-                createElement('span', { className: 'stat-name' }, 'BW:'),
-                createElement('input', {
-                    type: 'number',
-                    min: '0',
-                    max: '999',
-                    value: bw.toString(),
-                    className: 'stat-input bw-input',
-                    id: 'bw-input',
-                    title: this.appState.getBwTooltip ? this.appState.getBwTooltip() : ''
-                })
+            // Utility-Buttons direkt daneben
+            createElement('div', { className: 'gena-pa-utility-buttons' }, [
+                createElement('button', {
+                    type: 'button',
+                    className: 'stat-utility-btn full-heal-btn',
+                    id: 'full-heal-btn',
+                    title: 'KP vollständig wiederherstellen'
+                }, '❤️ Heilen'),
+                createElement('button', {
+                    type: 'button',
+                    className: 'stat-utility-btn reset-all-temps-btn',
+                    id: 'reset-all-temps-btn',
+                    title: 'Alle temporären Kampfwert-Modifikationen zurücksetzen'
+                }, '↺ Reset')
             ])
         ]);
     }
@@ -274,6 +291,9 @@ class UiRenderer {
     _createStatsSection() {
         const { stats, currentHp } = this.appState;
         
+        // Prüfen ob KP 0 sind für initiale Klasse
+        const hpZeroClass = currentHp === 0 ? ' hp-zero' : '';
+        
         // Erstelle den Stats-Container mit neuer Reihenfolge
         const statsSection = createElement('div', { className: 'stats' }, [
             // Zeile 1: KP und Initiative
@@ -285,7 +305,7 @@ class UiRenderer {
                         min: '0',
                         max: stats.hp.toString(),
                         value: currentHp.toString(),
-                        className: 'stat-input current-hp-input',
+                        className: `stat-input current-hp-input${hpZeroClass}`,
                         id: 'current-hp-input'
                     }),
                     createElement('span', { className: 'hp-separator' }, '/'),
@@ -297,7 +317,22 @@ class UiRenderer {
                         className: 'stat-input max-hp-input',
                         id: 'max-hp-input',
                         'data-stat': 'hp'
-                    })
+                    }),
+                    // +/-10% Buttons
+                    createElement('div', { className: 'hp-percent-buttons' }, [
+                        createElement('button', {
+                            type: 'button',
+                            className: 'hp-percent-btn hp-damage',
+                            id: 'hp-minus-10',
+                            title: '-10% KP'
+                        }, '-10%'),
+                        createElement('button', {
+                            type: 'button',
+                            className: 'hp-percent-btn hp-heal',
+                            id: 'hp-plus-10',
+                            title: '+10% KP'
+                        }, '+10%')
+                    ])
                 ])
             ]),
             this._createEditableStatItem('Initiative', stats.speed, 'speed', 'speed-item'),
@@ -308,10 +343,8 @@ class UiRenderer {
             
             // Zeile 3: Spez. Angriff und Spez. Verteidigung (mit Modifikatoren)
             this._createModifiableStatItem('Spez. Ang.', stats.spAttack, 'spAttack', 'sp-attack-item'),
-            this._createModifiableStatItem('Spez. Vert.', stats.spDefense, 'spDefense', 'sp-defense-item'),
-            
-            // Zeile 4: Utility-Buttons (Vollheilung und Reset aller Temp-Stats)
-            this._createStatUtilityButtons()
+            this._createModifiableStatItem('Spez. Vert.', stats.spDefense, 'spDefense', 'sp-defense-item')
+            // Utility-Buttons sind jetzt im GENA/PA-Container
         ]);
         
         return statsSection;
@@ -387,29 +420,7 @@ class UiRenderer {
         ]);
     }
     
-    /**
-     * Erstellt die Utility-Buttons (Vollheilung und Reset aller Temp-Stats)
-     * @returns {HTMLElement} Der Button-Container
-     * @private
-     */
-    _createStatUtilityButtons() {
-        return createElement('div', { className: 'stat-utility-buttons' }, [
-            // Vollheilungs-Button
-            createElement('button', {
-                type: 'button',
-                className: 'stat-utility-btn full-heal-btn',
-                id: 'full-heal-btn',
-                title: 'KP vollständig wiederherstellen'
-            }, '❤️ Vollheilung'),
-            // Reset aller temporären Stats
-            createElement('button', {
-                type: 'button',
-                className: 'stat-utility-btn reset-all-temps-btn',
-                id: 'reset-all-temps-btn',
-                title: 'Alle temporären Kampfwert-Modifikationen zurücksetzen'
-            }, '↺ Alle Werte zurücksetzen')
-        ]);
-    }
+    // _createStatUtilityButtons wurde entfernt - Buttons sind jetzt im GENA/PA-Container
 
     /**
      * Aktualisierte Methode für _createStatsArea in UiRenderer-Klasse
@@ -485,18 +496,14 @@ class UiRenderer {
      * @private
      */
     _createMovesSection() {
-        const movesSection = createElement('div', { className: 'moves-selection' }, [
-            createElement('h3', { className: 'section-title' }, 'Attacken'),
-            
-            // Attacken-Grid
-            createElement('div', { className: 'moves-grid' },
-                Array.from({ length: DEFAULT_VALUES.MOVE_SLOTS }).map((_, index) => 
-                    this._createMoveSlot(index)
-                )
+        // Direkt das Attacken-Grid ohne zusätzlichen Container
+        const movesGrid = createElement('div', { className: 'moves-grid' },
+            Array.from({ length: DEFAULT_VALUES.MOVE_SLOTS }).map((_, index) => 
+                this._createMoveSlot(index)
             )
-        ]);
+        );
         
-        return movesSection;
+        return movesGrid;
     }
     
     /**
@@ -580,6 +587,190 @@ class UiRenderer {
         return skillsSection;
     }
     
+    // ==================== NOTIZEN-SEKTION ====================
+    
+    /**
+     * Erstellt die Notizen-Sektion
+     * @returns {HTMLElement} Die Notizen-Sektion
+     * @private
+     */
+    _createNotesSection() {
+        const notes = this.appState.getNotes ? this.appState.getNotes() : [];
+        
+        // Falls keine Notizen vorhanden, eine leere hinzufügen
+        if (notes.length === 0 && this.appState.addNote) {
+            this.appState.addNote('Notizen', '');
+        }
+        
+        const notesList = createElement('div', { 
+            className: 'notes-list',
+            id: 'pokemon-notes-list'
+        });
+        
+        // Notizen rendern
+        const currentNotes = this.appState.getNotes ? this.appState.getNotes() : [];
+        currentNotes.forEach((note, index) => {
+            const noteElement = this._createNoteItem(note, index);
+            notesList.appendChild(noteElement);
+        });
+        
+        // Header mit Add-Button
+        const headerRow = createElement('div', { className: 'notes-header-row' }, [
+            createElement('button', {
+                type: 'button',
+                className: 'notes-add-btn',
+                id: 'add-note-btn',
+                title: 'Neue Notiz hinzufügen'
+            }, [
+                createElement('span', {}, '+'),
+                createElement('span', {}, 'Notiz hinzufügen')
+            ])
+        ]);
+        
+        return createElement('div', { className: 'notes-section-container' }, [
+            headerRow,
+            notesList
+        ]);
+    }
+    
+    /**
+     * Erstellt ein einzelnes Notiz-Element
+     * @param {Object} note - Die Notiz-Daten
+     * @param {number} index - Der Index der Notiz
+     * @returns {HTMLElement} Das Notiz-Element
+     * @private
+     */
+    _createNoteItem(note, index) {
+        const isCollapsed = note.isCollapsed || false;
+        
+        const noteItem = createElement('div', {
+            className: `note-item${isCollapsed ? ' collapsed' : ''}`,
+            'data-note-id': note.id,
+            'data-note-index': index.toString(),
+            draggable: 'true'
+        });
+        
+        // Header mit Drag-Handle, Toggle, Name-Input und Remove-Button
+        const header = createElement('div', { className: 'note-header' }, [
+            createElement('span', { className: 'note-drag-handle' }, '⋮⋮'),
+            createElement('button', {
+                type: 'button',
+                className: 'note-toggle',
+                'data-note-id': note.id,
+                title: 'Ein-/Ausklappen'
+            }, '▼'),
+            createElement('input', {
+                type: 'text',
+                className: 'note-name-input',
+                value: note.name,
+                'data-note-id': note.id,
+                placeholder: 'Notiz-Name...'
+            }),
+            createElement('button', {
+                type: 'button',
+                className: 'note-remove-btn',
+                'data-note-id': note.id,
+                title: 'Notiz entfernen'
+            }, '✕')
+        ]);
+        
+        // Content mit Textarea
+        const content = createElement('div', { className: 'note-content' }, [
+            createElement('textarea', {
+                className: 'note-textarea',
+                'data-note-id': note.id,
+                placeholder: 'Notizen hier eingeben...'
+            }, note.content || '')
+        ]);
+        
+        noteItem.appendChild(header);
+        noteItem.appendChild(content);
+        
+        return noteItem;
+    }
+    
+    /**
+     * Aktualisiert die Notizen-Liste im DOM
+     * @private
+     */
+    _refreshNotesList() {
+        const notesList = document.getElementById('pokemon-notes-list');
+        if (!notesList) return;
+        
+        notesList.innerHTML = '';
+        
+        const notes = this.appState.getNotes ? this.appState.getNotes() : [];
+        notes.forEach((note, index) => {
+            const noteElement = this._createNoteItem(note, index);
+            notesList.appendChild(noteElement);
+        });
+        
+        // Event-Listener werden durch Event-Delegation automatisch übernommen
+        // Nur Drag & Drop muss neu initialisiert werden
+        this._initNotesDragDrop(notesList, this._autoSaveCallback);
+    }
+    
+    // ==================== EINKLAPPBARE SEKTIONEN ====================
+    
+    /**
+     * Erstellt eine einklappbare Sektion mit Drag & Drop
+     * @param {string} sectionId - ID der Sektion
+     * @param {string} title - Titel der Sektion
+     * @param {HTMLElement|Array} content - Inhalt der Sektion
+     * @param {Object} options - Zusätzliche Optionen
+     * @returns {HTMLElement} Die Sektion
+     * @private
+     */
+    _createCollapsibleSection(sectionId, title, content, options = {}) {
+        const isCollapsed = this.appState.isSectionCollapsed 
+            ? this.appState.isSectionCollapsed(sectionId) 
+            : false;
+        
+        const canCollapse = options.canCollapse !== false;
+        const canDrag = options.canDrag !== false;
+        
+        const section = createElement('div', {
+            className: `pokemon-section section-${sectionId}${isCollapsed ? ' collapsed' : ''}`,
+            'data-section-id': sectionId
+            // Kein natives draggable - wir verwenden Custom Drag & Drop
+        });
+        
+        // Header mit Toggle, Titel und Drag-Handle
+        const header = createElement('div', { 
+            className: 'pokemon-section-header',
+            style: 'cursor: pointer'  // Klicken ist Hauptaktion, langes Drücken = Drag
+        }, [
+            createElement('button', {
+                type: 'button',
+                className: 'pokemon-section-toggle',
+                'data-section-id': sectionId,
+                title: 'Ein-/Ausklappen',
+                style: canCollapse ? '' : 'visibility: hidden'
+            }, '▼'),
+            createElement('span', { className: 'pokemon-section-title' }, title),
+            ...(canDrag ? [createElement('span', { 
+                className: 'pokemon-section-drag-handle',
+                title: 'Ziehen zum Verschieben'
+            }, '⋮⋮')] : [])
+        ]);
+        
+        // Content-Container
+        const contentContainer = createElement('div', { className: 'pokemon-section-content' });
+        
+        if (Array.isArray(content)) {
+            content.forEach(child => {
+                if (child) contentContainer.appendChild(child);
+            });
+        } else if (content) {
+            contentContainer.appendChild(content);
+        }
+        
+        section.appendChild(header);
+        section.appendChild(contentContainer);
+        
+        return section;
+    }
+
     /**
      * Erstellt eine Fertigkeiten-Kategorie mit Farbcodierung und Plus-Button
      * @param {string} category - Name der Kategorie
@@ -765,6 +956,9 @@ class UiRenderer {
         // Freundschafts-Strichliste initialisieren
         this._initFriendshipTally();
         
+        // Geschlechts-Badge Event-Listener initialisieren
+        this._initGenderEvents(autoSave);
+        
         // Entwicklungs-Feature initialisieren
         this._initEvolutionFeature();
 
@@ -912,7 +1106,43 @@ class UiRenderer {
             if (!this.appState.setCurrentHp(value)) {
                 e.target.value = this.appState.currentHp;
             }
+            
+            // HP-Zero Klasse aktualisieren
+            this._updateHpZeroState();
+            
             autoSave(); // Automatisch speichern
+        });
+        
+        // Event-Listener für -10% HP Button
+        addEventListenerSafe('#hp-minus-10', 'click', () => {
+            const maxHp = this.appState.stats.hp;
+            const damage = Math.max(1, Math.round(maxHp * 0.1)); // Mindestens 1 Schaden
+            const newHp = Math.max(0, this.appState.currentHp - damage);
+            this.appState.setCurrentHp(newHp);
+            
+            const currentHpInput = document.getElementById('current-hp-input');
+            if (currentHpInput) currentHpInput.value = newHp;
+            
+            // HP-Zero Klasse aktualisieren
+            this._updateHpZeroState();
+            
+            autoSave();
+        });
+        
+        // Event-Listener für +10% HP Button
+        addEventListenerSafe('#hp-plus-10', 'click', () => {
+            const maxHp = this.appState.stats.hp;
+            const heal = Math.max(1, Math.round(maxHp * 0.1)); // Mindestens 1 Heilung
+            const newHp = Math.min(maxHp, this.appState.currentHp + heal);
+            this.appState.setCurrentHp(newHp);
+            
+            const currentHpInput = document.getElementById('current-hp-input');
+            if (currentHpInput) currentHpInput.value = newHp;
+            
+            // HP-Zero Klasse aktualisieren
+            this._updateHpZeroState();
+            
+            autoSave();
         });
         
         // Event-Listener für GENA
@@ -996,6 +1226,28 @@ class UiRenderer {
         addEventListenerSafe('#nickname-input', 'input', autoSave);
         addEventListenerSafe('#item-input', 'input', autoSave);
         
+        // Event-Listener für Größe und Gewicht (editierbar)
+        addEventListenerSafe('#pokemon-height-input', 'change', e => {
+            this.appState.setCustomHeight(e.target.value);
+            autoSave();
+        });
+        addEventListenerSafe('#pokemon-height-input', 'input', autoSave);
+        
+        addEventListenerSafe('#pokemon-weight-input', 'change', e => {
+            this.appState.setCustomWeight(e.target.value);
+            autoSave();
+        });
+        addEventListenerSafe('#pokemon-weight-input', 'input', autoSave);
+        
+        // Event-Listener für Reitbarkeits-Klick (Links- und Rechtsklick)
+        this._addRideabilityEventListeners(autoSave);
+        
+        // Event-Listener für Shiny-Toggle
+        this._addShinyToggleEventListener(autoSave);
+        
+        // Event-Listener für Exotische Färbung
+        this._addExoticColorEventListeners(autoSave);
+        
         // Event-Listener für Kampfwert-Modifikatoren
         this._addStatModifierEventListeners(autoSave);
         
@@ -1004,6 +1256,434 @@ class UiRenderer {
         
         // Event-Listener für Skill-Display-Mode-Toggle
         this._addSkillDisplayModeListeners(autoSave);
+        
+        // Event-Listener für Notizen
+        this._initNotesEventListeners(autoSave);
+        
+        // Event-Listener für einklappbare Sektionen und Drag & Drop
+        this._initSectionEventListeners(autoSave);
+    }
+    
+    /**
+     * Initialisiert Event-Listener für die Notizen-Sektion
+     * @param {Function} autoSave - Callback für automatisches Speichern
+     * @private
+     */
+    _initNotesEventListeners(autoSave) {
+        const self = this;
+        const container = document.getElementById(DOM_IDS.SHEET_CONTAINER);
+        if (!container) return;
+        
+        // autoSave-Callback speichern für spätere Verwendung
+        this._autoSaveCallback = autoSave;
+        
+        // Notiz hinzufügen
+        const addBtn = document.getElementById('add-note-btn');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                if (self.appState.addNote) {
+                    self.appState.addNote('Neue Notiz', '');
+                    self._refreshNotesList();
+                    if (autoSave) autoSave();
+                }
+            });
+        }
+        
+        // Event-Delegation für Notizen-Interaktionen
+        const notesList = document.getElementById('pokemon-notes-list');
+        if (notesList) {
+            // Toggle-Button
+            notesList.addEventListener('click', (e) => {
+                const toggleBtn = e.target.closest('.note-toggle');
+                if (toggleBtn) {
+                    const noteId = toggleBtn.dataset.noteId;
+                    const noteItem = toggleBtn.closest('.note-item');
+                    if (noteItem && self.appState.updateNote) {
+                        const isCollapsed = !noteItem.classList.contains('collapsed');
+                        noteItem.classList.toggle('collapsed', isCollapsed);
+                        self.appState.updateNote(noteId, { isCollapsed });
+                        if (autoSave) autoSave();
+                    }
+                }
+                
+                // Remove-Button
+                const removeBtn = e.target.closest('.note-remove-btn');
+                if (removeBtn) {
+                    const noteId = removeBtn.dataset.noteId;
+                    if (self.appState.removeNote) {
+                        // Mindestens eine Notiz behalten
+                        const notes = self.appState.getNotes ? self.appState.getNotes() : [];
+                        if (notes.length > 1) {
+                            self.appState.removeNote(noteId);
+                            self._refreshNotesList();
+                            if (autoSave) autoSave();
+                        }
+                    }
+                }
+            });
+            
+            // Name-Input
+            notesList.addEventListener('input', (e) => {
+                if (e.target.classList.contains('note-name-input')) {
+                    const noteId = e.target.dataset.noteId;
+                    if (self.appState.updateNote) {
+                        self.appState.updateNote(noteId, { name: e.target.value });
+                    }
+                }
+                
+                // Textarea
+                if (e.target.classList.contains('note-textarea')) {
+                    const noteId = e.target.dataset.noteId;
+                    if (self.appState.updateNote) {
+                        self.appState.updateNote(noteId, { content: e.target.value });
+                    }
+                }
+            });
+            
+            // Blur für Auto-Save
+            notesList.addEventListener('blur', (e) => {
+                if (e.target.classList.contains('note-name-input') || 
+                    e.target.classList.contains('note-textarea')) {
+                    if (autoSave) autoSave();
+                }
+            }, true);
+            
+            // Drag & Drop für Notizen
+            this._initNotesDragDrop(notesList, autoSave);
+        }
+    }
+    
+    /**
+     * Initialisiert Drag & Drop für Notizen
+     * @param {HTMLElement} notesList - Die Notizen-Liste
+     * @param {Function} autoSave - Callback für automatisches Speichern
+     * @private
+     */
+    _initNotesDragDrop(notesList, autoSave) {
+        const self = this;
+        let draggedNote = null;
+        let isDragFromHandle = false;
+        
+        // Tracken ob mousedown auf Handle war
+        notesList.addEventListener('mousedown', (e) => {
+            const dragHandle = e.target.closest('.note-drag-handle');
+            isDragFromHandle = !!dragHandle;
+        });
+        
+        notesList.addEventListener('dragstart', (e) => {
+            const noteItem = e.target.closest('.note-item');
+            
+            // Drag nur erlauben wenn von Handle gestartet
+            if (!isDragFromHandle) {
+                e.preventDefault();
+                return;
+            }
+            
+            if (noteItem) {
+                draggedNote = noteItem;
+                noteItem.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', noteItem.dataset.noteId);
+            }
+        });
+        
+        notesList.addEventListener('dragend', (e) => {
+            const noteItem = e.target.closest('.note-item');
+            if (noteItem) {
+                noteItem.classList.remove('dragging');
+                draggedNote = null;
+            }
+            isDragFromHandle = false;
+            
+            // Alle drag-over Klassen entfernen
+            notesList.querySelectorAll('.note-item').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+        });
+        
+        notesList.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const noteItem = e.target.closest('.note-item');
+            if (noteItem && noteItem !== draggedNote) {
+                noteItem.classList.add('drag-over');
+            }
+        });
+        
+        notesList.addEventListener('dragleave', (e) => {
+            const noteItem = e.target.closest('.note-item');
+            if (noteItem) {
+                noteItem.classList.remove('drag-over');
+            }
+        });
+        
+        notesList.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const targetNote = e.target.closest('.note-item');
+            if (targetNote && draggedNote && targetNote !== draggedNote) {
+                const fromIndex = parseInt(draggedNote.dataset.noteIndex, 10);
+                const toIndex = parseInt(targetNote.dataset.noteIndex, 10);
+                
+                if (self.appState.reorderNotes) {
+                    self.appState.reorderNotes(fromIndex, toIndex);
+                    self._refreshNotesList();
+                    if (autoSave) autoSave();
+                }
+            }
+            
+            // Alle drag-over Klassen entfernen
+            notesList.querySelectorAll('.note-item').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+        });
+    }
+    
+    /**
+     * Initialisiert Custom Drag & Drop für die Sektionen
+     * Verwendet ein eigenes System statt natives HTML5 Drag & Drop für bessere Kontrolle.
+     * - Kurzer Klick auf Header: Collapse/Expand
+     * - Langes Drücken auf Header: Drag starten
+     * - Drag-Handle: Sofort Drag (ohne Wartezeit)
+     * @param {Function} autoSave - Callback für automatisches Speichern
+     * @private
+     */
+    _initSectionEventListeners(autoSave) {
+        const self = this;
+        const sectionsContainer = document.getElementById('pokemon-sections-container');
+        if (!sectionsContainer) return;
+        
+        const DRAG_THRESHOLD = 5; // Pixel bevor Drag startet
+        const HOLD_DELAY = 200; // Millisekunden bis Drag aktiviert wird
+        
+        // State-Variablen
+        let isDragging = false;
+        let dragStarted = false;
+        let draggedSection = null;
+        let dragClone = null;
+        let placeholder = null;
+        let startX = 0;
+        let startY = 0;
+        let offsetX = 0;
+        let offsetY = 0;
+        let holdTimer = null;
+        let dragEnabled = false;
+        
+        const sections = sectionsContainer.querySelectorAll('.pokemon-section');
+        
+        // Natives Drag & Drop deaktivieren
+        sections.forEach(section => {
+            section.setAttribute('draggable', 'false');
+        });
+        
+        // Hilfsfunktion: Finde die Section unter dem Cursor
+        const getSectionAtPosition = (x, y) => {
+            const elements = document.elementsFromPoint(x, y);
+            for (const el of elements) {
+                if (el.classList.contains('pokemon-section') && el !== dragClone) {
+                    return el;
+                }
+                const parentSection = el.closest('.pokemon-section');
+                if (parentSection && parentSection !== dragClone && sectionsContainer.contains(parentSection)) {
+                    return parentSection;
+                }
+            }
+            return null;
+        };
+        
+        // Hilfsfunktion: Toggle Collapse
+        const toggleCollapse = (section) => {
+            const sectionId = section.dataset.sectionId;
+            const isNowCollapsed = !section.classList.contains('collapsed');
+            section.classList.toggle('collapsed', isNowCollapsed);
+            
+            const toggleBtn = section.querySelector('.pokemon-section-toggle');
+            if (toggleBtn) {
+                toggleBtn.title = isNowCollapsed ? 'Ausklappen' : 'Einklappen';
+            }
+            
+            if (self.appState.setSectionCollapsed) {
+                self.appState.setSectionCollapsed(sectionId, isNowCollapsed);
+                if (autoSave) autoSave();
+            }
+        };
+        
+        // ========== MOUSE MOVE (global für diesen Drag) ==========
+        const onMouseMove = (e) => {
+            if (!isDragging || !draggedSection) return;
+            
+            // Drag nur wenn aktiviert (nach Hold-Delay oder Drag-Handle)
+            if (!dragEnabled) return;
+            
+            const deltaX = Math.abs(e.clientX - startX);
+            const deltaY = Math.abs(e.clientY - startY);
+            
+            // Prüfe ob Drag-Schwelle überschritten wurde
+            if (!dragStarted && (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD)) {
+                dragStarted = true;
+                
+                // Clone erstellen
+                draggedSection.classList.add('dragging');
+                
+                dragClone = draggedSection.cloneNode(true);
+                dragClone.classList.remove('dragging');
+                dragClone.classList.add('pokemon-section-drag-clone');
+                
+                const rect = draggedSection.getBoundingClientRect();
+                
+                // Offset berechnen: Cursor-Position relativ zum Element
+                offsetX = startX - rect.left;
+                offsetY = startY - rect.top;
+                
+                dragClone.style.cssText = `
+                    position: fixed;
+                    left: ${rect.left}px;
+                    top: ${rect.top}px;
+                    width: ${rect.width}px;
+                    z-index: 10000;
+                    pointer-events: none;
+                    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+                    opacity: 0.95;
+                    background: #f9fafb;
+                    border-radius: 8px;
+                `;
+                
+                document.body.appendChild(dragClone);
+                
+                // Placeholder erstellen
+                placeholder = document.createElement('div');
+                placeholder.className = 'pokemon-section-placeholder';
+                placeholder.style.height = rect.height + 'px';
+                placeholder.style.margin = '8px 0';
+                placeholder.style.border = '2px dashed #3b82f6';
+                placeholder.style.borderRadius = '8px';
+                placeholder.style.background = 'rgba(59, 130, 246, 0.1)';
+                
+                draggedSection.parentNode.insertBefore(placeholder, draggedSection);
+                draggedSection.style.display = 'none';
+                
+                document.body.style.cursor = 'grabbing';
+            }
+            
+            // Clone-Position aktualisieren
+            if (dragStarted && dragClone) {
+                dragClone.style.left = (e.clientX - offsetX) + 'px';
+                dragClone.style.top = (e.clientY - offsetY) + 'px';
+                
+                // Ziel-Section finden und Placeholder positionieren
+                const targetSection = getSectionAtPosition(e.clientX, e.clientY);
+                
+                if (targetSection && targetSection !== draggedSection) {
+                    const rect = targetSection.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    
+                    if (e.clientY < midY) {
+                        if (placeholder.nextSibling !== targetSection) {
+                            targetSection.parentNode.insertBefore(placeholder, targetSection);
+                        }
+                    } else {
+                        if (placeholder.previousSibling !== targetSection) {
+                            targetSection.parentNode.insertBefore(placeholder, targetSection.nextSibling);
+                        }
+                    }
+                }
+            }
+        };
+        
+        // ========== MOUSE UP (global für diesen Drag) ==========
+        const onMouseUp = (e) => {
+            // Timer abbrechen
+            if (holdTimer) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+            }
+            
+            if (!isDragging) return;
+            
+            // Event-Listener entfernen
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            
+            const wasOnDragHandle = e.target.closest('.pokemon-section-drag-handle');
+            
+            if (dragStarted && draggedSection && placeholder) {
+                // Drag wurde durchgeführt - Section an Placeholder-Position einfügen
+                placeholder.parentNode.insertBefore(draggedSection, placeholder);
+                
+                // Aufräumen
+                if (dragClone && dragClone.parentNode) {
+                    dragClone.remove();
+                }
+                if (placeholder && placeholder.parentNode) {
+                    placeholder.remove();
+                }
+                
+                draggedSection.style.display = '';
+                draggedSection.classList.remove('dragging', 'drag-ready');
+                
+                // Neue Reihenfolge speichern
+                const newOrder = Array.from(sectionsContainer.querySelectorAll('.pokemon-section'))
+                    .map(s => s.dataset.sectionId);
+                
+                if (self.appState.setSectionOrder) {
+                    self.appState.setSectionOrder(newOrder);
+                    if (autoSave) autoSave();
+                }
+            } else if (draggedSection) {
+                // Kein Drag gestartet
+                draggedSection.classList.remove('dragging', 'drag-ready');
+                
+                // Wenn kein Drag und nicht auf Drag-Handle: Collapse toggeln
+                if (!dragEnabled && !wasOnDragHandle) {
+                    toggleCollapse(draggedSection);
+                }
+            }
+            
+            document.body.style.cursor = '';
+            isDragging = false;
+            dragStarted = false;
+            dragEnabled = false;
+            draggedSection = null;
+            dragClone = null;
+            placeholder = null;
+        };
+        
+        // ========== MOUSE DOWN auf Header ==========
+        sectionsContainer.querySelectorAll('.pokemon-section').forEach(section => {
+            const header = section.querySelector('.pokemon-section-header');
+            if (!header) return;
+            
+            header.addEventListener('mousedown', (e) => {
+                // Nicht starten wenn auf Button geklickt wurde
+                if (e.target.closest('button')) return;
+                
+                // Verhindere Text-Selektion
+                e.preventDefault();
+                
+                const isOnDragHandle = e.target.closest('.pokemon-section-drag-handle');
+                
+                isDragging = true;
+                dragStarted = false;
+                dragEnabled = isOnDragHandle; // Sofort aktiviert wenn auf Drag-Handle
+                draggedSection = section;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                // Wenn nicht auf Drag-Handle: Timer starten für verzögerten Drag
+                if (!isOnDragHandle) {
+                    holdTimer = setTimeout(() => {
+                        if (isDragging && draggedSection) {
+                            dragEnabled = true;
+                            // Visuelles Feedback dass Drag jetzt möglich ist
+                            draggedSection.classList.add('drag-ready');
+                            document.body.style.cursor = 'grabbing';
+                        }
+                    }, HOLD_DELAY);
+                }
+                
+                // Globale Event-Listener hinzufügen
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        });
     }
     
     /**
@@ -1088,6 +1768,231 @@ class UiRenderer {
                 input.classList.add('skill-total-mode');
             }
         });
+    }
+    
+    /**
+     * Fügt Event-Listener für die Reitbarkeits-Umschaltung hinzu
+     * Linksklick: Vorwärts durch die Modi
+     * Rechtsklick: Rückwärts durch die Modi
+     * @param {Function} autoSave - Callback für automatisches Speichern
+     * @private
+     */
+    _addRideabilityEventListeners(autoSave) {
+        const self = this;
+        
+        // Reitbarkeits-Badge Klick-Handler
+        const rideabilityBadge = document.getElementById('rideability-badge');
+        if (!rideabilityBadge) return;
+        
+        // Linksklick: Vorwärts
+        rideabilityBadge.addEventListener('click', () => {
+            const newType = self.appState.cycleRideability(false);
+            self._updateRideabilityDisplay(newType);
+            autoSave();
+        });
+        
+        // Rechtsklick: Rückwärts
+        rideabilityBadge.addEventListener('contextmenu', (e) => {
+            e.preventDefault(); // Kontextmenü verhindern
+            const newType = self.appState.cycleRideability(true);
+            self._updateRideabilityDisplay(newType);
+            autoSave();
+        });
+    }
+    
+    /**
+     * Aktualisiert die Reitbarkeits-Anzeige nach einem Wechsel
+     * @param {string} newType - Der neue Reitbarkeits-Typ
+     * @private
+     */
+    _updateRideabilityDisplay(newType) {
+        const rideabilityBadge = document.getElementById('rideability-badge');
+        if (!rideabilityBadge) return;
+        
+        // Reitbarkeits-Definitionen
+        const rideabilityInfo = {
+            'none': {
+                label: 'Kann nicht geritten werden',
+                labelShort: 'Nicht reitbar',
+                icon: '🚫',
+                cssClass: 'rideability-none'
+            },
+            'land': {
+                label: 'Kann an Land geritten werden',
+                labelShort: 'Land',
+                icon: '🏇',
+                cssClass: 'rideability-land'
+            },
+            'water': {
+                label: 'Kann im Wasser geritten werden',
+                labelShort: 'Wasser',
+                icon: '🌊',
+                cssClass: 'rideability-water'
+            },
+            'fly': {
+                label: 'Kann geflogen werden',
+                labelShort: 'Fliegend',
+                icon: '🦅',
+                cssClass: 'rideability-fly'
+            }
+        };
+        
+        const info = rideabilityInfo[newType] || rideabilityInfo['none'];
+        
+        // CSS-Klassen aktualisieren
+        rideabilityBadge.className = `rideability-badge rideability-clickable ${info.cssClass}`;
+        rideabilityBadge.dataset.rideabilityType = newType;
+        rideabilityBadge.title = `${info.label}\n\nLinksklick: Nächster Modus\nRechtsklick: Vorheriger Modus`;
+        
+        // Icon und Label aktualisieren
+        const iconSpan = rideabilityBadge.querySelector('.rideability-icon');
+        const labelSpan = rideabilityBadge.querySelector('.rideability-label');
+        
+        if (iconSpan) iconSpan.textContent = info.icon;
+        if (labelSpan) labelSpan.textContent = info.labelShort;
+    }
+    
+    /**
+     * Fügt Event-Listener für den Shiny-Toggle hinzu
+     * @param {Function} autoSave - Callback für automatisches Speichern
+     * @private
+     */
+    _addShinyToggleEventListener(autoSave) {
+        const self = this;
+        const shinyToggleBtn = document.getElementById('shiny-toggle-btn');
+        
+        if (!shinyToggleBtn) return;
+        
+        shinyToggleBtn.addEventListener('click', () => {
+            const isNowShiny = self.appState.toggleShiny();
+            self._updateShinyDisplay(isNowShiny);
+            autoSave();
+        });
+    }
+    
+    /**
+     * Aktualisiert die Sprite-Anzeige nach Shiny-Toggle
+     * @param {boolean} isShiny - Ob Shiny angezeigt werden soll
+     * @private
+     */
+    _updateShinyDisplay(isShiny) {
+        const { pokemonData } = this.appState;
+        const spriteImg = document.getElementById('pokemon-sprite');
+        const shinyToggleBtn = document.getElementById('shiny-toggle-btn');
+        
+        if (spriteImg && pokemonData) {
+            // Sprite-URL aktualisieren
+            const newSpriteUrl = isShiny && pokemonData.sprites.front_shiny
+                ? pokemonData.sprites.front_shiny
+                : pokemonData.sprites.front_default;
+            spriteImg.src = newSpriteUrl;
+        }
+        
+        if (shinyToggleBtn) {
+            // Button-Stil aktualisieren
+            if (isShiny) {
+                shinyToggleBtn.classList.add('shiny-active');
+                shinyToggleBtn.title = 'Normale Farbe anzeigen';
+            } else {
+                shinyToggleBtn.classList.remove('shiny-active');
+                shinyToggleBtn.title = 'Shiny-Farbe anzeigen';
+            }
+            
+            // Text aktualisieren
+            const textSpan = shinyToggleBtn.querySelector('.shiny-text');
+            if (textSpan) {
+                textSpan.textContent = isShiny ? 'Shiny' : 'Normal';
+            }
+        }
+    }
+    
+    /**
+     * Fügt Event-Listener für Exotische Färbung hinzu
+     * @param {Function} autoSave - Callback für automatisches Speichern
+     * @private
+     */
+    _addExoticColorEventListeners(autoSave) {
+        const self = this;
+        const exoticToggleBtn = document.getElementById('exotic-color-toggle-btn');
+        const hueSlider = document.getElementById('exotic-hue-slider');
+        
+        if (exoticToggleBtn) {
+            exoticToggleBtn.addEventListener('click', () => {
+                const isNowExotic = self.appState.toggleExoticColor();
+                self._updateExoticColorDisplay(isNowExotic);
+                autoSave();
+            });
+        }
+        
+        if (hueSlider) {
+            hueSlider.addEventListener('input', (e) => {
+                const hueValue = parseInt(e.target.value, 10);
+                self.appState.setExoticHueRotation(hueValue);
+                self._updateExoticHueRotation(hueValue);
+                // Kein autoSave bei input, da zu häufig
+            });
+            
+            hueSlider.addEventListener('change', () => {
+                // Nur bei change (Loslassen) speichern
+                autoSave();
+            });
+        }
+    }
+    
+    /**
+     * Aktualisiert die Anzeige nach Exotische-Färbung-Toggle
+     * @param {boolean} isExotic - Ob exotische Färbung aktiv ist
+     * @private
+     */
+    _updateExoticColorDisplay(isExotic) {
+        const spriteImg = document.getElementById('pokemon-sprite');
+        const exoticToggleBtn = document.getElementById('exotic-color-toggle-btn');
+        const sliderContainer = document.getElementById('exotic-hue-slider-container');
+        
+        if (spriteImg) {
+            if (isExotic) {
+                spriteImg.style.filter = `hue-rotate(${this.appState.exoticHueRotation}deg)`;
+            } else {
+                spriteImg.style.filter = '';
+            }
+        }
+        
+        if (exoticToggleBtn) {
+            if (isExotic) {
+                exoticToggleBtn.classList.add('exotic-active');
+                exoticToggleBtn.title = 'Exotische Färbung deaktivieren';
+            } else {
+                exoticToggleBtn.classList.remove('exotic-active');
+                exoticToggleBtn.title = 'Exotische Färbung aktivieren';
+            }
+            
+            const textSpan = exoticToggleBtn.querySelector('.exotic-text');
+            if (textSpan) {
+                textSpan.textContent = isExotic ? 'Exotisch' : 'Normal';
+            }
+        }
+        
+        if (sliderContainer) {
+            sliderContainer.style.visibility = isExotic ? 'visible' : 'hidden';
+        }
+    }
+    
+    /**
+     * Aktualisiert die Hue-Rotation-Anzeige
+     * @param {number} hueValue - Der neue Hue-Wert
+     * @private
+     */
+    _updateExoticHueRotation(hueValue) {
+        const spriteImg = document.getElementById('pokemon-sprite');
+        const hueValueDisplay = document.getElementById('exotic-hue-value');
+        
+        if (spriteImg && this.appState.isExoticColor) {
+            spriteImg.style.filter = `hue-rotate(${hueValue}deg)`;
+        }
+        
+        if (hueValueDisplay) {
+            hueValueDisplay.textContent = `${hueValue}°`;
+        }
     }
     
     /**
@@ -1201,28 +2106,38 @@ class UiRenderer {
      * @private
      */
     _addExportImportButtonListeners() {
-        // JSON-Export-Button
-        addEventListenerSafe('#save-json-button', 'click', () => {
-            if (window.jsonExportService) {
-                window.jsonExportService.exportJSON();
-            } else {
-                this._showToast('JSON-Export-Service nicht verfügbar', 'error');
-            }
-        });
+        // JSON-Export-Button - Klon erstellen um alte Listener zu entfernen
+        const jsonExportBtn = document.getElementById('save-json-button');
+        if (jsonExportBtn) {
+            const newJsonExportBtn = jsonExportBtn.cloneNode(true);
+            jsonExportBtn.parentNode.replaceChild(newJsonExportBtn, jsonExportBtn);
+            newJsonExportBtn.addEventListener('click', () => {
+                if (window.jsonExportService) {
+                    window.jsonExportService.exportJSON();
+                } else {
+                    this._showToast('JSON-Export-Service nicht verfügbar', 'error');
+                }
+            });
+        }
         
         // PDF-Export-Button wird vom TrainerPdfService gesteuert (trainerSheetPdfService.js)
         // um kontextabhängig zwischen Trainer- und Pokemon-PDF zu wechseln.
         // KEIN zusätzlicher Event-Listener hier, da sonst Mehrfach-Downloads entstehen!
         
-        // Laden-Button
-        addEventListenerSafe('#load-pokemon-button', 'click', () => {
-            const fileInput = document.getElementById('json-file-input');
-            if (fileInput) {
-                fileInput.click();
-            } else {
-                this._showToast('JSON-Import nicht verfügbar', 'error');
-            }
-        });
+        // Laden-Button - Klon erstellen um alte Listener zu entfernen
+        const loadBtn = document.getElementById('load-pokemon-button');
+        if (loadBtn) {
+            const newLoadBtn = loadBtn.cloneNode(true);
+            loadBtn.parentNode.replaceChild(newLoadBtn, loadBtn);
+            newLoadBtn.addEventListener('click', () => {
+                const fileInput = document.getElementById('json-file-input');
+                if (fileInput) {
+                    fileInput.click();
+                } else {
+                    this._showToast('JSON-Import nicht verfügbar', 'error');
+                }
+            });
+        }
     }
     
     /**
@@ -1263,53 +2178,92 @@ class UiRenderer {
     _createOverviewSection() {
         const { pokemonData, selectedPokemon } = this.appState;
         
-        // Erstellen des Fähigkeiten-Bereichs
-        const abilitiesSection = this._createAbilitiesSection();
-    
-        // Erstellen des Level-Up-Bereichs (für die obere linke Ecke)
-        const levelUpSection = this._createLevelUpSection();
+        // ==================== SEKTION 1: POKEMON-INFO ====================
+        // Enthält: Name, Trainer, Spitzname, Item, Typen, Größe, Gewicht, Reitbarkeit, Freundschaft, Sprite
         
-        // GENA und PA Container separat erstellen
-        const genaPaContainer = this._createGenaPaContainer();
+        // Sprite-URL basierend auf Shiny-Zustand
+        const spriteUrl = this.appState.isShiny && pokemonData.sprites.front_shiny
+            ? pokemonData.sprites.front_shiny
+            : pokemonData.sprites.front_default;
         
-        // Erstellen des Attacken-Bereichs (für die rechte Seite auf gleicher Höhe wie Level-Up)
-        const movesSection = this._createMovesSection();
+        const hasShinySprite = !!pokemonData.sprites.front_shiny;
         
-        // Erstellen des Statuswerte-Bereichs
-        const statsArea = this._createStatsArea();
-        
-        // Erstellen des Bild-Bereichs in der oberen rechten Ecke
-        const imageArea = createElement('div', { className: 'pokemon-image-area' }, [
-            // Pokemon-Bild
-            createElement('div', { className: 'pokemon-image' }, [
-                createElement('img', {
-                    src: pokemonData.sprites.front_default,
-                    alt: pokemonData.germanName || selectedPokemon,
-                    className: 'sprite'
-                })
-            ])
+        // Hue-Slider (wird unter den Buttons platziert, visibility statt display für stabiles Layout)
+        const hueSliderContainer = createElement('div', {
+            id: 'exotic-hue-slider-container',
+            className: 'exotic-hue-slider-container',
+            style: this.appState.isExoticColor ? 'visibility: visible' : 'visibility: hidden'
+        }, [
+            createElement('input', {
+                type: 'range',
+                id: 'exotic-hue-slider',
+                className: 'exotic-hue-slider',
+                min: '0',
+                max: '360',
+                value: this.appState.exoticHueRotation.toString()
+            }),
+            createElement('span', {
+                id: 'exotic-hue-value',
+                className: 'exotic-hue-value'
+            }, `${this.appState.exoticHueRotation}°`)
         ]);
         
-        // Kompakte Freundschafts-Anzeige erstellen
+        // Bild-Bereich: Sprite oben, Buttons darunter, Slider ganz unten
+        const imageAreaRestructured = createElement('div', { className: 'pokemon-image-area' }, [
+            createElement('div', { className: 'pokemon-image' }, [
+                createElement('img', {
+                    id: 'pokemon-sprite',
+                    src: spriteUrl,
+                    alt: pokemonData.germanName || selectedPokemon,
+                    className: 'sprite',
+                    style: this.appState.isExoticColor 
+                        ? `filter: hue-rotate(${this.appState.exoticHueRotation}deg)` 
+                        : ''
+                })
+            ]),
+            createElement('div', { className: 'sprite-buttons-row' }, [
+                ...(hasShinySprite ? [
+                    createElement('button', {
+                        id: 'shiny-toggle-btn',
+                        className: `shiny-toggle-btn ${this.appState.isShiny ? 'shiny-active' : ''}`,
+                        type: 'button',
+                        title: this.appState.isShiny ? 'Normale Farbe anzeigen' : 'Shiny-Farbe anzeigen'
+                    }, [
+                        createElement('span', { className: 'shiny-icon' }, '✨'),
+                        createElement('span', { className: 'shiny-text' }, this.appState.isShiny ? 'Shiny' : 'Normal')
+                    ])
+                ] : []),
+                createElement('button', {
+                    id: 'exotic-color-toggle-btn',
+                    className: `exotic-color-toggle-btn ${this.appState.isExoticColor ? 'exotic-active' : ''}`,
+                    type: 'button',
+                    title: this.appState.isExoticColor ? 'Exotische Färbung deaktivieren' : 'Exotische Färbung aktivieren'
+                }, [
+                    createElement('span', { className: 'exotic-text' }, this.appState.isExoticColor ? 'Exotisch' : 'Normal')
+                ])
+            ]),
+            hueSliderContainer
+        ]);
+        
+        // Freundschafts-Anzeige
         const compactFriendshipTracker = this._createCompactFriendshipTracker();
         
-        // Pokemon-Info ohne Freundschafts-Anzeige
+        // Pokemon-Info Container MIT Freundschaft direkt daneben
         const pokemonInfoContainer = createElement('div', { className: 'pokemon-info-container' }, [
-            // Pokemon-Info mit deutschem Namen
             createElement('div', { className: 'pokemon-info' }, [
-                // Header mit Name
                 createElement('div', { className: 'pokemon-header' }, [
                     createElement('h2', { className: 'pokemon-name' }, pokemonData.germanName || capitalizeFirstLetter(selectedPokemon))
                 ]),
-                
-                // Neue Eingabefelder für Trainer, Spitzname und Item
-                createElement('div', { className: 'trainer-fields' }, [
-                    this._createTextField('Trainer', 'trainer-input'),
-                    this._createTextField('Spitzname', 'nickname-input'),
-                    this._createTextField('Item', 'item-input')
+                // Trainer-Felder, Geschlecht und Freundschaft nebeneinander
+                createElement('div', { className: 'trainer-friendship-row' }, [
+                    createElement('div', { className: 'trainer-fields' }, [
+                        this._createTextField('Trainer', 'trainer-input'),
+                        this._createTextField('Spitzname', 'nickname-input'),
+                        this._createTextField('Item', 'item-input')
+                    ]),
+                    this._createGenderBadge(),
+                    createElement('div', { className: 'friendship-column' }, [compactFriendshipTracker])
                 ]),
-                
-                // Typen mit deutschen Namen
                 createElement('div', { className: 'types' }, 
                     pokemonData.types.map(typeInfo => 
                         createElement('span', {
@@ -1318,64 +2272,82 @@ class UiRenderer {
                         }, typeInfo.type.germanName || capitalizeFirstLetter(typeInfo.type.name))
                     )
                 ),
-                
-                // Physische Infos: Größe, Gewicht, Reitbarkeit
                 this._createPhysicalInfoRow()
             ])
         ]);
         
-        // Freundschafts-Bereich in eigener Spalte
-        const friendshipColumn = createElement('div', { className: 'friendship-column' }, [
-            compactFriendshipTracker
-        ]);
-        
-        // Action-Buttons für JSON- und PDF-Export
-        const actionButtons = this._createActionButtons();
-        
-        // Container erstellen mit Titel und Action-Buttons
-        const headerContainer = createElement('div', { className: 'header-container' }, [
-            createElement('h1', { className: 'title' }, 'Pokémon Charakterbogen'),
-            actionButtons
-        ]);
-        
-        // Basic-Info-Bereich mit zwei Spalten
-        const basicInfo = createElement('div', { className: 'basic-info' }, [
+        // Info-Sektion Content: Info+Freundschaft links, Sprite rechts
+        const infoSectionContent = createElement('div', { className: 'info-section-layout' }, [
             pokemonInfoContainer,
-            friendshipColumn
+            imageAreaRestructured
         ]);
         
-        // Level container with GENA/PA and Stats
-        const levelContainer = createElement('div', { className: 'level-container' }, [
+        // ==================== SEKTION 2: KAMPF ====================
+        // Enthält: Level-Up, GENA/PA, Stats (OHNE Attacken)
+        
+        const levelUpSection = this._createLevelUpSection();
+        const genaPaContainer = this._createGenaPaContainer();
+        const statsArea = this._createStatsArea();
+        
+        // Kampf-Sektion Layout: Nur Level/Stats
+        const combatSectionContent = createElement('div', { className: 'combat-section-layout' }, [
             levelUpSection,
             genaPaContainer,
-            // Hier den Statuswerte-Bereich einfügen
             statsArea
         ]);
         
+        // ==================== SEKTION 3: ATTACKEN ====================
+        const movesSection = this._createMovesSection();
+        
+        // ==================== SEKTION 4: FÄHIGKEITEN ====================
+        const abilitiesSection = this._createAbilitiesSection();
+        
+        // ==================== SEKTION 5: FERTIGKEITEN ====================
+        const skillsSection = this._createSkillsSection();
+        
+        // ==================== SEKTION 6: NOTIZEN ====================
+        const notesSection = this._createNotesSection();
+        
+        // ==================== SEKTIONEN ZUSAMMENBAUEN ====================
+        const sections = {
+            info: this._createCollapsibleSection('info', 'Pokémon-Info', infoSectionContent, { canCollapse: true }),
+            combat: this._createCollapsibleSection('combat', 'Kampf & Werte', combatSectionContent, { canCollapse: true }),
+            moves: this._createCollapsibleSection('moves', 'Attacken', movesSection, { canCollapse: true }),
+            abilities: this._createCollapsibleSection('abilities', 'Fähigkeiten', abilitiesSection, { canCollapse: true }),
+            skills: this._createCollapsibleSection('skills', 'Fertigkeiten', skillsSection, { canCollapse: true }),
+            notes: this._createCollapsibleSection('notes', 'Notizen', notesSection, { canCollapse: true })
+        };
+        
+        // Reihenfolge aus AppState holen
+        const defaultOrder = ['info', 'combat', 'moves', 'abilities', 'skills', 'notes'];
+        const sectionOrder = this.appState.getSectionOrder ? this.appState.getSectionOrder() : defaultOrder;
+        
+        // Validiere und korrigiere Reihenfolge (falls alte Daten)
+        const validOrder = sectionOrder.filter(id => sections[id]);
+        defaultOrder.forEach(id => {
+            if (!validOrder.includes(id)) validOrder.push(id);
+        });
+        
+        // Sektionen-Container erstellen
+        const sectionsContainer = createElement('div', { 
+            className: 'pokemon-sections-container',
+            id: 'pokemon-sections-container'
+        });
+        
+        // Sektionen in der richtigen Reihenfolge hinzufügen
+        validOrder.forEach(sectionId => {
+            if (sections[sectionId]) {
+                sectionsContainer.appendChild(sections[sectionId]);
+            }
+        });
+        
         // Überarbeitete Struktur
         const overviewSection = createElement('div', { className: 'pokemon-overview' }, [
-            // Header-Container oben einfügen
-            //headerContainer,
-            
-            // Basic info at top left (with friendship tracker inside)
-            basicInfo,
-            
-            // Pokemon image in top right
-            imageArea,
-            
-            // Level-up section with Stats inside
-            levelContainer,
-            
-            // Moves section (Attacks)
-            movesSection,
-            
-            // Abilities and Skills
-            abilitiesSection,
-            this._createSkillsSection()
+            sectionsContainer
         ]);
         
         // Verzögert den typabhängigen Hintergrund anwenden
-        setTimeout(() => this._applyPokemonTypeBackground(), 100);
+        setTimeout(() => this._applyPokemonTypeBackground(), 10);
         
         return overviewSection;
     }
@@ -1406,73 +2378,122 @@ class UiRenderer {
     _createPhysicalInfoRow() {
         const { pokemonData } = this.appState;
         
-        // Größe in Metern (API liefert Dezimeter)
-        const heightInMeters = pokemonData.height / 10;
-        const heightDisplay = heightInMeters.toFixed(1).replace('.', ',') + ' m';
+        // Größe: Custom-Wert oder API-Wert
+        const heightDisplay = this.appState.getDisplayHeight 
+            ? this.appState.getDisplayHeight() 
+            : (pokemonData.height / 10).toFixed(1).replace('.', ',') + ' m';
         
-        // Gewicht in Kilogramm (API liefert Hektogramm)
-        const weightInKg = pokemonData.weight / 10;
-        const weightDisplay = weightInKg.toFixed(1).replace('.', ',') + ' kg';
+        // Gewicht: Custom-Wert oder API-Wert
+        const weightDisplay = this.appState.getDisplayWeight 
+            ? this.appState.getDisplayWeight() 
+            : (pokemonData.weight / 10).toFixed(1).replace('.', ',') + ' kg';
         
-        // Reitbarkeit ermitteln
+        // Reitbarkeit ermitteln (custom oder automatisch)
         const rideability = this._getRideability();
         
         return createElement('div', { className: 'physical-info-row' }, [
-            // Größe
+            // Größe (editierbar)
             createElement('div', { className: 'physical-info-item' }, [
                 createElement('span', { className: 'info-icon' }, '📏'),
                 createElement('span', { className: 'info-label' }, 'Größe:'),
-                createElement('span', { className: 'info-value' }, heightDisplay)
+                createElement('input', { 
+                    type: 'text',
+                    id: 'pokemon-height-input',
+                    className: 'info-value-input physical-info-input',
+                    value: heightDisplay
+                })
             ]),
             
-            // Gewicht
+            // Gewicht (editierbar)
             createElement('div', { className: 'physical-info-item' }, [
                 createElement('span', { className: 'info-icon' }, '⚖️'),
                 createElement('span', { className: 'info-label' }, 'Gewicht:'),
-                createElement('span', { className: 'info-value' }, weightDisplay)
+                createElement('input', { 
+                    type: 'text',
+                    id: 'pokemon-weight-input',
+                    className: 'info-value-input physical-info-input',
+                    value: weightDisplay
+                })
             ]),
             
-            // Reitbarkeit
+            // Reitbarkeit (klickbar zum Durchwechseln)
             createElement('div', { 
-                className: `rideability-badge ${rideability.cssClass}`,
-                title: rideability.label
+                id: 'rideability-badge',
+                className: `rideability-badge rideability-clickable ${rideability.cssClass}`,
+                title: `${rideability.label}\n\nLinksklick: Nächster Modus\nRechtsklick: Vorheriger Modus`,
+                dataset: {
+                    rideabilityType: rideability.type
+                }
             }, [
-                createElement('span', {}, rideability.icon),
-                createElement('span', {}, rideability.labelShort)
+                createElement('span', { className: 'rideability-icon' }, rideability.icon),
+                createElement('span', { className: 'rideability-label' }, rideability.labelShort)
             ])
         ]);
     }
     
     /**
      * Ermittelt die Reitbarkeit des aktuellen Pokemon
-     * Nutzt den RideabilityService falls verfügbar
+     * Nutzt den RideabilityService falls verfügbar, oder custom-Wert
      * @returns {Object} Reitbarkeits-Info mit type, label, labelShort, icon, cssClass
      * @private
      */
     _getRideability() {
         const { pokemonData } = this.appState;
-        const speciesData = pokemonData.speciesData;
         
-        // Fallback falls Service nicht verfügbar
-        if (!window.rideabilityService) {
-            return {
+        // Reitbarkeits-Definitionen
+        const rideabilityInfo = {
+            'none': {
                 type: 'none',
                 label: 'Kann nicht geritten werden',
                 labelShort: 'Nicht reitbar',
                 icon: '🚫',
                 cssClass: 'rideability-none'
-            };
+            },
+            'land': {
+                type: 'land',
+                label: 'Kann an Land geritten werden',
+                labelShort: 'Land',
+                icon: '🏇',
+                cssClass: 'rideability-land'
+            },
+            'water': {
+                type: 'water',
+                label: 'Kann im Wasser geritten werden',
+                labelShort: 'Wasser',
+                icon: '🌊',
+                cssClass: 'rideability-water'
+            },
+            'fly': {
+                type: 'fly',
+                label: 'Kann geflogen werden',
+                labelShort: 'Fliegend',
+                icon: '🦅',
+                cssClass: 'rideability-fly'
+            }
+        };
+        
+        // Wenn Custom-Wert gesetzt ist, diesen verwenden
+        if (this.appState.customRideability !== null && this.appState.customRideability !== undefined) {
+            return rideabilityInfo[this.appState.customRideability] || rideabilityInfo['none'];
+        }
+        
+        // Fallback falls Service nicht verfügbar
+        if (!window.rideabilityService) {
+            return rideabilityInfo['none'];
         }
         
         // Lernbare Attacken für Fly/Surf-Check ermitteln
         // availableMoves enthält alle lernbaren Attacken des Pokemon
         const learnableMoves = this.appState.availableMoves || [];
         
-        return window.rideabilityService.getRideability(
+        const autoRideability = window.rideabilityService.getRideability(
             pokemonData,
-            speciesData,
+            pokemonData.speciesData,
             learnableMoves
         );
+        
+        // Mapping vom Service-Ergebnis zu unseren Info-Objekten
+        return rideabilityInfo[autoRideability.type] || rideabilityInfo['none'];
     }
 
     /**
@@ -1791,6 +2812,23 @@ class UiRenderer {
      * Aktualisiert alle Statuswerte in der UI
      * @private
      */
+    /**
+     * Aktualisiert den visuellen Zustand des HP-Inputs bei 0 KP
+     * @private
+     */
+    _updateHpZeroState() {
+        const currentHpInput = document.getElementById('current-hp-input');
+        if (!currentHpInput) return;
+        
+        const currentHp = parseInt(currentHpInput.value, 10) || 0;
+        
+        if (currentHp === 0) {
+            currentHpInput.classList.add('hp-zero');
+        } else {
+            currentHpInput.classList.remove('hp-zero');
+        }
+    }
+
     _updateAllStats() {
         // KP aktualisieren
         const currentHpInput = document.getElementById('current-hp-input');
@@ -1873,21 +2911,17 @@ class UiRenderer {
      * @private
      */
     _createAbilitiesSection() {
-        const abilitiesSection = createElement('div', { className: 'abilities-section' }, [
-            createElement('h3', { className: 'section-title' }, 'Fähigkeiten')
-        ]);
+        // Direkt die Fähigkeiten als Container ohne zusätzlichen Wrapper
+        const abilitiesContainer = createElement('div', { className: 'abilities-container' });
         
         // Fähigkeiten aus dem AppState abrufen
         const abilities = this.appState.abilities || [];
         
-        // Container für die Fähigkeiten
-        const abilitiesContainer = createElement('div', { className: 'abilities-container' });
+        // Filtere leere Fähigkeiten heraus und zähle die validen
+        const validAbilities = abilities.filter(ability => ability !== "Leer");
         
         // Jede Fähigkeit mit Beschreibung hinzufügen
-        abilities.forEach((ability, index) => {
-            // Prüfen, ob es sich um "Leer" handelt
-            if (ability === "Leer") return; // Leere Fähigkeiten überspringen
-            
+        validAbilities.forEach((ability, index) => {
             // Fähigkeitsbeschreibung abrufen
             let abilityDescription = "";
             try {
@@ -1899,9 +2933,13 @@ class UiRenderer {
             // Bestimme eine Farbe basierend auf dem Namen der Fähigkeit
             const abilityColor = this._getAbilityColor(ability);
             
+            // Mittlere Fähigkeit bekommt spezielle Klasse für helleren Hintergrund
+            const isMiddle = validAbilities.length === 3 && index === 1;
+            const middleClass = isMiddle ? ' ability-middle' : '';
+            
             // Fähigkeitseintrag erstellen
             const abilityItem = createElement('div', { 
-                className: 'ability-item',
+                className: `ability-item${middleClass}`,
                 style: `border-left-color: ${abilityColor}`
             }, [
                 createElement('div', { className: 'ability-header' }, [
@@ -1916,8 +2954,7 @@ class UiRenderer {
             abilitiesContainer.appendChild(abilityItem);
         });
         
-        abilitiesSection.appendChild(abilitiesContainer);
-        return abilitiesSection;
+        return abilitiesContainer;
     }
     
     _getAbilityColor(abilityName) {
@@ -2015,6 +3052,77 @@ class UiRenderer {
 
 
     /**
+     * Erstellt das Geschlechts-Badge mit klickbarem Symbol
+     * Linksklick: Male -> Female -> Neutral -> Male
+     * Rechtsklick: Male -> Neutral -> Female -> Male
+     */
+    _createGenderBadge() {
+        const currentGender = this.appState.gender || GENDER.MALE;
+        const genderInfo = GENDER_DISPLAY[currentGender];
+        
+        const genderBadge = createElement('div', { 
+            className: 'gender-badge-container',
+            id: 'gender-badge-container'
+        }, [
+            createElement('div', { className: 'gender-badge-title' }, 'Geschlecht'),
+            createElement('div', { 
+                className: `gender-badge gender-${currentGender}`,
+                id: 'gender-badge',
+                title: `${genderInfo.label} (Klicken zum Ändern)`,
+                style: `color: ${genderInfo.color};`
+            }, genderInfo.symbol)
+        ]);
+        
+        return genderBadge;
+    }
+    
+    /**
+     * Aktualisiert die Geschlechts-Anzeige im UI
+     */
+    _updateGenderDisplay() {
+        const genderBadge = document.getElementById('gender-badge');
+        if (!genderBadge) return;
+        
+        const currentGender = this.appState.gender || GENDER.MALE;
+        const genderInfo = GENDER_DISPLAY[currentGender];
+        
+        genderBadge.textContent = genderInfo.symbol;
+        genderBadge.style.color = genderInfo.color;
+        genderBadge.title = `${genderInfo.label} (Klicken zum Ändern)`;
+        genderBadge.className = `gender-badge gender-${currentGender}`;
+    }
+    
+    /**
+     * Initialisiert die Event-Listener für das Geschlechts-Badge
+     * @param {Function} autoSave - Funktion zum automatischen Speichern
+     * @private
+     */
+    _initGenderEvents(autoSave) {
+        const genderBadge = document.getElementById('gender-badge');
+        if (!genderBadge) return;
+        
+        // Linksklick: vorwärts durch den Zyklus
+        genderBadge.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.appState.cycleGender(false);
+            this._updateGenderDisplay();
+            if (typeof autoSave === 'function') {
+                autoSave();
+            }
+        });
+        
+        // Rechtsklick: rückwärts durch den Zyklus
+        genderBadge.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.appState.cycleGender(true);
+            this._updateGenderDisplay();
+            if (typeof autoSave === 'function') {
+                autoSave();
+            }
+        });
+    }
+
+    /**
      * Neue Methode für die UiRenderer-Klasse, um die Freundschafts-Anzeige zu erstellen
      * Miniaturisierte Version, die in den Basic-Info-Bereich integriert werden kann
      */
@@ -2091,6 +3199,38 @@ class UiRenderer {
                 }
             });
             
+            // Rechtsklick auf Würfelklasse verringert sie
+            diceClassDisplay.addEventListener('contextmenu', (e) => {
+                e.preventDefault(); // Kontextmenü verhindern
+                
+                const newDice = this.appState.decreaseDiceClass();
+                
+                if (newDice) {
+                    // UI aktualisieren
+                    diceClassDisplay.textContent = newDice;
+                    diceClassDisplay.classList.add('dice-class-customized');
+                    
+                    // Reset-Button sichtbar machen
+                    if (resetBtn) {
+                        resetBtn.classList.remove('hidden');
+                    }
+                    
+                    // Animation
+                    diceClassDisplay.classList.add('dice-class-pulse');
+                    setTimeout(() => {
+                        diceClassDisplay.classList.remove('dice-class-pulse');
+                    }, 300);
+                    
+                    autoSave();
+                } else {
+                    // Minimum erreicht - visuelles Feedback
+                    diceClassDisplay.classList.add('dice-class-shake');
+                    setTimeout(() => {
+                        diceClassDisplay.classList.remove('dice-class-shake');
+                    }, 300);
+                }
+            });
+            
             // Reset-Button
             if (resetBtn) {
                 resetBtn.addEventListener('click', (e) => {
@@ -2116,7 +3256,7 @@ class UiRenderer {
                     }
                 });
             }
-        }, 100);
+        }, 10);
     }
 
     /**
@@ -2270,7 +3410,7 @@ class UiRenderer {
             } catch (error) {
                 console.error("Fehler beim Speichern des Charakterbogens:", error);
             }
-        }, 100);
+        }, 10);
     }
 
     /**

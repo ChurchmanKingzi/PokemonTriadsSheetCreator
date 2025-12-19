@@ -92,7 +92,7 @@ const SKILL_GROUPS = {
         'Orientierung',
         'Reparieren',
         'Wildnisleben/Survival',
-        'Wissen über Pokemon allgemein'
+        'Wissen über Pokemon'
     ],
     CH: [
         'Anführen',
@@ -173,6 +173,38 @@ const DICE_CLASS_ORDER = {
     '2W10': 7,
     '2W12': 8,
     '2W100': 9
+};
+
+// Geschlechts-Konstanten
+const GENDER = {
+    MALE: 'male',
+    FEMALE: 'female',
+    NEUTRAL: 'neutral'
+};
+
+// Geschlechts-Reihenfolge für Cycling (Linksklick: vorwärts, Rechtsklick: rückwärts)
+const GENDER_CYCLE_ORDER = [GENDER.MALE, GENDER.FEMALE, GENDER.NEUTRAL];
+
+// Geschlechts-Anzeige-Informationen
+const GENDER_DISPLAY = {
+    [GENDER.MALE]: {
+        symbol: '♂',
+        label: 'Männlich',
+        color: '#3498db', // Blau
+        unicodeChar: '\u2642' // Mars-Symbol
+    },
+    [GENDER.FEMALE]: {
+        symbol: '♀',
+        label: 'Weiblich',
+        color: '#e91e63', // Rosa
+        unicodeChar: '\u2640' // Venus-Symbol
+    },
+    [GENDER.NEUTRAL]: {
+        symbol: '○',
+        label: 'Neutral',
+        color: '#9e9e9e', // Grau/Silber
+        unicodeChar: '\u25CB' // Leerer Kreis
+    }
 };
 
 // Trainer-spezifische Fertigkeiten (erweitert SKILL_GROUPS um Trainer-exklusive Skills)

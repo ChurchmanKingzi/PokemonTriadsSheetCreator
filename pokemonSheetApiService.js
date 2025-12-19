@@ -634,7 +634,22 @@ class ApiService {
                 germanName: germanName,
                 types: translatedTypes
             };
+            
+            // Default-Geschlecht basierend auf gender_rate berechnen
+            const genderRate = speciesData.gender_rate;
+            const defaultGender = AppState.calculateDefaultGender(genderRate);
+            
+            // Speichere gender_rate und defaultGender in den Daten für spätere Referenz
+            enhancedData.genderRate = genderRate;
+            enhancedData.defaultGender = defaultGender;
+            
             this.appState.setPokemonData(enhancedData, speciesData, this._skipLevelCalculation);
+            
+            // Setze das Default-Geschlecht, falls noch nicht durch Import überschrieben
+            // (skipLevelCalculation bedeutet, dass wir aus einem Import kommen)
+            if (!this._skipLevelCalculation) {
+                this.appState.setGender(defaultGender);
+            }
             
             // Fähigkeiten abrufen und im AppState speichern
             try {

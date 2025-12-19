@@ -5,64 +5,72 @@
  * Verwendet für Pokemon und Trainer (Menschen)
  */
 
-// Statuseffekt-Definitionen
+// Statuseffekt-Definitionen mit Effektbeschreibungen
 const STATUS_EFFECTS = {
     poisoned: {
         id: 'poisoned',
         name: 'Vergiftet',
         emoji: '☠️',
-        color: '#9B59B6',      // Lila
-        borderColor: '#7D3C98'
+        color: '#9333ea',      // Lila
+        borderColor: '#7c3aed',
+        description: 'Das Ziel verliert nach jedem seiner Züge 10% seine max KP (aufgerundet). Dann darf es eine Probe auf Widerstand ablegen, die je nach Quelle des Gifts eine Schwierigkeit zwischen 1 und 5 haben kann. Besteht es die Probe, überkommt es das Gift. Außerhalb des Kampfes passiert das alle 10 Sekunden. Gift kann zu Wunden führen, z.B. durch schwere Organschäden, und sogar tödlich sein.'
     },
     burned: {
         id: 'burned',
         name: 'Verbrannt',
         emoji: '🔥',
-        color: '#E74C3C',      // Rot
-        borderColor: '#C0392B'
+        color: '#dc2626',      // Rot
+        borderColor: '#b91c1c',
+        description: 'Das Ziel verliert nach jedem seiner Züge 10% seine max KP (aufgerundet). Dieser Zustand endet automatisch nach 3 Runden und kann nicht zum Tod (der zehnten Wunde) führen, aber ansonsten Wunden auslösen.'
     },
     paralyzed: {
         id: 'paralyzed',
         name: 'Paralysiert',
         emoji: '⚡',
-        color: '#F1C40F',      // Gelb
-        borderColor: '#D4AC0D'
+        color: '#eab308',      // Gelb
+        borderColor: '#ca8a04',
+        description: 'Das Ziel muss vor jedem eigenen Zug und wenn es eine Reaktion ausführen will zuerst eine Widerstand-Probe mit Schwierigkeit 1 bestehen, sonst muss es aussetzen/verliert seine Reaktion. Dieser Effekt hält 2W6 Stunden an, während denen die Muskeln des Ziels beeinträchtigt sind.'
     },
     asleep: {
         id: 'asleep',
         name: 'Schlafend',
         emoji: '💤',
-        color: '#3498DB',      // Blau
-        borderColor: '#2980B9'
+        color: '#6b7280',      // Grau
+        borderColor: '#4b5563',
+        description: 'Das Ziel kann nicht agieren. Nimmt es irgendwelchen Schaden, wacht es auf. Ein Pokemon oder Trainer kann seine Aktion nutzen, um ein Schlafendes Ziel, das er berührt, aufzuwecken (Klapse ins Gesicht, ins Ohr brüllen...).'
     },
     frozen: {
         id: 'frozen',
         name: 'Eingefroren',
         emoji: '❄️',
-        color: '#85C1E9',      // Hellblau/Cyan
-        borderColor: '#5DADE2'
+        color: '#38bdf8',      // Hellblau
+        borderColor: '#0ea5e9',
+        description: 'Das Ziel kann nicht agieren, aber auch von den meisten Attacken nicht erreicht werden, da es in einen dicken Eisblock gehüllt ist. Der Eisblock kann durch eine Vielzahl von Attacken aufgebrochen werden, was das Ziel von diesem Status befreit.'
     },
     cursed: {
         id: 'cursed',
         name: 'Verflucht',
         emoji: '👻',
-        color: '#2C3E50',      // Dunkel
-        borderColor: '#1A252F'
+        color: '#1f2937',      // Schwarz/Dunkelgrau
+        borderColor: '#111827',
+        description: 'Das Ziel nimmt jede Runde 25% seiner max KP Schaden, bis es bewusstlos wird. Dann erleidet es furchtbare Alpträume. Durch einen Fluch ausgelöster Schaden fügt keine Wunden zu (höchstens seelische Traumata...).'
     },
     infatuated: {
         id: 'infatuated',
         name: 'Verliebt',
         emoji: '💕',
-        color: '#FF69B4',      // Pink
-        borderColor: '#FF1493'
+        color: '#ec4899',      // Pink
+        borderColor: '#db2777',
+        description: 'Das Ziel kann den Verursacher des Effekts nicht als Angriffsziel wählen.'
     },
     confused: {
         id: 'confused',
         name: 'Verwirrt',
         emoji: '💫',
-        color: '#E67E22',      // Orange
-        borderColor: '#D35400',
-        pokemonOnly: true      // Nur für Pokemon
+        color: '#f97316',      // Orange
+        borderColor: '#ea580c',
+        pokemonOnly: true,     // Nur für Pokemon
+        description: 'Das Ziel muss auswürfeln, welche Attacke es gegen welches Ziel/welche Ziele einsetzt.'
     }
 };
 
@@ -182,7 +190,11 @@ class StatusEffectsComponent {
         const wrapper = document.createElement('div');
         wrapper.className = 'status-icon-wrapper';
         wrapper.dataset.statusId = status.id;
-        wrapper.title = status.name;
+        
+        // Custom-Tooltip Daten speichern (kein title-Attribut mehr)
+        wrapper.dataset.tooltipName = status.name;
+        wrapper.dataset.tooltipDescription = status.description || '';
+        wrapper.dataset.tooltipColor = status.color;
         
         const icon = document.createElement('div');
         icon.className = 'status-icon inactive';
@@ -201,7 +213,105 @@ class StatusEffectsComponent {
         // Click-Handler
         wrapper.addEventListener('click', () => this._toggleStatus(status.id));
         
+        // Custom-Tooltip Event-Handler
+        wrapper.addEventListener('mouseenter', (e) => this._showTooltip(e, status));
+        wrapper.addEventListener('mouseleave', () => this._hideTooltip());
+        wrapper.addEventListener('mousemove', (e) => this._moveTooltip(e));
+        
         return wrapper;
+    }
+    
+    /**
+     * Zeigt den Custom-Tooltip an
+     * @param {MouseEvent} e - Das Mouse-Event
+     * @param {Object} status - Status-Definition
+     * @private
+     */
+    _showTooltip(e, status) {
+        // Existierenden Tooltip entfernen
+        this._hideTooltip();
+        
+        // Neuen Tooltip erstellen
+        const tooltip = document.createElement('div');
+        tooltip.className = 'status-tooltip';
+        tooltip.id = 'status-effect-tooltip';
+        tooltip.style.backgroundColor = status.color;
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'status-tooltip-name';
+        nameSpan.textContent = status.name;
+        tooltip.appendChild(nameSpan);
+        
+        if (status.description) {
+            const descP = document.createElement('p');
+            descP.className = 'status-tooltip-description';
+            descP.textContent = status.description;
+            tooltip.appendChild(descP);
+        }
+        
+        document.body.appendChild(tooltip);
+        
+        // Position setzen
+        this._positionTooltip(e, tooltip);
+        
+        // Sichtbar machen (nach kurzer Verzögerung für Animation)
+        requestAnimationFrame(() => {
+            tooltip.classList.add('visible');
+        });
+    }
+    
+    /**
+     * Versteckt den Custom-Tooltip
+     * @private
+     */
+    _hideTooltip() {
+        const tooltip = document.getElementById('status-effect-tooltip');
+        if (tooltip) {
+            tooltip.remove();
+        }
+    }
+    
+    /**
+     * Bewegt den Tooltip mit der Maus
+     * @param {MouseEvent} e - Das Mouse-Event
+     * @private
+     */
+    _moveTooltip(e) {
+        const tooltip = document.getElementById('status-effect-tooltip');
+        if (tooltip) {
+            this._positionTooltip(e, tooltip);
+        }
+    }
+    
+    /**
+     * Positioniert den Tooltip relativ zur Maus
+     * @param {MouseEvent} e - Das Mouse-Event
+     * @param {HTMLElement} tooltip - Das Tooltip-Element
+     * @private
+     */
+    _positionTooltip(e, tooltip) {
+        const padding = 12;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        let x = e.clientX + padding;
+        let y = e.clientY + padding;
+        
+        // Tooltip-Dimensionen
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        // Rechten Rand prüfen
+        if (x + tooltipRect.width > viewportWidth - padding) {
+            x = e.clientX - tooltipRect.width - padding;
+        }
+        
+        // Unteren Rand prüfen
+        if (y + tooltipRect.height > viewportHeight - padding) {
+            y = e.clientY - tooltipRect.height - padding;
+        }
+        
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
     }
     
     /**

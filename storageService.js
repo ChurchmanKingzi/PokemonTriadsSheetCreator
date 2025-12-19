@@ -217,6 +217,10 @@ class PokemonStorageService {
             pokemonGermanName: appState.pokemonData.germanName || '',
             types: appState.pokemonData.types || [],
             
+            // Sprite-URLs für Trainer-Ansicht
+            spriteUrl: appState.pokemonData.sprites?.front_default || '',
+            shinySpriteUrl: appState.pokemonData.sprites?.front_shiny || '',
+            
             // Level & Erfahrung
             level: appState.level,
             currentExp: appState.currentExp || 0,
@@ -267,6 +271,29 @@ class PokemonStorageService {
             
             // Benutzerdefinierte Würfelklasse (null = automatisch berechnet)
             customDiceClass: appState.customDiceClass || null,
+            
+            // Shiny-Modus
+            isShiny: appState.isShiny || false,
+            
+            // Geschlecht des Pokemon
+            gender: appState.gender || GENDER.MALE,
+            
+            // Exotische Färbung
+            isExoticColor: appState.isExoticColor || false,
+            exoticHueRotation: appState.exoticHueRotation || 0,
+            
+            // Notizen
+            notes: appState.notes ? JSON.parse(JSON.stringify(appState.notes)) : [],
+            
+            // Sektionen-Reihenfolge und Einklapp-Zustand
+            sectionOrder: appState.sectionOrder ? [...appState.sectionOrder] : 
+                ['info', 'combat', 'moves', 'abilities', 'skills', 'notes'],
+            collapsedSections: appState.collapsedSections ? { ...appState.collapsedSections } : {},
+            
+            // Benutzerdefinierte physische Werte
+            customHeight: appState.customHeight || null,
+            customWeight: appState.customWeight || null,
+            customRideability: appState.customRideability || null,
             
             // Textfelder
             textFields: textFields

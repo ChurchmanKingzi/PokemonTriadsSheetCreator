@@ -154,9 +154,12 @@ class TrainerPdfService {
         });
     }
     
+    
     /**
      * Exportiert den aktuellen Trainer-Sheet als PDF
-     * Jede aufgeklappte Sektion bekommt eine eigene Seite
+     * - Alle Sektionen werden aufgeklappt dargestellt (außer Notizen/Typ-Meisterschaften)
+     * - Notizen und Typ-Meisterschaften werden nur gedruckt wenn sie aufgeklappt sind
+     * - Mehrere Sektionen können auf einer Seite erscheinen wenn sie passen
      */
     async exportTrainerPdf() {
         const trainer = this.trainerManager?.getActiveTrainer();
@@ -193,19 +196,60 @@ class TrainerPdfService {
             }
             
             // ============================================
-            // Alle AUFGEKLAPPTEN Sektionen sammeln
+            // Alle Sektionen sammeln und kategorisieren
             // ============================================
-            const allSections = sheetElement.querySelectorAll('.collapsible-section');
-            const expandedSections = Array.from(allSections).filter(
-                section => !section.classList.contains('collapsed')
-            );
+            const allSections = Array.from(sheetElement.querySelectorAll('.collapsible-section'));
             
-            if (expandedSections.length === 0) {
-                this._showToast('Keine aufgeklappten Sektionen zum Exportieren.', 'error');
+            // Sektionen die wir exportieren wollen
+            const sectionsToExport = [];
+            
+            // Sektionen die wir automatisch aufklappen (temporär)
+            const sectionsToExpand = [];
+            
+            // Begriffe für Sektionen die nur wenn aufgeklappt gedruckt werden
+            const skipIfCollapsedTerms = ['notizen', 'notes', 'typ-meisterschaft', 'type-mastery', 'zeugnisse', 'grades'];
+            
+            allSections.forEach(section => {
+                const sectionId = (section.id || '').toLowerCase();
+                const sectionTitle = (section.querySelector('.collapsible-title')?.textContent || '').toLowerCase();
+                const isCollapsed = section.classList.contains('collapsed');
+                
+                // Prüfen ob diese Sektion zu den "nur wenn aufgeklappt" gehört
+                const isSkipIfCollapsed = skipIfCollapsedTerms.some(term => 
+                    sectionId.includes(term) || sectionTitle.includes(term)
+                );
+                
+                if (isSkipIfCollapsed) {
+                    // Nur einbeziehen wenn aufgeklappt
+                    if (!isCollapsed) {
+                        sectionsToExport.push(section);
+                    }
+                } else {
+                    // Immer einbeziehen, ggf. temporär aufklappen
+                    sectionsToExport.push(section);
+                    if (isCollapsed) {
+                        sectionsToExpand.push(section);
+                    }
+                }
+            });
+            
+            if (sectionsToExport.length === 0) {
+                this._showToast('Keine Sektionen zum Exportieren.', 'error');
+                this._hideLoadingOverlay();
                 return;
             }
             
-            // PDF-Objekt erstellen (A4 Hochformat als Standard)
+            // ============================================
+            // Sektionen temporär aufklappen
+            // ============================================
+            sectionsToExpand.forEach(section => {
+                section.classList.remove('collapsed');
+            });
+            
+            // Kurz warten damit das Layout sich aktualisiert
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // PDF-Objekt erstellen (A4 Hochformat)
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
@@ -214,26 +258,25 @@ class TrainerPdfService {
             
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            const margin = 10; // 10mm Rand
+            const margin = 8; // Reduzierter Rand für mehr Platz
             const usableWidth = pdfWidth - (2 * margin);
             const usableHeight = pdfHeight - (2 * margin);
+            const sectionGap = 0; // Keine Lücke zwischen Sektionen
+            const fillMultiplier = 1.08; // Multiplikator um horizontalen Weißraum zu füllen
             
             // ============================================
-            // Jede Sektion einzeln rendern
+            // Alle Sektionen als Canvases rendern
             // ============================================
-            for (let i = 0; i < expandedSections.length; i++) {
-                const section = expandedSections[i];
+            const renderedSections = [];
+            
+            for (let i = 0; i < sectionsToExport.length; i++) {
+                const section = sectionsToExport[i];
                 const sectionTitle = section.querySelector('.collapsible-title')?.textContent || `Sektion ${i + 1}`;
                 
-                this._updateLoadingMessage(`Rendere: ${sectionTitle} (${i + 1}/${expandedSections.length})`);
-                
-                // Neue Seite hinzufügen (außer bei der ersten)
-                if (i > 0) {
-                    pdf.addPage();
-                }
+                this._updateLoadingMessage(`Rendere: ${sectionTitle} (${i + 1}/${sectionsToExport.length})`);
                 
                 // Alle anderen Sektionen temporär verstecken
-                const otherSections = Array.from(allSections).filter(s => s !== section);
+                const otherSections = allSections.filter(s => s !== section);
                 const hiddenOthers = otherSections.map(s => {
                     const orig = s.style.display;
                     s.style.display = 'none';
@@ -263,26 +306,67 @@ class TrainerPdfService {
                     element.style.display = originalDisplay || '';
                 });
                 
-                // Skalierung berechnen um die Seite optimal zu füllen
-                const canvasWidth = canvas.width;
-                const canvasHeight = canvas.height;
+                // Canvas-Infos speichern
+                const canvasWidth = canvas.width / 2; // /2 wegen scale:2
+                const canvasHeight = canvas.height / 2;
                 
-                // Skalierungsfaktor: Seite möglichst ausfüllen
-                const scaleX = usableWidth / (canvasWidth / 2); // /2 wegen scale:2 bei html2canvas
-                const scaleY = usableHeight / (canvasHeight / 2);
-                const scale = Math.min(scaleX, scaleY) * 0.95; // 95% für etwas Luft
+                // Skalierung berechnen (volle Breite nutzen mit Multiplikator)
+                const targetWidth = usableWidth * fillMultiplier;
+                const scale = targetWidth / canvasWidth;
+                const finalWidth = targetWidth;
+                const finalHeight = canvasHeight * scale;
                 
-                // Finale Dimensionen
-                const finalWidth = (canvasWidth / 2) * scale;
-                const finalHeight = (canvasHeight / 2) * scale;
+                renderedSections.push({
+                    canvas: canvas,
+                    title: sectionTitle,
+                    width: finalWidth,
+                    height: finalHeight,
+                    imgData: canvas.toDataURL('image/png')
+                });
+            }
+            
+            // ============================================
+            // Sektionen wieder einklappen die vorher eingeklappt waren
+            // ============================================
+            sectionsToExpand.forEach(section => {
+                section.classList.add('collapsed');
+            });
+            
+            // ============================================
+            // Sektionen auf PDF-Seiten verteilen (dynamisch)
+            // ============================================
+            this._updateLoadingMessage('Erstelle PDF-Seiten...');
+            
+            let currentY = margin;
+            let currentPage = 1;
+            let sectionsOnCurrentPage = 0;
+            
+            for (let i = 0; i < renderedSections.length; i++) {
+                const section = renderedSections[i];
                 
-                // Zentrieren auf der Seite
-                const x = margin + (usableWidth - finalWidth) / 2;
-                const y = margin + (usableHeight - finalHeight) / 2;
+                // Prüfen ob diese Sektion noch auf die aktuelle Seite passt
+                const neededHeight = section.height + (sectionsOnCurrentPage > 0 ? sectionGap : 0);
+                const remainingHeight = usableHeight - (currentY - margin);
                 
-                // Canvas als Bild zur PDF-Seite hinzufügen
-                const imgData = canvas.toDataURL('image/png');
-                pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+                if (sectionsOnCurrentPage > 0 && neededHeight > remainingHeight) {
+                    // Neue Seite beginnen
+                    pdf.addPage();
+                    currentPage++;
+                    currentY = margin;
+                    sectionsOnCurrentPage = 0;
+                }
+                
+                // Abstand zwischen Sektionen
+                if (sectionsOnCurrentPage > 0) {
+                    currentY += sectionGap;
+                }
+                
+                // Sektion auf die Seite zeichnen (horizontal zentriert auf der Seite)
+                const x = (pdfWidth - section.width) / 2;
+                pdf.addImage(section.imgData, 'PNG', x, currentY, section.width, section.height);
+                
+                currentY += section.height;
+                sectionsOnCurrentPage++;
             }
             
             // Metadata hinzufügen
@@ -293,7 +377,7 @@ class TrainerPdfService {
             const sanitizedName = trainerName.replace(/[^a-zA-Z0-9äöüÄÖÜß_-]/g, '_');
             pdf.save(`Trainer_${sanitizedName}.pdf`);
             
-            this._showToast(`Trainer-PDF mit ${expandedSections.length} Seiten gespeichert`, 'success');
+            this._showToast(`Trainer-PDF mit ${currentPage} Seite(n) gespeichert`, 'success');
         } catch (error) {
             console.error('Fehler beim Exportieren des PDF:', error);
             this._showToast('Fehler beim Exportieren des PDF: ' + error.message, 'error');

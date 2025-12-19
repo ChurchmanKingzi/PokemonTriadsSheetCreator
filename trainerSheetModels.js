@@ -524,7 +524,10 @@ class TrainerState {
         // Grunddaten des Trainers
         this.name = '';
         this.age = '';
+        this.height = '';
+        this.weight = '';
         this.playedBy = '';
+        this.background = '';
         
         // Klasse, Vorteil, Nachteil
         this.klasse = '';
@@ -610,17 +613,49 @@ class TrainerState {
         // Aktiver Pokemon-Index (für Navigation)
         this.activePokemonIndex = null;
         
-        // Inventar (standardmäßig 1 leerer Slot)
-        this.inventory = [];
-        for (let i = 0; i < 1; i++) {
-            this.inventory.push(new InventoryItem());
-        }
+        // Inventar mit Kategorien
+        this.inventory = {
+            categories: ['items', 'schluessel-items', 'pokeballs', 'medizin', 'sonstiges'],
+            categoryNames: {
+                'items': 'Items',
+                'schluessel-items': 'Schlüssel-Items',
+                'pokeballs': 'Pokébälle',
+                'medizin': 'Medizin',
+                'sonstiges': 'Sonstiges'
+            },
+            items: {
+                'items': [new InventoryItem()],
+                'schluessel-items': [],
+                'pokeballs': [],
+                'medizin': [],
+                'sonstiges': []
+            }
+        };
         
-        // Notizen (drei Kategorien mit je einem leeren Eintrag)
+        // Notizen (dynamische Kategorien mit Einträgen)
         this.notes = {
-            personen: [new NoteEntry('personen')],
-            orte: [new NoteEntry('orte')],
-            sonstiges: [new NoteEntry('sonstiges')]
+            categories: ['personen', 'orte', 'sonstiges'],
+            categoryNames: {
+                'personen': 'Personen',
+                'orte': 'Orte',
+                'sonstiges': 'Sonstiges'
+            },
+            categoryIcons: {
+                'personen': '👤',
+                'orte': '📍',
+                'sonstiges': '📝'
+            },
+            categoryColors: {
+                // Hue-Werte (0-360) für Kategorie-Hintergrundfarben, null = Standard
+                'personen': null,
+                'orte': null,
+                'sonstiges': null
+            },
+            entries: {
+                'personen': [new NoteEntry('personen')],
+                'orte': [new NoteEntry('orte')],
+                'sonstiges': [new NoteEntry('sonstiges')]
+            }
         };
         
         // Trainer-Attacken (mit Standard-Attacken)
@@ -629,18 +664,24 @@ class TrainerState {
                 name: 'Tackle',
                 type: 'Normal',
                 damage: '5W6',
-                effect: 'Kontakt, Nah. Trifft ein Ziel mit Körpereinsatz.'
+                range: 'Nah',
+                attackCategory: 'Physisch',
+                effect: 'Kontakt. Trifft ein Ziel mit Körpereinsatz.'
             },
             {
                 name: 'Risikotackle',
                 type: 'Normal',
                 damage: '12W6',
-                effect: 'Kontakt, Nah. Rammt ein Ziel rücksichtslos. 50% Rückstoßschaden!'
+                range: 'Nah',
+                attackCategory: 'Physisch',
+                effect: 'Kontakt. Rammt ein Ziel rücksichtslos. 50% Rückstoßschaden!'
             },
             {
                 name: 'Kulleraugen',
                 type: 'Fee',
                 damage: '0W6',
+                range: 'Blickkontakt',
+                attackCategory: 'Status',
                 effect: 'Das Ziel muss den Anwender sehen können. Es muss eine Probe auf WI + Widerstand gegen eine Schauspiel-Probe des Anwenders würfeln. Schafft es diese nicht, verliert es ANG gleich seinem Level.'
             }
         ];
@@ -747,6 +788,33 @@ class TrainerState {
      */
     setPlayedBy(playedBy) {
         this.playedBy = playedBy;
+        this._notifyChange();
+    }
+    
+    /**
+     * Setzt die Größe des Trainers
+     * @param {string} height - Die Größe
+     */
+    setHeight(height) {
+        this.height = height;
+        this._notifyChange();
+    }
+    
+    /**
+     * Setzt das Gewicht des Trainers
+     * @param {string} weight - Das Gewicht
+     */
+    setWeight(weight) {
+        this.weight = weight;
+        this._notifyChange();
+    }
+    
+    /**
+     * Setzt den Hintergrund des Trainers
+     * @param {string} background - Die Hintergrundgeschichte
+     */
+    setBackground(background) {
+        this.background = background;
         this._notifyChange();
     }
     
@@ -1185,6 +1253,7 @@ class TrainerState {
             germanName: fromSlot.germanName,
             nickname: fromSlot.nickname,
             spriteUrl: fromSlot.spriteUrl,
+            shinySpriteUrl: fromSlot.shinySpriteUrl,
             types: fromSlot.types ? [...fromSlot.types] : []
         };
         
@@ -1195,6 +1264,7 @@ class TrainerState {
         fromSlot.germanName = toSlot.germanName;
         fromSlot.nickname = toSlot.nickname;
         fromSlot.spriteUrl = toSlot.spriteUrl;
+        fromSlot.shinySpriteUrl = toSlot.shinySpriteUrl;
         fromSlot.types = toSlot.types ? [...toSlot.types] : [];
         
         // toSlot bekommt tempData
@@ -1204,6 +1274,7 @@ class TrainerState {
         toSlot.germanName = tempData.germanName;
         toSlot.nickname = tempData.nickname;
         toSlot.spriteUrl = tempData.spriteUrl;
+        toSlot.shinySpriteUrl = tempData.shinySpriteUrl;
         toSlot.types = tempData.types;
         
         console.log(`Pokemon-Slots getauscht: ${fromIndex} <-> ${toIndex}`);
@@ -1236,6 +1307,7 @@ class TrainerState {
         slot.pokemonName = pokemonData.name;
         slot.germanName = pokemonData.germanName || pokemonData.name;
         slot.spriteUrl = pokemonData.sprites?.front_default || '';
+        slot.shinySpriteUrl = pokemonData.sprites?.front_shiny || '';
         slot.nickname = '';
         
         // Typen extrahieren
@@ -1302,25 +1374,51 @@ class TrainerState {
     
     // ==================== Inventar Management ====================
     
+    // ==================== Inventar Management ====================
+    
+    /**
+     * Gibt die Standard-Kategorien zurück
+     * @returns {Object} Standard-Kategorien Konfiguration
+     */
+    getDefaultInventoryCategories() {
+        return {
+            categories: ['items', 'schluessel-items', 'pokeballs', 'medizin', 'sonstiges'],
+            categoryNames: {
+                'items': 'Items',
+                'schluessel-items': 'Schlüssel-Items',
+                'pokeballs': 'Pokébälle',
+                'medizin': 'Medizin',
+                'sonstiges': 'Sonstiges'
+            }
+        };
+    }
+    
     /**
      * Fügt einen neuen Inventar-Eintrag hinzu
+     * @param {string} category - Die Kategorie-ID (default: 'items')
      * @returns {number} Index des neuen Eintrags
      */
-    addInventoryItem() {
+    addInventoryItem(category = 'items') {
+        if (!this.inventory.items[category]) {
+            category = 'items'; // Fallback zur Items-Kategorie
+        }
         const newItem = new InventoryItem();
-        this.inventory.push(newItem);
+        this.inventory.items[category].push(newItem);
         this._notifyChange();
-        return this.inventory.length - 1;
+        return this.inventory.items[category].length - 1;
     }
     
     /**
      * Entfernt einen Inventar-Eintrag
+     * @param {string} category - Die Kategorie-ID
      * @param {number} index - Index des zu entfernenden Eintrags
      * @returns {boolean} True bei Erfolg
      */
-    removeInventoryItem(index) {
-        if (index >= 0 && index < this.inventory.length && this.inventory.length > 1) {
-            this.inventory.splice(index, 1);
+    removeInventoryItem(category, index) {
+        if (!this.inventory.items[category]) return false;
+        const items = this.inventory.items[category];
+        if (index >= 0 && index < items.length) {
+            items.splice(index, 1);
             this._notifyChange();
             return true;
         }
@@ -1329,12 +1427,15 @@ class TrainerState {
     
     /**
      * Aktualisiert einen Inventar-Eintrag
+     * @param {string} category - Die Kategorie-ID
      * @param {number} index - Index des Eintrags
      * @param {Object} data - Neue Daten { name, quantity, description }
      */
-    updateInventoryItem(index, data) {
-        if (index >= 0 && index < this.inventory.length) {
-            const item = this.inventory[index];
+    updateInventoryItem(category, index, data) {
+        if (!this.inventory.items[category]) return false;
+        const items = this.inventory.items[category];
+        if (index >= 0 && index < items.length) {
+            const item = items[index];
             if (data.name !== undefined) item.name = data.name;
             if (data.quantity !== undefined) item.quantity = data.quantity;
             if (data.description !== undefined) item.description = data.description;
@@ -1344,31 +1445,180 @@ class TrainerState {
         return false;
     }
     
+    /**
+     * Verschiebt ein Item in eine andere Kategorie
+     * @param {string} fromCategory - Quell-Kategorie
+     * @param {number} fromIndex - Index in der Quell-Kategorie
+     * @param {string} toCategory - Ziel-Kategorie
+     * @param {number} toIndex - Optional: Ziel-Index (default: am Ende)
+     * @returns {boolean} True bei Erfolg
+     */
+    moveInventoryItem(fromCategory, fromIndex, toCategory, toIndex = -1) {
+        if (!this.inventory.items[fromCategory] || !this.inventory.items[toCategory]) return false;
+        
+        const fromItems = this.inventory.items[fromCategory];
+        if (fromIndex < 0 || fromIndex >= fromItems.length) return false;
+        
+        const [item] = fromItems.splice(fromIndex, 1);
+        const toItems = this.inventory.items[toCategory];
+        
+        if (toIndex < 0 || toIndex >= toItems.length) {
+            toItems.push(item);
+        } else {
+            toItems.splice(toIndex, 0, item);
+        }
+        
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Fügt eine neue Inventar-Kategorie hinzu
+     * @param {string} name - Name der neuen Kategorie
+     * @returns {string|null} ID der neuen Kategorie oder null bei Fehler
+     */
+    addInventoryCategory(name) {
+        if (!name || typeof name !== 'string') return null;
+        
+        // ID generieren (lowercase, Bindestriche statt Leerzeichen)
+        const id = name.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9äöüß-]/g, '')
+            .substring(0, 30);
+        
+        // Prüfen ob ID schon existiert
+        if (this.inventory.items[id]) {
+            // Suffix anhängen
+            let counter = 2;
+            let newId = `${id}-${counter}`;
+            while (this.inventory.items[newId]) {
+                counter++;
+                newId = `${id}-${counter}`;
+            }
+            this.inventory.categories.push(newId);
+            this.inventory.categoryNames[newId] = name;
+            this.inventory.items[newId] = [];
+            this._notifyChange();
+            return newId;
+        }
+        
+        this.inventory.categories.push(id);
+        this.inventory.categoryNames[id] = name;
+        this.inventory.items[id] = [];
+        this._notifyChange();
+        return id;
+    }
+    
+    /**
+     * Entfernt eine Inventar-Kategorie
+     * @param {string} categoryId - ID der zu entfernenden Kategorie
+     * @param {boolean} moveItems - True = Items nach 'items' verschieben, False = löschen
+     * @returns {boolean} True bei Erfolg
+     */
+    removeInventoryCategory(categoryId, moveItems = true) {
+        // 'items' Kategorie kann nicht gelöscht werden
+        if (categoryId === 'items') return false;
+        if (!this.inventory.items[categoryId]) return false;
+        
+        // Items verschieben oder löschen
+        if (moveItems) {
+            const itemsToMove = this.inventory.items[categoryId];
+            this.inventory.items['items'].push(...itemsToMove);
+        }
+        
+        // Kategorie entfernen
+        delete this.inventory.items[categoryId];
+        delete this.inventory.categoryNames[categoryId];
+        this.inventory.categories = this.inventory.categories.filter(id => id !== categoryId);
+        
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Benennt eine Inventar-Kategorie um
+     * @param {string} categoryId - ID der Kategorie
+     * @param {string} newName - Neuer Name
+     * @returns {boolean} True bei Erfolg
+     */
+    renameInventoryCategory(categoryId, newName) {
+        if (!this.inventory.categoryNames[categoryId]) return false;
+        if (!newName || typeof newName !== 'string') return false;
+        
+        this.inventory.categoryNames[categoryId] = newName;
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Ändert die Reihenfolge der Inventar-Kategorien
+     * @param {number} fromIndex - Ursprünglicher Index
+     * @param {number} toIndex - Ziel-Index
+     * @returns {boolean} True bei Erfolg
+     */
+    reorderInventoryCategories(fromIndex, toIndex) {
+        const categories = this.inventory.categories;
+        if (fromIndex < 0 || fromIndex >= categories.length) return false;
+        if (toIndex < 0 || toIndex >= categories.length) return false;
+        
+        const [category] = categories.splice(fromIndex, 1);
+        categories.splice(toIndex, 0, category);
+        
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Gibt die Items einer Kategorie zurück
+     * @param {string} category - Kategorie-ID
+     * @returns {InventoryItem[]} Items der Kategorie
+     */
+    getInventoryItems(category) {
+        return this.inventory.items[category] || [];
+    }
+    
+    /**
+     * Gibt alle Kategorie-IDs zurück
+     * @returns {string[]} Kategorie-IDs
+     */
+    getInventoryCategories() {
+        return this.inventory.categories;
+    }
+    
+    /**
+     * Gibt den Namen einer Kategorie zurück
+     * @param {string} categoryId - Kategorie-ID
+     * @returns {string} Kategorie-Name
+     */
+    getInventoryCategoryName(categoryId) {
+        return this.inventory.categoryNames[categoryId] || categoryId;
+    }
+    
     // ==================== Notizen Management ====================
     
     /**
      * Fügt einen neuen Notiz-Eintrag hinzu
-     * @param {string} category - 'personen', 'orte' oder 'sonstiges'
+     * @param {string} category - Kategorie-ID
      * @returns {number} Index des neuen Eintrags
      */
     addNote(category) {
-        if (!this.notes[category]) return -1;
+        if (!this.notes.entries[category]) return -1;
         const newEntry = new NoteEntry(category);
-        this.notes[category].push(newEntry);
+        this.notes.entries[category].push(newEntry);
         this._notifyChange();
-        return this.notes[category].length - 1;
+        return this.notes.entries[category].length - 1;
     }
     
     /**
      * Entfernt einen Notiz-Eintrag
-     * @param {string} category - 'personen', 'orte' oder 'sonstiges'
+     * @param {string} category - Kategorie-ID
      * @param {number} index - Index des zu entfernenden Eintrags
      * @returns {boolean} True bei Erfolg
      */
     removeNote(category, index) {
-        if (!this.notes[category]) return false;
-        if (index >= 0 && index < this.notes[category].length && this.notes[category].length > 1) {
-            this.notes[category].splice(index, 1);
+        if (!this.notes.entries[category]) return false;
+        if (index >= 0 && index < this.notes.entries[category].length) {
+            this.notes.entries[category].splice(index, 1);
             this._notifyChange();
             return true;
         }
@@ -1377,14 +1627,14 @@ class TrainerState {
     
     /**
      * Aktualisiert einen Notiz-Eintrag
-     * @param {string} category - 'personen', 'orte' oder 'sonstiges'
+     * @param {string} category - Kategorie-ID
      * @param {number} index - Index des Eintrags
      * @param {Object} data - Neue Daten
      */
     updateNote(category, index, data) {
-        if (!this.notes[category]) return false;
-        if (index >= 0 && index < this.notes[category].length) {
-            const entry = this.notes[category][index];
+        if (!this.notes.entries[category]) return false;
+        if (index >= 0 && index < this.notes.entries[category].length) {
+            const entry = this.notes.entries[category][index];
             Object.keys(data).forEach(key => {
                 if (entry.hasOwnProperty(key) && key !== 'type') {
                     entry[key] = data[key];
@@ -1394,6 +1644,228 @@ class TrainerState {
             return true;
         }
         return false;
+    }
+    
+    /**
+     * Gibt alle Notizen-Kategorien zurück
+     * @returns {string[]} Array von Kategorie-IDs
+     */
+    getNoteCategories() {
+        return this.notes.categories;
+    }
+    
+    /**
+     * Gibt den Namen einer Notizen-Kategorie zurück
+     * @param {string} categoryId - Kategorie-ID
+     * @returns {string} Kategorie-Name
+     */
+    getNoteCategoryName(categoryId) {
+        return this.notes.categoryNames[categoryId] || categoryId;
+    }
+    
+    /**
+     * Gibt das Icon einer Notizen-Kategorie zurück
+     * @param {string} categoryId - Kategorie-ID
+     * @returns {string} Kategorie-Icon
+     */
+    getNoteCategoryIcon(categoryId) {
+        return this.notes.categoryIcons[categoryId] || '📋';
+    }
+    
+    /**
+     * Gibt die Einträge einer Notizen-Kategorie zurück
+     * @param {string} categoryId - Kategorie-ID
+     * @returns {NoteEntry[]} Einträge der Kategorie
+     */
+    getNoteEntries(categoryId) {
+        return this.notes.entries[categoryId] || [];
+    }
+    
+    /**
+     * Fügt eine neue Notizen-Kategorie hinzu
+     * @param {string} name - Name der neuen Kategorie
+     * @param {string} icon - Icon für die Kategorie (optional)
+     * @returns {string|null} ID der neuen Kategorie oder null bei Fehler
+     */
+    addNoteCategory(name, icon = '📋') {
+        if (!name || typeof name !== 'string') return null;
+        
+        // ID generieren (lowercase, Bindestriche statt Leerzeichen)
+        const id = name.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9äöüß-]/g, '')
+            .substring(0, 30);
+        
+        // categoryColors initialisieren falls nicht vorhanden
+        if (!this.notes.categoryColors) {
+            this.notes.categoryColors = {};
+        }
+        
+        // Prüfen ob ID schon existiert
+        if (this.notes.entries[id]) {
+            // Suffix anhängen
+            let counter = 2;
+            let newId = `${id}-${counter}`;
+            while (this.notes.entries[newId]) {
+                counter++;
+                newId = `${id}-${counter}`;
+            }
+            this.notes.categories.push(newId);
+            this.notes.categoryNames[newId] = name;
+            this.notes.categoryIcons[newId] = icon;
+            this.notes.categoryColors[newId] = null;
+            this.notes.entries[newId] = [];
+            this._notifyChange();
+            return newId;
+        }
+        
+        this.notes.categories.push(id);
+        this.notes.categoryNames[id] = name;
+        this.notes.categoryIcons[id] = icon;
+        this.notes.categoryColors[id] = null;
+        this.notes.entries[id] = [];
+        this._notifyChange();
+        return id;
+    }
+    
+    /**
+     * Entfernt eine Notizen-Kategorie
+     * @param {string} categoryId - ID der zu entfernenden Kategorie
+     * @returns {boolean} True bei Erfolg
+     */
+    removeNoteCategory(categoryId) {
+        // Mindestens eine Kategorie muss bleiben
+        if (this.notes.categories.length <= 1) return false;
+        if (!this.notes.entries[categoryId]) return false;
+        
+        // Kategorie entfernen
+        delete this.notes.entries[categoryId];
+        delete this.notes.categoryNames[categoryId];
+        delete this.notes.categoryIcons[categoryId];
+        if (this.notes.categoryColors) {
+            delete this.notes.categoryColors[categoryId];
+        }
+        this.notes.categories = this.notes.categories.filter(id => id !== categoryId);
+        
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Benennt eine Notizen-Kategorie um
+     * @param {string} categoryId - ID der Kategorie
+     * @param {string} newName - Neuer Name
+     * @returns {boolean} True bei Erfolg
+     */
+    renameNoteCategory(categoryId, newName) {
+        if (!this.notes.categoryNames[categoryId]) return false;
+        if (!newName || typeof newName !== 'string') return false;
+        
+        this.notes.categoryNames[categoryId] = newName;
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Ändert das Icon einer Notizen-Kategorie
+     * @param {string} categoryId - ID der Kategorie
+     * @param {string} newIcon - Neues Icon
+     * @returns {boolean} True bei Erfolg
+     */
+    changeNoteCategoryIcon(categoryId, newIcon) {
+        if (!this.notes.categoryIcons[categoryId]) return false;
+        if (!newIcon || typeof newIcon !== 'string') return false;
+        
+        this.notes.categoryIcons[categoryId] = newIcon;
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Ändert die Reihenfolge der Notiz-Einträge innerhalb einer Kategorie
+     * @param {string} category - Kategorie-ID
+     * @param {number} fromIndex - Ursprünglicher Index
+     * @param {number} toIndex - Ziel-Index
+     * @returns {boolean} True bei Erfolg
+     */
+    reorderNotes(category, fromIndex, toIndex) {
+        if (!this.notes.entries[category]) return false;
+        const entries = this.notes.entries[category];
+        if (fromIndex < 0 || fromIndex >= entries.length) return false;
+        if (toIndex < 0 || toIndex >= entries.length) return false;
+        
+        const [entry] = entries.splice(fromIndex, 1);
+        entries.splice(toIndex, 0, entry);
+        
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Setzt die Hintergrundfarbe einer Notizen-Kategorie
+     * @param {string} categoryId - ID der Kategorie
+     * @param {number|null} hue - Hue-Wert (0-360) oder null zum Zurücksetzen
+     * @returns {boolean} True bei Erfolg
+     */
+    setNoteCategoryColor(categoryId, hue) {
+        if (!this.notes.entries[categoryId]) return false;
+        
+        // categoryColors initialisieren falls nicht vorhanden
+        if (!this.notes.categoryColors) {
+            this.notes.categoryColors = {};
+        }
+        
+        this.notes.categoryColors[categoryId] = hue;
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Gibt die Hintergrundfarbe einer Notizen-Kategorie zurück
+     * @param {string} categoryId - ID der Kategorie
+     * @returns {number|null} Hue-Wert oder null
+     */
+    getNoteCategoryColor(categoryId) {
+        if (!this.notes.categoryColors) return null;
+        return this.notes.categoryColors[categoryId] ?? null;
+    }
+    
+    /**
+     * Setzt die Hintergrundfarbe eines einzelnen Notiz-Eintrags
+     * @param {string} category - Kategorie-ID
+     * @param {number} index - Index des Eintrags
+     * @param {number|null} hue - Hue-Wert (0-360) oder null zum Zurücksetzen
+     * @returns {boolean} True bei Erfolg
+     */
+    setNoteEntryColor(category, index, hue) {
+        if (!this.notes.entries[category]) return false;
+        if (index < 0 || index >= this.notes.entries[category].length) return false;
+        
+        this.notes.entries[category][index].hue = hue;
+        this._notifyChange();
+        return true;
+    }
+    
+    /**
+     * Gibt die effektive Hintergrundfarbe eines Eintrags zurück
+     * (Eintrag-Farbe > Kategorie-Farbe > null)
+     * @param {string} category - Kategorie-ID
+     * @param {number} index - Index des Eintrags
+     * @returns {number|null} Effektiver Hue-Wert oder null
+     */
+    getEffectiveNoteColor(category, index) {
+        if (!this.notes.entries[category]) return null;
+        if (index < 0 || index >= this.notes.entries[category].length) return null;
+        
+        const entry = this.notes.entries[category][index];
+        
+        // Eintrag-Farbe hat Vorrang
+        if (entry.hue !== null && entry.hue !== undefined) {
+            return entry.hue;
+        }
+        
+        // Sonst Kategorie-Farbe
+        return this.getNoteCategoryColor(category);
     }
     
     // ==================== Attacken Management ====================
@@ -1407,6 +1879,8 @@ class TrainerState {
             name: '',
             type: 'Normal',
             damage: '0W6',
+            range: 'Nah',
+            attackCategory: 'Physisch',
             effect: ''
         };
         this.attacks.push(newAttack);
@@ -1431,7 +1905,7 @@ class TrainerState {
     /**
      * Aktualisiert eine Attacke
      * @param {number} index - Index der Attacke
-     * @param {Object} data - Neue Daten { name, type, damage, effect }
+     * @param {Object} data - Neue Daten { name, type, damage, range, attackCategory, effect }
      */
     updateAttack(index, data) {
         if (index >= 0 && index < this.attacks.length) {
@@ -1439,6 +1913,8 @@ class TrainerState {
             if (data.name !== undefined) attack.name = data.name;
             if (data.type !== undefined) attack.type = data.type;
             if (data.damage !== undefined) attack.damage = data.damage;
+            if (data.range !== undefined) attack.range = data.range;
+            if (data.attackCategory !== undefined) attack.attackCategory = data.attackCategory;
             if (data.effect !== undefined) attack.effect = data.effect;
             this._notifyChange();
             return true;
@@ -1669,7 +2145,10 @@ class TrainerState {
             id: this.id,
             name: this.name,
             age: this.age,
+            height: this.height,
+            weight: this.weight,
             playedBy: this.playedBy,
+            background: this.background,
             klasse: this.klasse,
             secondKlasse: this.secondKlasse,
             vorteil: this.vorteil,
@@ -1690,11 +2169,27 @@ class TrainerState {
             skillValues: this.skillValues,
             customSkills: this.customSkills || { 'KÖ': [], 'WI': [], 'CH': [], 'GL': [] },
             pokemonSlots: this.pokemonSlots.map(slot => slot.toJSON()),
-            inventory: this.inventory.map(item => item.toJSON()),
+            inventory: {
+                categories: this.inventory.categories,
+                categoryNames: this.inventory.categoryNames,
+                items: Object.fromEntries(
+                    Object.entries(this.inventory.items).map(([cat, items]) => [
+                        cat,
+                        items.map(item => item.toJSON())
+                    ])
+                )
+            },
             notes: {
-                personen: this.notes.personen.map(entry => entry.toJSON()),
-                orte: this.notes.orte.map(entry => entry.toJSON()),
-                sonstiges: this.notes.sonstiges.map(entry => entry.toJSON())
+                categories: this.notes.categories,
+                categoryNames: this.notes.categoryNames,
+                categoryIcons: this.notes.categoryIcons,
+                categoryColors: this.notes.categoryColors || {},
+                entries: Object.fromEntries(
+                    Object.entries(this.notes.entries).map(([cat, entries]) => [
+                        cat,
+                        entries.map(entry => entry.toJSON())
+                    ])
+                )
             },
             attacks: this.attacks,
             perks: this.perks,
@@ -1720,7 +2215,10 @@ class TrainerState {
         
         this.name = data.name || '';
         this.age = data.age || '';
+        this.height = data.height || '';
+        this.weight = data.weight || '';
         this.playedBy = data.playedBy || '';
+        this.background = data.background || '';
         this.klasse = data.klasse || '';
         this.secondKlasse = data.secondKlasse || '';
         this.vorteil = data.vorteil || '';
@@ -1785,30 +2283,144 @@ class TrainerState {
             });
         }
         
-        // Inventar
-        if (data.inventory && Array.isArray(data.inventory)) {
-            this.inventory = data.inventory.map(itemData => {
-                const item = new InventoryItem();
-                item.fromJSON(itemData);
-                return item;
-            });
+        // Inventar (mit Migration von altem Format)
+        if (data.inventory) {
+            // Prüfen ob altes Format (Array) oder neues Format (Object)
+            if (Array.isArray(data.inventory)) {
+                // MIGRATION: Altes flaches Array -> Neue kategorisierte Struktur
+                const defaults = this.getDefaultInventoryCategories();
+                this.inventory = {
+                    categories: defaults.categories,
+                    categoryNames: defaults.categoryNames,
+                    items: {
+                        'items': data.inventory.map(itemData => {
+                            const item = new InventoryItem();
+                            item.fromJSON(itemData);
+                            return item;
+                        }),
+                        'schluessel-items': [],
+                        'pokeballs': [],
+                        'medizin': [],
+                        'sonstiges': []
+                    }
+                };
+                // Mindestens ein Item in der Items-Kategorie
+                if (this.inventory.items['items'].length === 0) {
+                    this.inventory.items['items'].push(new InventoryItem());
+                }
+            } else if (data.inventory.categories && data.inventory.items) {
+                // Neues Format laden
+                this.inventory = {
+                    categories: data.inventory.categories || ['items'],
+                    categoryNames: data.inventory.categoryNames || { 'items': 'Items' },
+                    items: {}
+                };
+                
+                // Items pro Kategorie laden
+                for (const categoryId of this.inventory.categories) {
+                    const categoryItems = data.inventory.items[categoryId] || [];
+                    this.inventory.items[categoryId] = categoryItems.map(itemData => {
+                        const item = new InventoryItem();
+                        item.fromJSON(itemData);
+                        return item;
+                    });
+                }
+                
+                // Sicherstellen dass 'items' Kategorie existiert
+                if (!this.inventory.categories.includes('items')) {
+                    this.inventory.categories.unshift('items');
+                    this.inventory.categoryNames['items'] = 'Items';
+                    this.inventory.items['items'] = [];
+                }
+                
+                // Mindestens ein Item in der Items-Kategorie wenn alles leer
+                const totalItems = Object.values(this.inventory.items).flat().length;
+                if (totalItems === 0) {
+                    this.inventory.items['items'].push(new InventoryItem());
+                }
+            }
         }
         
         // Notizen
         if (data.notes && typeof data.notes === 'object') {
-            ['personen', 'orte', 'sonstiges'].forEach(category => {
-                if (data.notes[category] && Array.isArray(data.notes[category])) {
-                    this.notes[category] = data.notes[category].map(entryData => {
-                        const entry = new NoteEntry(category);
+            // Neues Format mit dynamischen Kategorien
+            if (data.notes.categories && data.notes.entries) {
+                this.notes = {
+                    categories: data.notes.categories || ['personen', 'orte', 'sonstiges'],
+                    categoryNames: data.notes.categoryNames || {
+                        'personen': 'Personen',
+                        'orte': 'Orte',
+                        'sonstiges': 'Sonstiges'
+                    },
+                    categoryIcons: data.notes.categoryIcons || {
+                        'personen': '👤',
+                        'orte': '📍',
+                        'sonstiges': '📝'
+                    },
+                    categoryColors: data.notes.categoryColors || {},
+                    entries: {}
+                };
+                
+                // Einträge für jede Kategorie laden
+                for (const categoryId of this.notes.categories) {
+                    const categoryEntries = data.notes.entries[categoryId] || [];
+                    this.notes.entries[categoryId] = categoryEntries.map(entryData => {
+                        const entry = new NoteEntry(categoryId);
                         entry.fromJSON(entryData);
                         return entry;
                     });
-                    // Mindestens ein Eintrag pro Kategorie
-                    if (this.notes[category].length === 0) {
-                        this.notes[category].push(new NoteEntry(category));
+                    
+                    // categoryColors für neue Kategorien initialisieren
+                    if (this.notes.categoryColors[categoryId] === undefined) {
+                        this.notes.categoryColors[categoryId] = null;
                     }
                 }
-            });
+                
+                // Sicherstellen, dass Standard-Kategorien Icons haben
+                if (!this.notes.categoryIcons['personen']) this.notes.categoryIcons['personen'] = '👤';
+                if (!this.notes.categoryIcons['orte']) this.notes.categoryIcons['orte'] = '📍';
+                if (!this.notes.categoryIcons['sonstiges']) this.notes.categoryIcons['sonstiges'] = '📝';
+                
+            } else {
+                // Altes Format - Migration zur neuen Struktur
+                this.notes = {
+                    categories: ['personen', 'orte', 'sonstiges'],
+                    categoryNames: {
+                        'personen': 'Personen',
+                        'orte': 'Orte',
+                        'sonstiges': 'Sonstiges'
+                    },
+                    categoryIcons: {
+                        'personen': '👤',
+                        'orte': '📍',
+                        'sonstiges': '📝'
+                    },
+                    categoryColors: {
+                        'personen': null,
+                        'orte': null,
+                        'sonstiges': null
+                    },
+                    entries: {
+                        'personen': [],
+                        'orte': [],
+                        'sonstiges': []
+                    }
+                };
+                
+                ['personen', 'orte', 'sonstiges'].forEach(category => {
+                    if (data.notes[category] && Array.isArray(data.notes[category])) {
+                        this.notes.entries[category] = data.notes[category].map(entryData => {
+                            const entry = new NoteEntry(category);
+                            entry.fromJSON(entryData);
+                            return entry;
+                        });
+                    }
+                    // Mindestens ein Eintrag pro Kategorie
+                    if (this.notes.entries[category].length === 0) {
+                        this.notes.entries[category].push(new NoteEntry(category));
+                    }
+                });
+            }
         }
         
         // Attacken
@@ -1928,7 +2540,8 @@ class InventoryItem {
  */
 class NoteEntry {
     constructor(type = 'personen') {
-        this.type = type; // 'personen', 'orte', 'sonstiges'
+        this.type = type; // 'personen', 'orte', 'sonstiges', oder benutzerdefiniert
+        this.hue = null;  // Benutzerdefinierte Hintergrundfarbe (0-360), null = Standard
         
         // Felder basierend auf Typ initialisieren
         if (type === 'personen') {
@@ -1941,6 +2554,10 @@ class NoteEntry {
         } else if (type === 'sonstiges') {
             this.ueberschrift = '';
             this.notizen = '';
+        } else {
+            // Benutzerdefinierte Kategorie
+            this.ueberschrift = '';
+            this.notizen = '';
         }
     }
     
@@ -1949,7 +2566,7 @@ class NoteEntry {
      * @returns {Object} JSON-Repräsentation
      */
     toJSON() {
-        const base = { type: this.type };
+        const base = { type: this.type, hue: this.hue };
         
         if (this.type === 'personen') {
             return { ...base, name: this.name, rolle: this.rolle, notizen: this.notizen };
@@ -1958,7 +2575,8 @@ class NoteEntry {
         } else if (this.type === 'sonstiges') {
             return { ...base, ueberschrift: this.ueberschrift, notizen: this.notizen };
         }
-        return base;
+        // Benutzerdefinierte Kategorie
+        return { ...base, ueberschrift: this.ueberschrift || '', name: this.name || '', notizen: this.notizen };
     }
     
     /**
@@ -1967,6 +2585,7 @@ class NoteEntry {
      */
     fromJSON(data) {
         this.type = data.type || 'personen';
+        this.hue = data.hue !== undefined ? data.hue : null;
         
         if (this.type === 'personen') {
             this.name = data.name || '';
@@ -1977,6 +2596,11 @@ class NoteEntry {
             this.notizen = data.notizen || '';
         } else if (this.type === 'sonstiges') {
             this.ueberschrift = data.ueberschrift || '';
+            this.notizen = data.notizen || '';
+        } else {
+            // Benutzerdefinierte Kategorie
+            this.ueberschrift = data.ueberschrift || '';
+            this.name = data.name || '';
             this.notizen = data.notizen || '';
         }
     }
@@ -1996,6 +2620,7 @@ class PokemonSlot {
         this.germanName = null;
         this.nickname = '';
         this.spriteUrl = '';
+        this.shinySpriteUrl = '';  // Shiny-Sprite-URL
         this.types = [];
     }
     
@@ -2039,6 +2664,7 @@ class PokemonSlot {
         this.germanName = null;
         this.nickname = '';
         this.spriteUrl = '';
+        this.shinySpriteUrl = '';
         this.types = [];
         return oldUuid;
     }
@@ -2056,6 +2682,7 @@ class PokemonSlot {
             germanName: this.germanName,
             nickname: this.nickname,
             spriteUrl: this.spriteUrl,
+            shinySpriteUrl: this.shinySpriteUrl,
             types: this.types || []
         };
     }
@@ -2072,6 +2699,7 @@ class PokemonSlot {
         this.germanName = data.germanName || null;
         this.nickname = data.nickname || '';
         this.spriteUrl = data.spriteUrl || '';
+        this.shinySpriteUrl = data.shinySpriteUrl || '';
         this.types = data.types || [];
     }
 }
